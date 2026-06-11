@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  ::selection { background: #16294d; color: #fff; }
+</style>
+</helmet>
+
+<div style="font-family:'Public Sans',system-ui,sans-serif; background:#e8e5df; color:#151515; padding:64px 56px 120px; display:flex; flex-direction:column; align-items:center; gap:60px; min-height:100vh;">
+
+  <!-- ============ DOC HEADER / DESIGN SYSTEM ============ -->
+  <div style="width:1440px; background:#ffffff; border:1px solid #e7e3dc; border-radius:16px; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 24px 60px -28px rgba(20,20,20,.18); overflow:hidden;">
+    <div style="display:grid; grid-template-columns:1.15fr 1fr;">
+      <div style="padding:48px 48px 44px; border-right:1px solid #efece6;">
+        <div style="display:flex; align-items:center; gap:11px; margin-bottom:30px;">
+          <div style="width:26px; height:26px; background:#16294d; border-radius:5px; position:relative;">
+            <div style="position:absolute; right:5px; bottom:5px; width:8px; height:8px; background:#bf2c30; border-radius:2px;"></div>
+          </div>
+          <div style="font-weight:800; font-size:19px; letter-spacing:.14em; color:#16294d;">NAABSA</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.04em; color:#9a9185; border-left:1px solid #e1ddd5; padding-left:11px; line-height:1.3;">MARINE SURVEYORS<br>&amp; CONSULTANTS</div>
+        </div>
+        <div style="font-size:34px; font-weight:800; letter-spacing:-.02em; line-height:1.05;">Sistema de Relatórios<br>Automatizados</div>
+        <div style="margin-top:16px; font-size:14.5px; line-height:1.6; color:#6f675c; max-width:480px;">Telas de alta fidelidade para o produto interno que automatiza os 5 relatórios de inspeção marítima — da planilha pré-moldada ao PDF final, com o operador como autoridade sobre cada etapa.</div>
+        <div style="margin-top:26px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#16294d; background:#eef1f7; border:1px solid #dde3ef; padding:5px 10px; border-radius:6px;">9 telas</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6f675c; background:#f4f2ee; border:1px solid #e7e3dc; padding:5px 10px; border-radius:6px;">pt-BR</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6f675c; background:#f4f2ee; border:1px solid #e7e3dc; padding:5px 10px; border-radius:6px;">desktop · 1440</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6f675c; background:#f4f2ee; border:1px solid #e7e3dc; padding:5px 10px; border-radius:6px;">densidade confortável</span>
+        </div>
+      </div>
+      <div style="padding:44px 48px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; color:#9a9185; text-transform:uppercase; margin-bottom:16px;">Paleta</div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:30px;">
+          <div><div style="height:54px; border-radius:8px; background:#16294d; border:1px solid rgba(0,0,0,.06);"></div><div style="margin-top:7px; font-size:12px; font-weight:600;">Navy</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#9a9185;">#16294D</div></div>
+          <div><div style="height:54px; border-radius:8px; background:#bf2c30; border:1px solid rgba(0,0,0,.06);"></div><div style="margin-top:7px; font-size:12px; font-weight:600;">Vermelho</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#9a9185;">#BF2C30</div></div>
+          <div><div style="height:54px; border-radius:8px; background:#7d7468; border:1px solid rgba(0,0,0,.06);"></div><div style="margin-top:7px; font-size:12px; font-weight:600;">Rocha</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#9a9185;">#7D7468</div></div>
+          <div><div style="height:54px; border-radius:8px; background:#151515; border:1px solid rgba(0,0,0,.06);"></div><div style="margin-top:7px; font-size:12px; font-weight:600;">Tinta</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#9a9185;">#151515</div></div>
+          <div><div style="height:54px; border-radius:8px; background:#faf8f5; border:1px solid #e7e3dc;"></div><div style="margin-top:7px; font-size:12px; font-weight:600;">Papel</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#9a9185;">#FAF8F5</div></div>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; color:#9a9185; text-transform:uppercase; margin-bottom:14px;">Tipografia</div>
+        <div style="display:flex; gap:14px;">
+          <div style="flex:1; border:1px solid #efece6; border-radius:10px; padding:16px 18px;">
+            <div style="font-size:26px; font-weight:700; letter-spacing:-.01em;">Public Sans</div>
+            <div style="font-size:12px; color:#9a9185; margin-top:4px;">Interface · títulos · corpo</div>
+          </div>
+          <div style="flex:1; border:1px solid #efece6; border-radius:10px; padding:16px 18px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:21px; font-weight:500;">IBM Plex Mono</div>
+            <div style="font-size:12px; color:#9a9185; margin-top:6px;">Células · IDs · dados</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #efece6; padding:18px 48px; display:flex; gap:26px; flex-wrap:wrap; background:#fbfaf8;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; color:#9a9185; text-transform:uppercase;">Índice</div>
+      <div style="display:flex; gap:22px; flex-wrap:wrap; font-size:12.5px; color:#6f675c;">
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">01</b> Login</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">02</b> Dashboard</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">03</b> Novo relatório</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">04</b> Revisão</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">05</b> Fotos</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">06</b> Editor</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">07</b> Preview/PDF</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">08</b> Histórico</span>
+        <span><b style="color:#16294d; font-family:'IBM Plex Mono',monospace;">09</b> Admin specs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 01 LOGIN ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">01</span>
+      <span style="font-size:15px; font-weight:700;">Login</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/login</span>
+      <span style="font-size:12.5px; color:#9a9185;">· acesso restrito, sem cadastro público · estado de erro à direita</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/login</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1.05fr 1fr; height:680px;">
+        <!-- left navy -->
+        <div style="background:#16294d; padding:52px 56px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(#ffffff0a 1px,transparent 1px); background-size:100% 38px; opacity:.5;"></div>
+          <div style="position:relative; display:flex; align-items:center; gap:12px;">
+            <div style="width:30px; height:30px; background:#fff; border-radius:6px; position:relative;"><div style="position:absolute; right:6px; bottom:6px; width:9px; height:9px; background:#bf2c30; border-radius:2px;"></div></div>
+            <div style="font-weight:800; font-size:21px; letter-spacing:.14em; color:#fff;">NAABSA</div>
+          </div>
+          <div style="position:relative;">
+            <div style="width:46px; height:4px; background:#bf2c30; border-radius:3px; margin-bottom:24px;"></div>
+            <div style="font-size:33px; font-weight:800; color:#fff; line-height:1.12; letter-spacing:-.02em;">Relatórios de inspeção<br>marítima, automatizados.</div>
+            <div style="margin-top:18px; font-size:14px; color:#aeb8cc; line-height:1.6; max-width:380px;">Da planilha ao PDF, com extração determinística e o operador no controle de cada etapa.</div>
+          </div>
+          <div style="position:relative; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6f7a95; letter-spacing:.03em;">ACESSO INTERNO · 1–3 OPERADORES</div>
+        </div>
+        <!-- right form -->
+        <div style="background:#faf8f5; display:flex; align-items:center; justify-content:center; padding:40px;">
+          <div style="width:368px;">
+            <div style="font-size:24px; font-weight:800; letter-spacing:-.01em;">Entrar</div>
+            <div style="font-size:13.5px; color:#7d7468; margin-top:6px;">Use as credenciais fornecidas pelo administrador.</div>
+
+            <div style="margin-top:26px; display:flex; align-items:center; gap:10px; background:#fbeceb; border:1px solid #f0c4c2; border-radius:9px; padding:11px 13px;">
+              <span style="width:18px;height:18px;border-radius:50%;background:#bf2c30;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;">!</span>
+              <span style="font-size:13px; color:#9b2a2c;">E-mail ou senha inválidos. Tente novamente.</span>
+            </div>
+
+            <div style="margin-top:18px;">
+              <label style="font-size:12.5px; font-weight:600; color:#3f3a33;">E-mail</label>
+              <div style="margin-top:7px; display:flex; align-items:center; height:46px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; padding:0 14px;">
+                <span style="font-size:14px; color:#1d1d1d;">c.andrade@naabsa.com.br</span>
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:12.5px; font-weight:600; color:#3f3a33;">Senha</label>
+                <a style="font-size:12px; color:#16294d; text-decoration:none; font-weight:600;">Esqueci minha senha</a>
+              </div>
+              <div style="margin-top:7px; display:flex; align-items:center; height:46px; background:#fff; border:1px solid #bf2c30; border-radius:9px; padding:0 14px; box-shadow:0 0 0 3px rgba(191,44,48,.10);">
+                <span style="font-size:16px; color:#1d1d1d; letter-spacing:.18em;">••••••••••</span>
+              </div>
+            </div>
+            <button style="margin-top:24px; width:100%; height:48px; background:#16294d; color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; letter-spacing:.01em;">Entrar</button>
+            <div style="margin-top:22px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#b5ab9d;">SUPABASE AUTH · TLS · v1.0.0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 02 DASHBOARD ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">02</span>
+      <span style="font-size:15px; font-weight:700;">Dashboard</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/dashboard</span>
+      <span style="font-size:12.5px; color:#9a9185;">· lista, filtros, badge de status, CTA "Novo relatório"</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/dashboard</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:248px 1fr; height:900px;">
+        <!-- sidebar -->
+        <div style="background:#fbfaf8; border-right:1px solid #ece8e1; padding:22px 16px; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; gap:10px; padding:4px 8px 22px;">
+            <div style="width:24px; height:24px; background:#16294d; border-radius:5px; position:relative;"><div style="position:absolute; right:5px; bottom:5px; width:7px; height:7px; background:#bf2c30; border-radius:2px;"></div></div>
+            <div style="font-weight:800; font-size:15px; letter-spacing:.13em; color:#16294d;">NAABSA</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; color:#b5ab9d; text-transform:uppercase; padding:0 8px 8px;">Trabalho</div>
+          <div style="display:flex; align-items:center; gap:11px; height:40px; padding:0 12px; background:#16294d; color:#fff; border-radius:9px; font-size:14px; font-weight:600;">
+            <span style="width:16px;height:13px;border:1.6px solid #fff;border-radius:2px;display:inline-block;position:relative;flex:none;"><span style="position:absolute;top:3px;left:2px;right:2px;height:1.4px;background:#fff;"></span><span style="position:absolute;top:6px;left:2px;right:6px;height:1.4px;background:#fff;"></span></span>
+            Relatórios
+          </div>
+          <div style="display:flex; align-items:center; gap:11px; height:40px; padding:0 12px; color:#4a443c; border-radius:9px; font-size:14px; font-weight:500; margin-top:2px;">
+            <span style="width:16px;height:16px;position:relative;flex:none;"><span style="position:absolute;top:7px;left:2px;right:2px;height:1.6px;background:#7d7468;"></span><span style="position:absolute;left:7px;top:2px;bottom:2px;width:1.6px;background:#7d7468;"></span></span>
+            Novo relatório
+          </div>
+          <div style="height:1px; background:#ece8e1; margin:14px 8px;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; color:#b5ab9d; text-transform:uppercase; padding:0 8px 8px;">Administração</div>
+          <div style="display:flex; align-items:center; gap:11px; height:40px; padding:0 12px; color:#4a443c; border-radius:9px; font-size:14px; font-weight:500;">
+            <span style="width:14px;height:14px;border:1.6px solid #7d7468;border-radius:3px;flex:none;"></span>
+            Specs
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex; align-items:center; gap:11px; padding:10px 10px; border-top:1px solid #ece8e1;">
+            <div style="width:34px; height:34px; border-radius:50%; background:#16294d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex:none;">CA</div>
+            <div style="line-height:1.25;"><div style="font-size:13px; font-weight:600;">C. Andrade</div><div style="font-size:11px; color:#9a9185;">Operador</div></div>
+          </div>
+        </div>
+        <!-- main -->
+        <div style="background:#faf8f5; display:flex; flex-direction:column; overflow:hidden;">
+          <div style="padding:28px 34px 20px; display:flex; align-items:flex-end; justify-content:space-between; border-bottom:1px solid #ece8e1;">
+            <div>
+              <div style="font-size:27px; font-weight:800; letter-spacing:-.02em;">Relatórios</div>
+              <div style="font-size:13.5px; color:#7d7468; margin-top:4px;">8 ativos · 30–50 produzidos por mês</div>
+            </div>
+            <button style="display:flex; align-items:center; gap:9px; height:44px; padding:0 18px; background:#16294d; color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;">
+              <span style="width:14px;height:14px;position:relative;flex:none;"><span style="position:absolute;top:6px;left:0;right:0;height:1.8px;background:#fff;"></span><span style="position:absolute;left:6px;top:0;bottom:0;width:1.8px;background:#fff;"></span></span>
+              Novo relatório
+            </button>
+          </div>
+          <!-- filters -->
+          <div style="padding:18px 34px; display:flex; align-items:center; gap:10px;">
+            <div style="display:flex; align-items:center; gap:9px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; width:260px;">
+              <span style="width:14px;height:14px;border:1.6px solid #9a9185;border-radius:50%;position:relative;flex:none;"><span style="position:absolute;right:-4px;bottom:-3px;width:6px;height:1.6px;background:#9a9185;transform:rotate(45deg);"></span></span>
+              <span style="font-size:13.5px; color:#a39a8d;">Buscar por navio…</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; font-size:13.5px; color:#3f3a33; font-weight:500;">Tipo: Todos <span style="color:#b5ab9d;">▾</span></div>
+            <div style="display:flex; align-items:center; gap:8px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; font-size:13.5px; color:#3f3a33; font-weight:500;">Status: Todos <span style="color:#b5ab9d;">▾</span></div>
+            <div style="display:flex; align-items:center; gap:8px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; font-size:13.5px; color:#3f3a33; font-weight:500;">Período: 30 dias <span style="color:#b5ab9d;">▾</span></div>
+            <div style="flex:1;"></div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">8 relatórios</div>
+          </div>
+          <!-- table -->
+          <div style="margin:0 34px 30px; background:#fff; border:1px solid #ece8e1; border-radius:12px; overflow:hidden;">
+            <div style="display:grid; grid-template-columns:118px 1.5fr 1.4fr 130px 116px 100px 34px; padding:13px 20px; background:#fbfaf8; border-bottom:1px solid #ece8e1; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#9a9185;">
+              <div>ID</div><div>Navio</div><div>Tipo · Variante</div><div>Status</div><div>Atualizado</div><div>Autor</div><div></div>
+            </div>
+            <sc-for list="{{ reportRows }}" as="r" hint-placeholder-count="8">
+              <div style="display:grid; grid-template-columns:118px 1.5fr 1.4fr 130px 116px 100px 34px; padding:15px 20px; border-bottom:1px solid #f2efe9; align-items:center;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#16294d; font-weight:500;">{{ r.id }}</div>
+                <div style="font-size:14px; font-weight:600; color:#1d1d1d;">{{ r.vessel }}</div>
+                <div style="font-size:13.5px; color:#4a443c;">{{ r.type }} <span style="color:#b5ab9d;">·</span> <span style="color:#7d7468;">{{ r.variant }}</span></div>
+                <div>
+                  <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 11px 5px 9px; border-radius:99px; font-size:12px; font-weight:600; background: {{ r.st.bg }}; color: {{ r.st.fg }};">
+                    <span style="width:6px; height:6px; border-radius:50%; background: {{ r.st.dot }};"></span>{{ r.st.label }}
+                  </span>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#6f675c;">{{ r.date }}</div>
+                <div style="font-size:13px; color:#4a443c;">{{ r.author }}</div>
+                <div style="color:#c4bcb0; font-size:16px; text-align:right;">›</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 03 NOVO RELATÓRIO ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">03</span>
+      <span style="font-size:15px; font-weight:700;">Novo relatório</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/reports/new</span>
+      <span style="font-size:12.5px; color:#9a9185;">· wizard tipo → variante → upload · variante escolhida ANTES da planilha</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/reports/new</div></div>
+      </div>
+      <div style="background:#faf8f5; padding:36px 40px 44px; min-height:720px;">
+        <!-- stepper -->
+        <div style="max-width:880px; margin:0 auto; display:flex; align-items:center; gap:0;">
+          <div style="display:flex; align-items:center; gap:11px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">1</div><div><div style="font-size:13.5px;font-weight:700;color:#16294d;">Tipo</div></div></div>
+          <div style="flex:1; height:2px; background:#16294d; margin:0 16px;"></div>
+          <div style="display:flex; align-items:center; gap:11px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">2</div><div><div style="font-size:13.5px;font-weight:700;color:#16294d;">Variante</div></div></div>
+          <div style="flex:1; height:2px; background:#dcd8d0; margin:0 16px;"></div>
+          <div style="display:flex; align-items:center; gap:11px;"><div style="width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid #dcd8d0;color:#b5ab9d;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">3</div><div><div style="font-size:13.5px;font-weight:600;color:#a39a8d;">Planilha</div></div></div>
+        </div>
+
+        <div style="max-width:880px; margin:34px auto 0;">
+          <div style="font-size:22px; font-weight:800; letter-spacing:-.01em;">Escolha o tipo de relatório</div>
+          <div style="font-size:13.5px; color:#7d7468; margin-top:5px;">O motor de extração usará o spec ativo deste tipo. A versão fica congelada no relatório.</div>
+
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px;">
+            <div style="background:#fff; border:2px solid #16294d; border-radius:12px; padding:18px 18px 16px; box-shadow:0 0 0 4px rgba(22,41,77,.08); position:relative;">
+              <div style="position:absolute; top:14px; right:14px; width:20px; height:20px; border-radius:50%; background:#16294d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px;">✓</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; letter-spacing:.05em;">draft_survey</div>
+              <div style="font-size:17px; font-weight:700; margin-top:7px;">Draft Survey</div>
+              <div style="font-size:12.5px; color:#7d7468; margin-top:5px;">Cálculo de calado · carga e descarga</div>
+              <div style="margin-top:12px; display:flex; gap:6px;"><span style="font-size:11px; background:#eef1f7; color:#27406e; padding:3px 9px; border-radius:99px; font-weight:600;">2 variantes</span></div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:12px; padding:18px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185;">bunker_surveyor</div>
+              <div style="font-size:17px; font-weight:700; margin-top:7px;">Bunker Surveyor</div>
+              <div style="font-size:12.5px; color:#7d7468; margin-top:5px;">Medição de combustível a bordo</div>
+              <div style="margin-top:12px; display:flex; gap:6px;"><span style="font-size:11px; background:#f4f2ee; color:#7d7468; padding:3px 9px; border-radius:99px; font-weight:600;">2 variantes</span></div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:12px; padding:18px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185;">msc</div>
+              <div style="font-size:17px; font-weight:700; margin-top:7px;">MSC</div>
+              <div style="font-size:12.5px; color:#7d7468; margin-top:5px;">Marine survey &amp; condition</div>
+              <div style="margin-top:12px; display:flex; gap:6px;"><span style="font-size:11px; background:#f4f2ee; color:#9a9185; padding:3px 9px; border-radius:99px; font-weight:600;">sem variante</span></div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:12px; padding:18px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185;">on_off_hire</div>
+              <div style="font-size:17px; font-weight:700; margin-top:7px;">On/Off-Hire</div>
+              <div style="font-size:12.5px; color:#7d7468; margin-top:5px;">Entrega e devolução de afretamento</div>
+              <div style="margin-top:12px; display:flex; gap:6px;"><span style="font-size:11px; background:#f4f2ee; color:#7d7468; padding:3px 9px; border-radius:99px; font-weight:600;">2 variantes</span></div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:12px; padding:18px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185;">rob</div>
+              <div style="font-size:17px; font-weight:700; margin-top:7px;">ROB</div>
+              <div style="font-size:12.5px; color:#7d7468; margin-top:5px;">Remaining on board</div>
+              <div style="margin-top:12px; display:flex; gap:6px;"><span style="font-size:11px; background:#f4f2ee; color:#9a9185; padding:3px 9px; border-radius:99px; font-weight:600;">sem variante</span></div>
+            </div>
+          </div>
+
+          <!-- variante (aparece pois tipo tem variantes) -->
+          <div style="margin-top:26px; background:#fff; border:1.5px solid #e4e0d8; border-radius:12px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <span style="width:24px;height:24px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">2</span>
+              <div style="font-size:15px; font-weight:700;">Variante do Draft Survey</div>
+              <span style="font-size:11.5px; color:#bf2c30; background:#fbeceb; border:1px solid #f0c4c2; padding:3px 9px; border-radius:99px; font-weight:600;">obrigatório</span>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:14px;">
+              <div style="flex:1; border:1.5px solid #e4e0d8; border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:11px;">
+                <span style="width:18px;height:18px;border-radius:50%;border:2px solid #cfcabf;flex:none;"></span>
+                <div><div style="font-size:14px; font-weight:600;">Carregamento</div><div style="font-size:12px; color:#9a9185;">loading</div></div>
+              </div>
+              <div style="flex:1; border:2px solid #16294d; border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:11px; box-shadow:0 0 0 4px rgba(22,41,77,.08);">
+                <span style="width:18px;height:18px;border-radius:50%;border:5px solid #16294d;flex:none;"></span>
+                <div><div style="font-size:14px; font-weight:600;">Descarga</div><div style="font-size:12px; color:#9a9185;">discharge</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:26px;">
+            <button style="height:44px; padding:0 20px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; color:#4a443c; cursor:pointer;">Cancelar</button>
+            <button style="height:44px; padding:0 24px; background:#16294d; color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;">Continuar para planilha →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 03b UPLOAD ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#7d7468; padding:3px 8px; border-radius:5px;">03 · b</span>
+      <span style="font-size:15px; font-weight:700;">Upload da planilha</span>
+      <span style="font-size:12.5px; color:#9a9185;">· passo 3 · .xlsx até 20 MB · barra de progresso</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/reports/new</div></div>
+      </div>
+      <div style="background:#faf8f5; padding:40px; min-height:560px; display:flex; flex-direction:column; align-items:center;">
+        <div style="max-width:880px; width:100%; display:flex; align-items:center; gap:0;">
+          <div style="display:flex; align-items:center; gap:11px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;">✓</div><div style="font-size:13.5px;font-weight:600;color:#16294d;">Tipo</div></div>
+          <div style="flex:1; height:2px; background:#16294d; margin:0 16px;"></div>
+          <div style="display:flex; align-items:center; gap:11px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;">✓</div><div style="font-size:13.5px;font-weight:600;color:#16294d;">Variante</div></div>
+          <div style="flex:1; height:2px; background:#16294d; margin:0 16px;"></div>
+          <div style="display:flex; align-items:center; gap:11px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">3</div><div style="font-size:13.5px;font-weight:700;color:#16294d;">Planilha</div></div>
+        </div>
+
+        <div style="max-width:600px; width:100%; margin-top:34px;">
+          <div style="display:flex; gap:8px; margin-bottom:18px;">
+            <span style="font-size:12.5px; background:#16294d; color:#fff; padding:5px 12px; border-radius:99px; font-weight:600;">Draft Survey</span>
+            <span style="font-size:12.5px; background:#eef1f7; color:#27406e; padding:5px 12px; border-radius:99px; font-weight:600;">Descarga</span>
+          </div>
+          <!-- dropzone uploading -->
+          <div style="border:2px dashed #c3bdb0; border-radius:14px; background:#fff; padding:30px 28px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="width:44px; height:54px; border-radius:7px; background:#e4f0e8; border:1px solid #c4e0cf; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; color:#2f7d52; flex:none;">XLSX</div>
+              <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                  <div style="font-size:14.5px; font-weight:600;">draft_cabo_frio_descarga.xlsx</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#7d7468;">2.7 / 4.2 MB</div>
+                </div>
+                <div style="margin-top:10px; height:8px; background:#efece6; border-radius:99px; overflow:hidden;"><div style="width:64%; height:100%; background:#16294d; border-radius:99px;"></div></div>
+                <div style="margin-top:8px; font-size:12px; color:#7d7468;">Enviando… 64%</div>
+              </div>
+            </div>
+          </div>
+          <div style="text-align:center; margin-top:14px; font-size:12.5px; color:#9a9185;">Solte aqui ou clique para trocar · apenas <b style="font-family:'IBM Plex Mono',monospace; color:#7d7468;">.xlsx</b> · máx. 20 MB</div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:28px;">
+            <button style="height:44px; padding:0 20px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; color:#4a443c; cursor:pointer;">← Voltar</button>
+            <button style="height:44px; padding:0 24px; background:#dcd8d0; color:#8a8276; border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; cursor:not-allowed;">Extrair dados</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 04 REVISÃO ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">04</span>
+      <span style="font-size:15px; font-weight:700;">Revisão de dados</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/reports/R-2487/review</span>
+      <span style="font-size:12.5px; color:#9a9185;">· campos por seção · issues inline · override ≠ sobrescrever · avanço bloqueado por erro</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/reports/R-2487/review</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:248px 1fr; min-height:960px;">
+        <!-- sidebar -->
+        <div style="background:#fbfaf8; border-right:1px solid #ece8e1; padding:22px 16px; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; gap:10px; padding:4px 8px 22px;">
+            <div style="width:24px; height:24px; background:#16294d; border-radius:5px; position:relative;"><div style="position:absolute; right:5px; bottom:5px; width:7px; height:7px; background:#bf2c30; border-radius:2px;"></div></div>
+            <div style="font-weight:800; font-size:15px; letter-spacing:.13em; color:#16294d;">NAABSA</div>
+          </div>
+          <a style="display:flex; align-items:center; gap:11px; height:38px; padding:0 12px; color:#16294d; border-radius:9px; font-size:13.5px; font-weight:600; background:#eef1f7; text-decoration:none;">‹ Voltar ao relatório</a>
+          <div style="height:1px; background:#ece8e1; margin:14px 8px;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.1em; color:#b5ab9d; text-transform:uppercase; padding:0 8px 10px;">Etapas</div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <div style="display:flex; align-items:center; gap:10px; height:36px; padding:0 12px; font-size:13.5px; color:#6f675c;"><span style="width:18px;height:18px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;">✓</span> Upload</div>
+            <div style="display:flex; align-items:center; gap:10px; height:36px; padding:0 12px; font-size:13.5px; color:#16294d; font-weight:700; background:#eef1f7; border-radius:9px;"><span style="width:18px;height:18px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;">2</span> Revisão</div>
+            <div style="display:flex; align-items:center; gap:10px; height:36px; padding:0 12px; font-size:13.5px; color:#a39a8d;"><span style="width:18px;height:18px;border-radius:50%;border:2px solid #d4cfc4;flex:none;"></span> Fotos</div>
+            <div style="display:flex; align-items:center; gap:10px; height:36px; padding:0 12px; font-size:13.5px; color:#a39a8d;"><span style="width:18px;height:18px;border-radius:50%;border:2px solid #d4cfc4;flex:none;"></span> Editor</div>
+            <div style="display:flex; align-items:center; gap:10px; height:36px; padding:0 12px; font-size:13.5px; color:#a39a8d;"><span style="width:18px;height:18px;border-radius:50%;border:2px solid #d4cfc4;flex:none;"></span> PDF</div>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="background:#fff; border:1px solid #ece8e1; border-radius:10px; padding:13px;">
+            <div style="font-size:13px; font-weight:700;">MV Cabo Frio</div>
+            <div style="font-size:11.5px; color:#7d7468; margin-top:2px;">Draft Survey · Descarga</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:6px;">spec v3 · R-2487</div>
+          </div>
+        </div>
+        <!-- main -->
+        <div style="background:#faf8f5; display:flex; flex-direction:column;">
+          <div style="padding:26px 32px 18px; display:flex; align-items:flex-end; justify-content:space-between; border-bottom:1px solid #ece8e1;">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px;"><div style="font-size:23px; font-weight:800; letter-spacing:-.01em;">Revisão de dados</div><span style="display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:99px; font-size:12px; font-weight:600; background:#f6eed8; color:#8a6516;"><span style="width:6px;height:6px;border-radius:50%;background:#bb8420;"></span>Em revisão</span></div>
+              <div style="font-size:13px; color:#7d7468; margin-top:5px;">Valor efetivo = <span style="font-family:'IBM Plex Mono',monospace; color:#16294d;">override ?? extraído</span> · edições não sobrescrevem a extração.</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 300px; gap:0; flex:1;">
+            <!-- fields -->
+            <div style="padding:24px 32px 36px; display:flex; flex-direction:column; gap:24px;">
+              <sc-for list="{{ reviewSections }}" as="sec" hint-placeholder-count="3">
+                <div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#9a9185; margin-bottom:12px;">{{ sec.name }}</div>
+                  <div style="background:#fff; border:1px solid #ece8e1; border-radius:12px; overflow:hidden;">
+                    <sc-for list="{{ sec.fields }}" as="f" hint-placeholder-count="3">
+                      <div style="padding:14px 18px; border-bottom:1px solid #f2efe9; display:grid; grid-template-columns:1fr 220px; gap:18px; align-items:center;">
+                        <div>
+                          <div style="display:flex; align-items:center; gap:9px;">
+                            <span style="font-size:13.5px; font-weight:600; color:#2a2620;">{{ f.label }}</span>
+                            <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; background:#f4f2ee; border:1px solid #e7e3dc; padding:2px 6px; border-radius:5px;">{{ f.cell }}</span>
+                            <sc-if value="{{ f.override }}" hint-placeholder-val="{{ true }}"><span style="font-size:10.5px; font-weight:700; color:#16294d; background:#eef1f7; border:1px solid #dde3ef; padding:2px 7px; border-radius:99px;">override</span></sc-if>
+                          </div>
+                          <sc-if value="{{ f.iss }}" hint-placeholder-val="{{ true }}">
+                            <div style="margin-top:8px; display:inline-flex; align-items:center; gap:8px; background: {{ f.iss.bg }}; border:1px solid {{ f.iss.bd }}; padding:6px 10px; border-radius:8px;">
+                              <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color: {{ f.iss.fg }};">{{ f.iss.tag }}</span>
+                              <span style="font-size:12px; color: {{ f.iss.fg }};">{{ f.iss.msg }}</span>
+                            </div>
+                          </sc-if>
+                        </div>
+                        <div style="display:flex; align-items:center; height:40px; background:#faf8f5; border:1.5px solid #e0dbd1; border-radius:9px; padding:0 12px; font-size:14px; color:#1d1d1d; font-family:'IBM Plex Mono',monospace;">{{ f.value }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <!-- right rail -->
+            <div style="border-left:1px solid #ece8e1; background:#fbfaf8; padding:24px 22px; display:flex; flex-direction:column; gap:16px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#9a9185;">Pendências</div>
+              <div style="background:#fbeceb; border:1px solid #f0c4c2; border-radius:10px; padding:14px;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#bf2c30;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">1</span><span style="font-size:13px; font-weight:700; color:#9b2a2c;">Erro bloqueante</span></div>
+                <div style="font-size:12px; color:#9b2a2c; margin-top:7px; line-height:1.45;">Data do survey vazia (B7). Resolva para avançar.</div>
+              </div>
+              <div style="background:#f9f1dc; border:1px solid #ecd9a6; border-radius:10px; padding:14px;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#bb8420;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">1</span><span style="font-size:13px; font-weight:700; color:#8a6516;">Aviso</span></div>
+                <div style="font-size:12px; color:#8a6516; margin-top:7px; line-height:1.45;">Peso de carga acima do usual. Pode seguir.</div>
+              </div>
+              <div style="flex:1;"></div>
+              <button style="width:100%; height:46px; background:#dcd8d0; color:#8a8276; border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; cursor:not-allowed; display:flex; align-items:center; justify-content:center; gap:8px;"><span style="width:14px;height:14px;border:1.6px solid #8a8276;border-radius:50%;display:inline-block;position:relative;flex:none;"><span style="position:absolute;inset:3px;border-radius:50%;background:#8a8276;"></span></span>Confirmar dados</button>
+              <div style="font-size:11.5px; color:#9a9185; text-align:center;">Resolva o erro para liberar a etapa de fotos.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 05 FOTOS ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">05</span>
+      <span style="font-size:15px; font-weight:700;">Fotos</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/reports/R-2487/photos</span>
+      <span style="font-size:12.5px; color:#9a9185;">· galeria + slots · drag-and-drop · banner de sugestões de IA · crop travado no aspect</span>
+    </div>
+    <div style="position:relative; background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/reports/R-2487/photos</div></div>
+      </div>
+      <div style="background:#faf8f5; padding:24px 30px 34px;">
+        <!-- header -->
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:16px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="font-size:23px; font-weight:800; letter-spacing:-.01em;">Fotos</div><span style="font-size:13px; color:#7d7468;">MV Cabo Frio · Draft Survey</span></div>
+            <div style="font-size:13px; color:#7d7468; margin-top:5px;">Arraste da galeria para os slots. Avanço bloqueado enquanto slots obrigatórios não estiverem completos.</div>
+          </div>
+          <button style="display:flex; align-items:center; gap:8px; height:42px; padding:0 16px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-family:inherit; font-size:13.5px; font-weight:600; color:#3f3a33; cursor:pointer;"><span style="width:14px;height:14px;position:relative;flex:none;"><span style="position:absolute;top:6px;left:0;right:0;height:1.7px;background:#7d7468;"></span><span style="position:absolute;left:6px;top:0;bottom:0;width:1.7px;background:#7d7468;"></span></span>Enviar fotos</button>
+        </div>
+
+        <!-- AI banner -->
+        <div style="display:flex; align-items:center; gap:14px; background:#16294d; border-radius:12px; padding:14px 18px; margin-bottom:20px;">
+          <div style="display:flex; align-items:center; gap:9px;"><span style="width:26px;height:26px;border-radius:7px;background:#bf2c30;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:none;">IA</span><span style="font-size:14px; font-weight:700; color:#fff;">3 fotos pré-alocadas pela IA</span></div>
+          <span style="font-size:13px; color:#aeb8cc;">Sugestões marcadas com <b style="color:#fff;">IA</b>. Confirme ou mova — a confirmação zera a flag. Nada é decidido sem você.</span>
+          <div style="flex:1;"></div>
+          <button style="height:36px; padding:0 16px; background:#fff; color:#16294d; border:none; border-radius:8px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;">Revisar sugestões</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1.15fr; gap:22px;">
+          <!-- gallery -->
+          <div style="background:#fff; border:1px solid #ece8e1; border-radius:12px; padding:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <div style="font-size:14px; font-weight:700;">Galeria</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185;">8 fotos · 5 alocadas</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+              <sc-for list="{{ gallery }}" as="g" hint-placeholder-count="8">
+                <div style="position:relative; border-radius:9px; overflow:hidden; aspect-ratio:4/3; background:{{ g.tone }}; cursor:grab; border:1px solid rgba(0,0,0,.08);">
+                  <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div>
+                  <div style="position:absolute; left:8px; bottom:7px; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:rgba(255,255,255,.9);">{{ g.name }}</div>
+                  <div style="position:absolute; left:7px; top:7px; display:flex; gap:4px; flex-wrap:wrap;">
+                    <sc-for list="{{ g.flagViews }}" as="fl" hint-placeholder-count="0">
+                      <span style="font-size:9px; font-weight:700; padding:2px 6px; border-radius:99px; background:{{ fl.bg }}; color:{{ fl.fg }};">{{ fl.t }}</span>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ g.allocated }}" hint-placeholder-val="{{ true }}"><div style="position:absolute; right:7px; top:7px; width:18px; height:18px; border-radius:50%; background:#2f7d52; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px;">✓</div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- slots -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:14px; font-weight:700;">Slots do spec</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#bf2c30;">1 slot obrigatório pendente</div>
+            </div>
+            <sc-for list="{{ slots }}" as="s" hint-placeholder-count="5">
+              <div style="background:#fff; border:1px solid #ece8e1; border-radius:11px; padding:14px; display:flex; gap:14px; align-items:center;">
+                <div style="flex:none; width:128px;">
+                  <sc-if value="{{ s.tone }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:relative; width:128px; aspect-ratio:4/3; border-radius:8px; overflow:hidden; background:{{ s.tone }};">
+                      <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div>
+                      <div style="position:absolute; right:6px; bottom:6px; width:22px; height:22px; border-radius:6px; background:rgba(255,255,255,.92); display:flex; align-items:center; justify-content:center;"><span style="width:11px;height:11px;border:1.5px solid #16294d;border-radius:2px;"></span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ s.tone }}" hint-placeholder-val="{{ false }}"><div></div></sc-if>
+                </div>
+                <div style="flex:1;">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:14px; font-weight:700;">{{ s.label }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#27406e; background:#eef1f7; padding:2px 7px; border-radius:5px;">{{ s.aspect }}</span>
+                    <sc-if value="{{ s.req }}" hint-placeholder-val="{{ true }}"><span style="font-size:10px; font-weight:700; color:#bf2c30; background:#fbeceb; border:1px solid #f0c4c2; padding:2px 7px; border-radius:99px;">obrigatório</span></sc-if>
+                    <sc-if value="{{ s.ai }}" hint-placeholder-val="{{ true }}"><span style="font-size:10px; font-weight:700; color:#fff; background:#16294d; padding:2px 7px; border-radius:99px;">sugestão IA</span></sc-if>
+                  </div>
+                  <div style="margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#7d7468;">{{ s.id }}</div>
+                </div>
+                <div style="flex:none; text-align:right;">
+                  <sc-if value="{{ s.ok }}" hint-placeholder-val="{{ true }}"><div style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:#2f7d52;"><span style="width:7px;height:7px;border-radius:50%;background:#2f7d52;"></span>{{ s.have }}/{{ s.max }}</div></sc-if>
+                  <sc-if value="{{ s.ok }}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:#bf2c30;"><span style="width:7px;height:7px;border-radius:50%;background:#bf2c30;"></span>{{ s.have }}/{{ s.max }}</div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- CROP MODAL overlay -->
+      <div style="position:absolute; inset:0; background:rgba(20,20,20,.55); display:flex; align-items:center; justify-content:center;">
+        <div style="width:560px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 30px 80px -20px rgba(0,0,0,.5);">
+          <div style="padding:18px 22px; border-bottom:1px solid #ece8e1; display:flex; align-items:center; justify-content:space-between;">
+            <div><div style="font-size:16px; font-weight:800;">Recortar foto</div><div style="font-size:12px; color:#7d7468; margin-top:2px;">Travado em <b style="font-family:'IBM Plex Mono',monospace; color:#27406e;">4:3</b> · slot Calado de proa</div></div>
+            <div style="width:30px; height:30px; border-radius:8px; background:#f4f2ee; display:flex; align-items:center; justify-content:center; color:#7d7468; font-size:16px;">✕</div>
+          </div>
+          <div style="position:relative; height:300px; background:#1d1d1d; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <div style="position:absolute; inset:0; background:#3a4a63;"></div>
+            <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.06) 0 9px, transparent 9px 18px);"></div>
+            <div style="position:relative; width:300px; height:225px; border:2px solid #fff; box-shadow:0 0 0 9999px rgba(20,20,20,.5);">
+              <div style="position:absolute; left:33.33%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.4);"></div>
+              <div style="position:absolute; left:66.66%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.4);"></div>
+              <div style="position:absolute; top:33.33%; left:0; right:0; height:1px; background:rgba(255,255,255,.4);"></div>
+              <div style="position:absolute; top:66.66%; left:0; right:0; height:1px; background:rgba(255,255,255,.4);"></div>
+            </div>
+          </div>
+          <div style="padding:16px 22px; display:flex; align-items:center; gap:14px; border-bottom:1px solid #ece8e1;">
+            <span style="font-size:12px; color:#7d7468; font-weight:600;">Zoom</span>
+            <div style="flex:1; height:5px; background:#e7e3dc; border-radius:99px; position:relative;"><div style="position:absolute; left:0; top:0; bottom:0; width:42%; background:#16294d; border-radius:99px;"></div><div style="position:absolute; left:42%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#fff; border:2px solid #16294d;"></div></div>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#7d7468;">1.4×</span>
+          </div>
+          <div style="padding:16px 22px; display:flex; justify-content:flex-end; gap:10px;">
+            <button style="height:42px; padding:0 18px; background:#fff; border:1.5px solid #d9d4cb; border-radius:9px; font-family:inherit; font-size:14px; font-weight:600; color:#4a443c; cursor:pointer;">Cancelar</button>
+            <button style="height:42px; padding:0 20px; background:#16294d; color:#fff; border:none; border-radius:9px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;">Salvar recorte</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 06 EDITOR ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">06</span>
+      <span style="font-size:15px; font-weight:700;">Editor (TipTap)</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/reports/R-2487/edit</span>
+      <span style="font-size:12.5px; color:#9a9185;">· pageless · nós travados (photoFrame / dataTable) · marca dataField · autosave</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/reports/R-2487/edit</div></div>
+      </div>
+      <!-- editor top bar -->
+      <div style="height:60px; background:#fff; border-bottom:1px solid #ece8e1; display:flex; align-items:center; padding:0 22px; gap:16px;">
+        <a style="font-size:13px; color:#7d7468; text-decoration:none; font-weight:600;">‹ Voltar</a>
+        <div style="width:1px; height:24px; background:#ece8e1;"></div>
+        <div><div style="font-size:14.5px; font-weight:700;">Draft Survey — MV Cabo Frio</div><div style="font-size:11.5px; color:#9a9185;">Descarga · spec v3</div></div>
+        <div style="display:flex; align-items:center; gap:7px; margin-left:6px; padding:5px 11px; background:#e4f0e8; border-radius:99px;"><span style="width:7px;height:7px;border-radius:50%;background:#2f7d52;"></span><span style="font-size:12px; color:#2f6b48; font-weight:600;">Salvo · há 2 s</span></div>
+        <div style="flex:1;"></div>
+        <button style="display:flex; align-items:center; gap:8px; height:42px; padding:0 16px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-family:inherit; font-size:13.5px; font-weight:600; color:#3f3a33; cursor:pointer;"><span style="width:14px;height:11px;border:1.5px solid #7d7468;border-radius:2px;flex:none;"></span>Preview</button>
+        <button style="height:42px; padding:0 18px; background:#16294d; color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer;">Aprovar e gerar PDF</button>
+      </div>
+      <!-- formatting toolbar -->
+      <div style="height:48px; background:#fbfaf8; border-bottom:1px solid #ece8e1; display:flex; align-items:center; padding:0 18px; gap:6px;">
+        <div style="display:flex; align-items:center; gap:7px; height:34px; padding:0 12px; background:#fff; border:1px solid #e4e0d8; border-radius:8px; font-size:13px; font-weight:600; color:#3f3a33;">Parágrafo <span style="color:#b5ab9d;">▾</span></div>
+        <div style="width:1px; height:22px; background:#e4e0d8; margin:0 4px;"></div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#16294d; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">B</div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-style:italic; font-size:14px; color:#3f3a33;">I</div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; text-decoration:underline; font-size:14px; color:#3f3a33;">U</div>
+        <div style="width:1px; height:22px; background:#e4e0d8; margin:0 4px;"></div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; padding:0 8px;"><span style="width:16px;height:1.6px;background:#7d7468;"></span><span style="width:11px;height:1.6px;background:#7d7468;"></span><span style="width:16px;height:1.6px;background:#7d7468;"></span></div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;"><span style="width:16px;height:1.6px;background:#7d7468;"></span><span style="width:11px;height:1.6px;background:#7d7468;"></span><span style="width:16px;height:1.6px;background:#7d7468;"></span></div>
+        <div style="width:1px; height:22px; background:#e4e0d8; margin:0 4px;"></div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-size:15px; color:#3f3a33;">•≡</div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-size:12px; color:#3f3a33; font-weight:700;">1.</div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center;"><span style="width:16px;height:14px;border:1.5px solid #7d7468;border-radius:2px;position:relative;"><span style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#7d7468;"></span><span style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#7d7468;"></span></span></div>
+        <div style="width:1px; height:22px; background:#e4e0d8; margin:0 4px;"></div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-size:15px; color:#7d7468;">↶</div>
+        <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-size:15px; color:#7d7468;">↷</div>
+        <div style="flex:1;"></div>
+        <div style="display:flex; align-items:center; gap:8px; height:34px; padding:0 12px; background:#fff; border:1px solid #e4e0d8; border-radius:8px; width:180px;"><span style="width:13px;height:13px;border:1.5px solid #9a9185;border-radius:50%;position:relative;flex:none;"><span style="position:absolute;right:-3px;bottom:-2px;width:5px;height:1.5px;background:#9a9185;transform:rotate(45deg);"></span></span><span style="font-size:12.5px; color:#a39a8d;">Localizar…</span></div>
+      </div>
+      <!-- canvas -->
+      <div style="background:#efece6; padding:34px; display:flex; justify-content:center;">
+        <div style="width:760px; background:#fff; border:1px solid #e4e0d8; border-radius:6px; box-shadow:0 8px 30px -16px rgba(0,0,0,.2); padding:54px 60px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em; color:#bf2c30; font-weight:600;">NAABSA MARINE SURVEYORS &amp; CONSULTANTS</div>
+          <div style="font-size:27px; font-weight:800; letter-spacing:-.01em; margin-top:10px;">Draft Survey Report</div>
+          <div style="font-size:13.5px; color:#7d7468; margin-top:4px;">Operação de descarga · Porto de Tubarão (Vitória)</div>
+          <div style="height:1px; background:#ece8e1; margin:20px 0 22px;"></div>
+
+          <div style="font-size:16px; font-weight:700; margin-bottom:10px;">1. Identificação do navio</div>
+          <div style="font-size:14px; line-height:1.85; color:#2a2620;">O navio <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">MV Cabo Frio</span> (IMO <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">9456123</span>), atracado no porto de <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">Tubarão (Vitória)</span>, foi vistoriado em <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">06/jun/2026</span> para apuração da quantidade de carga descarregada.</div>
+
+          <!-- dataTable locked -->
+          <div style="position:relative; margin:22px 0; border:1.5px solid #cdd6e6; border-radius:8px; overflow:hidden;">
+            <div style="position:absolute; top:9px; right:10px; display:flex; align-items:center; gap:5px; background:#16294d; color:#fff; padding:3px 9px; border-radius:99px; font-size:10px; font-weight:700;"><span style="width:9px;height:8px;border:1.4px solid #fff;border-radius:2px;border-bottom:none;display:inline-block;"></span>dataTable · travado</div>
+            <div style="background:#f4f7fc; padding:10px 16px; font-size:12.5px; font-weight:700; color:#27406e; border-bottom:1px solid #dde3ef;">Leituras de calado (m)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr;">
+              <div style="padding:11px 16px; border-right:1px solid #eef0f4; border-bottom:1px solid #eef0f4;"><div style="font-size:11px; color:#9a9185;">Proa</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#16294d;">12,340</div></div>
+              <div style="padding:11px 16px; border-right:1px solid #eef0f4; border-bottom:1px solid #eef0f4;"><div style="font-size:11px; color:#9a9185;">Meio-navio</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#16294d;">12,475</div></div>
+              <div style="padding:11px 16px; border-bottom:1px solid #eef0f4;"><div style="font-size:11px; color:#9a9185;">Popa</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#16294d;">12,610</div></div>
+            </div>
+          </div>
+
+          <div style="font-size:16px; font-weight:700; margin:24px 0 12px;">2. Registro fotográfico</div>
+          <!-- photoFrame locked -->
+          <div style="display:flex; gap:16px;">
+            <div style="position:relative; width:300px; height:225px; border-radius:8px; overflow:hidden; background:#3a4a63; flex:none; outline:2px dashed #cdd6e6; outline-offset:3px;">
+              <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 9px, transparent 9px 18px);"></div>
+              <div style="position:absolute; top:8px; right:8px; display:flex; align-items:center; gap:5px; background:#16294d; color:#fff; padding:3px 9px; border-radius:99px; font-size:10px; font-weight:700;"><span style="width:9px;height:8px;border:1.4px solid #fff;border-radius:2px;border-bottom:none;display:inline-block;"></span>photoFrame</div>
+              <div style="position:absolute; left:9px; bottom:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:rgba(255,255,255,.9);">draft_fwd · 4:3 · object-fit:cover</div>
+            </div>
+            <div style="flex:1; font-size:13.5px; line-height:1.8; color:#2a2620;">Vista do calado de proa no momento da leitura inicial. O frame tem dimensão fixa e não pode ser editado ou removido — a imagem se adapta ao quadro, nunca o contrário.<div style="margin-top:12px; font-size:12px; color:#9a9185; font-style:italic;">Legenda gerada a partir do slot do spec.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 07 PREVIEW / PRINT ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">07</span>
+      <span style="font-size:15px; font-weight:700;">Preview / PDF</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/reports/R-2487/print</span>
+      <span style="font-size:12.5px; color:#9a9185;">· render paginado A4 · MESMA rota usada pelo worker · preview = PDF</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <!-- bar -->
+      <div style="height:56px; background:#16294d; display:flex; align-items:center; padding:0 22px; gap:14px;">
+        <span style="font-size:14px; font-weight:700; color:#fff;">Preview paginado</span>
+        <span style="display:flex; align-items:center; gap:7px; padding:4px 11px; background:rgba(255,255,255,.12); border-radius:99px; font-size:11.5px; color:#cdd6e6; font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:#7fd1a3;"></span>idêntico ao PDF final</span>
+        <div style="flex:1;"></div>
+        <div style="display:flex; align-items:center; gap:10px; color:#aeb8cc; font-family:'IBM Plex Mono',monospace; font-size:12px;"><span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#fff;">−</span>96%<span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#fff;">+</span></div>
+        <button style="height:38px; padding:0 16px; background:#fff; color:#16294d; border:none; border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;">Baixar PDF</button>
+      </div>
+      <!-- pages -->
+      <div style="background:#d9d5cd; padding:36px; display:flex; gap:30px; justify-content:center;">
+        <!-- page 1 -->
+        <div style="width:480px; height:679px; background:#fff; box-shadow:0 10px 36px -14px rgba(0,0,0,.34); padding:42px 44px; display:flex; flex-direction:column; position:relative;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2px solid #16294d; padding-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:9px;"><div style="width:22px; height:22px; background:#16294d; border-radius:4px; position:relative;"><div style="position:absolute; right:4px; bottom:4px; width:6px; height:6px; background:#bf2c30; border-radius:1.5px;"></div></div><div><div style="font-weight:800; font-size:13px; letter-spacing:.12em; color:#16294d;">NAABSA</div><div style="font-family:'IBM Plex Mono',monospace; font-size:7px; letter-spacing:.05em; color:#9a9185;">MARINE SURVEYORS &amp; CONSULTANTS</div></div></div>
+            <div style="text-align:right;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9px; color:#9a9185;">REF R-2487</div><div style="font-family:'IBM Plex Mono',monospace; font-size:9px; color:#9a9185;">08/jun/2026</div></div>
+          </div>
+          <div style="font-size:19px; font-weight:800; margin-top:18px; letter-spacing:-.01em;">Draft Survey Report</div>
+          <div style="font-size:10.5px; color:#7d7468; margin-top:3px;">Operação de descarga · Porto de Tubarão (Vitória)</div>
+          <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #e4e0d8; border-radius:5px; overflow:hidden;">
+            <div style="padding:8px 11px; border-right:1px solid #eef0f4; border-bottom:1px solid #eef0f4;"><div style="font-size:8px; color:#9a9185;">NAVIO</div><div style="font-size:11px; font-weight:600;">MV Cabo Frio</div></div>
+            <div style="padding:8px 11px; border-bottom:1px solid #eef0f4;"><div style="font-size:8px; color:#9a9185;">IMO</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;">9456123</div></div>
+            <div style="padding:8px 11px; border-right:1px solid #eef0f4;"><div style="font-size:8px; color:#9a9185;">SURVEYOR</div><div style="font-size:11px; font-weight:600;">C. Andrade</div></div>
+            <div style="padding:8px 11px;"><div style="font-size:8px; color:#9a9185;">DATA</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;">06/jun/2026</div></div>
+          </div>
+          <div style="font-size:12px; font-weight:700; margin-top:18px;">1. Identificação</div>
+          <div style="font-size:10px; line-height:1.7; color:#3a352e; margin-top:6px;">O navio MV Cabo Frio (IMO 9456123), atracado no porto de Tubarão (Vitória), foi vistoriado em 06/jun/2026 para apuração da quantidade de carga descarregada conforme procedimento de draft survey.</div>
+          <div style="font-size:12px; font-weight:700; margin-top:16px;">2. Leituras de calado</div>
+          <div style="margin-top:8px; border:1px solid #e4e0d8; border-radius:5px; overflow:hidden;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; background:#f4f7fc; border-bottom:1px solid #dde3ef;"><div style="padding:6px 11px; font-size:8.5px; color:#27406e; font-weight:700;">PROA</div><div style="padding:6px 11px; font-size:8.5px; color:#27406e; font-weight:700;">MEIO</div><div style="padding:6px 11px; font-size:8.5px; color:#27406e; font-weight:700;">POPA</div></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr;"><div style="padding:8px 11px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#16294d;">12,340</div><div style="padding:8px 11px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#16294d;">12,475</div><div style="padding:8px 11px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#16294d;">12,610</div></div>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="border-top:1px solid #e4e0d8; padding-top:10px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#9a9185;"><span>NAABSA MARINE SURVEYORS</span><span>PÁGINA 1 DE 2</span></div>
+        </div>
+        <!-- page 2 -->
+        <div style="width:480px; height:679px; background:#fff; box-shadow:0 10px 36px -14px rgba(0,0,0,.34); padding:42px 44px; display:flex; flex-direction:column; position:relative;">
+          <div style="font-size:12px; font-weight:700;">3. Registro fotográfico</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px;">
+            <div><div style="aspect-ratio:4/3; border-radius:4px; background:#3a4a63; position:relative; overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div></div><div style="font-size:9px; color:#7d7468; margin-top:5px;">Calado de proa</div></div>
+            <div><div style="aspect-ratio:4/3; border-radius:4px; background:#4a5b6b; position:relative; overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div></div><div style="font-size:9px; color:#7d7468; margin-top:5px;">Calado de popa</div></div>
+            <div style="grid-column:1 / -1;"><div style="aspect-ratio:16/9; border-radius:4px; background:#52605a; position:relative; overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div></div><div style="font-size:9px; color:#7d7468; margin-top:5px;">Porões 1–4</div></div>
+          </div>
+          <div style="font-size:12px; font-weight:700; margin-top:18px;">4. Conclusão</div>
+          <div style="font-size:10px; line-height:1.7; color:#3a352e; margin-top:6px;">Com base nas leituras de calado e na densidade da água medida, a quantidade total descarregada foi apurada em 208.450 t. As condições do navio e da operação encontram-se registradas neste relatório.</div>
+          <div style="margin-top:22px; display:flex; gap:30px;"><div style="flex:1;"><div style="height:1px; background:#2a2620; margin-bottom:5px;"></div><div style="font-size:9px; color:#7d7468;">Surveyor · C. Andrade</div></div><div style="flex:1;"><div style="height:1px; background:#2a2620; margin-bottom:5px;"></div><div style="font-size:9px; color:#7d7468;">Comandante</div></div></div>
+          <div style="flex:1;"></div>
+          <div style="border-top:1px solid #e4e0d8; padding-top:10px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#9a9185;"><span>NAABSA MARINE SURVEYORS</span><span>PÁGINA 2 DE 2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 08 HISTÓRICO ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">08</span>
+      <span style="font-size:15px; font-weight:700;">Histórico</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/reports/R-2487/history</span>
+      <span style="font-size:12.5px; color:#9a9185;">· timeline do audit_log · quem · o quê · quando · que dado veio da planilha</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/reports/R-2487/history</div></div>
+      </div>
+      <div style="background:#faf8f5; padding:30px 36px 40px; min-height:760px;">
+        <div style="max-width:780px; margin:0 auto;">
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px;">
+            <div>
+              <div style="font-size:23px; font-weight:800; letter-spacing:-.01em;">Histórico do relatório</div>
+              <div style="font-size:13px; color:#7d7468; margin-top:5px;">R-2487 · MV Cabo Frio · todas as ações registradas, em ordem cronológica.</div>
+            </div>
+            <button style="height:40px; padding:0 15px; background:#fff; border:1.5px solid #d9d4cb; border-radius:9px; font-family:inherit; font-size:13px; font-weight:600; color:#3f3a33; cursor:pointer;">Exportar log</button>
+          </div>
+
+          <div style="background:#fff; border:1px solid #ece8e1; border-radius:12px; padding:8px 22px;">
+            <sc-for list="{{ auditView }}" as="a" hint-placeholder-count="10">
+              <div style="display:flex; gap:16px; padding:15px 0; border-bottom:1px solid #f2efe9;">
+                <div style="flex:none; width:96px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; padding-top:2px;">{{ a.time }}</div>
+                <div style="flex:none; display:flex; flex-direction:column; align-items:center; padding-top:4px;"><span style="width:11px; height:11px; border-radius:50%; background: {{ a.color }}; border:2px solid #fff; box-shadow:0 0 0 1.5px {{ a.color }};"></span></div>
+                <div style="flex:1;">
+                  <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:14px; font-weight:700; color:#1d1d1d;">{{ a.action }}</span><span style="font-size:11.5px; color:#7d7468; background:#f4f2ee; border:1px solid #ece8e1; padding:2px 8px; border-radius:99px;">{{ a.actor }}</span></div>
+                  <div style="font-size:12.5px; color:#7d7468; margin-top:4px; font-family:'IBM Plex Mono',monospace;">{{ a.detail }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 09 ADMIN SPECS ============ -->
+  <div style="width:1440px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; background:#16294d; padding:3px 8px; border-radius:5px;">09</span>
+      <span style="font-size:15px; font-weight:700;">Admin · Specs</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#9a9185;">/admin/specs</span>
+      <span style="font-size:12.5px; color:#9a9185;">· versões por tipo · editor JSON validado contra o schema · ativar versão · specs imutáveis</span>
+    </div>
+    <div style="background:#fff; border:1px solid #e7e3dc; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 18px 44px -26px rgba(20,20,20,.16);">
+      <div style="height:40px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px;">
+        <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+        <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:4px 14px; border-radius:6px;">relatorios.naabsa.com.br/admin/specs</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:300px 1fr; min-height:820px;">
+        <!-- spec list -->
+        <div style="background:#fbfaf8; border-right:1px solid #ece8e1; padding:22px 18px;">
+          <div style="font-size:18px; font-weight:800; letter-spacing:-.01em; margin-bottom:4px;">Specs</div>
+          <div style="font-size:12.5px; color:#7d7468; margin-bottom:18px;">Uma versão ativa por tipo.</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#fff; border:2px solid #16294d; border-radius:10px; padding:12px 13px; box-shadow:0 0 0 3px rgba(22,41,77,.07);">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700;">Draft Survey</span><span style="font-size:10.5px; font-weight:700; color:#2f6b48; background:#e4f0e8; padding:2px 8px; border-radius:99px;">v3 ativa</span></div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:4px;">draft_survey · 3 versões</div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:10px; padding:12px 13px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700;">Bunker Surveyor</span><span style="font-size:10.5px; font-weight:700; color:#2f6b48; background:#e4f0e8; padding:2px 8px; border-radius:99px;">v2 ativa</span></div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:4px;">bunker_surveyor · 2 versões</div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:10px; padding:12px 13px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700;">MSC</span><span style="font-size:10.5px; font-weight:700; color:#2f6b48; background:#e4f0e8; padding:2px 8px; border-radius:99px;">v1 ativa</span></div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:4px;">msc · 1 versão</div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:10px; padding:12px 13px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700;">On/Off-Hire</span><span style="font-size:10.5px; font-weight:700; color:#2f6b48; background:#e4f0e8; padding:2px 8px; border-radius:99px;">v4 ativa</span></div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:4px;">on_off_hire · 4 versões</div>
+            </div>
+            <div style="background:#fff; border:1.5px solid #e4e0d8; border-radius:10px; padding:12px 13px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700;">ROB</span><span style="font-size:10.5px; font-weight:700; color:#2f6b48; background:#e4f0e8; padding:2px 8px; border-radius:99px;">v1 ativa</span></div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:4px;">rob · 1 versão</div>
+            </div>
+          </div>
+        </div>
+        <!-- editor -->
+        <div style="background:#faf8f5; display:flex; flex-direction:column;">
+          <div style="padding:22px 28px 16px; border-bottom:1px solid #ece8e1; display:flex; align-items:flex-end; justify-content:space-between;">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px;"><div style="font-size:20px; font-weight:800;">Draft Survey</div><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#9a9185;">draft_survey</span></div>
+              <div style="display:flex; gap:7px; margin-top:10px;">
+                <span style="font-size:11.5px; font-weight:600; color:#fff; background:#16294d; padding:4px 11px; border-radius:99px;">v3 · ativa</span>
+                <span style="font-size:11.5px; font-weight:600; color:#7d7468; background:#f4f2ee; border:1px solid #e7e3dc; padding:4px 11px; border-radius:99px;">v2</span>
+                <span style="font-size:11.5px; font-weight:600; color:#7d7468; background:#f4f2ee; border:1px solid #e7e3dc; padding:4px 11px; border-radius:99px;">v1</span>
+                <span style="font-size:11.5px; font-weight:700; color:#16294d; background:#eef1f7; border:1px solid #dde3ef; padding:4px 11px; border-radius:99px;">+ nova versão</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:9px; padding:7px 13px; background:#e4f0e8; border:1px solid #c4e0cf; border-radius:9px;"><span style="width:16px;height:16px;border-radius:50%;background:#2f7d52;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;">✓</span><span style="font-size:12.5px; font-weight:600; color:#2f6b48;">JSON válido contra spec.schema.json</span></div>
+          </div>
+          <!-- json editor -->
+          <div style="flex:1; margin:18px 28px; background:#11203b; border-radius:10px; overflow:hidden; display:flex; flex-direction:column;">
+            <div style="height:38px; background:#0c1830; display:flex; align-items:center; padding:0 16px; gap:8px; border-bottom:1px solid rgba(255,255,255,.06);"><span style="width:9px;height:9px;border-radius:50%;background:#bf2c30;"></span><span style="width:9px;height:9px;border-radius:50%;background:#bb8420;"></span><span style="width:9px;height:9px;border-radius:50%;background:#2f7d52;"></span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#7f8aa3; margin-left:8px;">draft_survey.v4.json</span></div>
+            <div style="flex:1; padding:18px 20px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.75; color:#c7d2e6; overflow:hidden;">
+<span style="color:#5f6f8c;">1</span>  <span style="color:#7fb0e8;">"report_type"</span>: <span style="color:#9ad8a8;">"draft_survey"</span>,<br>
+<span style="color:#5f6f8c;">2</span>  <span style="color:#7fb0e8;">"version"</span>: <span style="color:#e8b87f;">4</span>,<br>
+<span style="color:#5f6f8c;">3</span>  <span style="color:#7fb0e8;">"variants"</span>: [<span style="color:#9ad8a8;">"loading"</span>, <span style="color:#9ad8a8;">"discharge"</span>],<br>
+<span style="color:#5f6f8c;">4</span>  <span style="color:#7fb0e8;">"source"</span>: {<br>
+<span style="color:#5f6f8c;">5</span>    <span style="color:#7fb0e8;">"sheet"</span>: <span style="color:#9ad8a8;">"DADOS"</span>,<br>
+<span style="color:#5f6f8c;">6</span>    <span style="color:#7fb0e8;">"fingerprint"</span>: { <span style="color:#7fb0e8;">"cell"</span>: <span style="color:#9ad8a8;">"A1"</span>, <span style="color:#7fb0e8;">"expect"</span>: <span style="color:#9ad8a8;">"NAABSA-DRAFT"</span> },<br>
+<span style="color:#5f6f8c;">7</span>    <span style="color:#7fb0e8;">"common"</span>: { <span style="color:#7fb0e8;">"fields"</span>: {<br>
+<span style="color:#5f6f8c;">8</span>      <span style="color:#7fb0e8;">"vessel_name"</span>: { <span style="color:#7fb0e8;">"cell"</span>: <span style="color:#9ad8a8;">"B4"</span>, <span style="color:#7fb0e8;">"type"</span>: <span style="color:#9ad8a8;">"string"</span>, <span style="color:#7fb0e8;">"required"</span>: <span style="color:#e8b87f;">true</span> },<br>
+<span style="color:#5f6f8c;">9</span>      <span style="color:#7fb0e8;">"draft_fwd"</span>:   { <span style="color:#7fb0e8;">"cell"</span>: <span style="color:#9ad8a8;">"C12"</span>, <span style="color:#7fb0e8;">"type"</span>: <span style="color:#9ad8a8;">"number"</span>, <span style="color:#7fb0e8;">"decimals"</span>: <span style="color:#e8b87f;">3</span> }<br>
+<span style="color:#5f6f8c;">10</span>    } }<br>
+<span style="color:#5f6f8c;">11</span>  },<br>
+<span style="color:#5f6f8c;">12</span>  <span style="color:#7fb0e8;">"photo_slots"</span>: [<br>
+<span style="color:#5f6f8c;">13</span>    { <span style="color:#7fb0e8;">"id"</span>: <span style="color:#9ad8a8;">"draft_fwd"</span>, <span style="color:#7fb0e8;">"aspect"</span>: <span style="color:#9ad8a8;">"4:3"</span>, <span style="color:#7fb0e8;">"required"</span>: <span style="color:#e8b87f;">true</span> }<br>
+<span style="color:#5f6f8c;">14</span>  ]
+            </div>
+          </div>
+          <div style="padding:0 28px 22px; display:flex; align-items:center; gap:12px;">
+            <div style="flex:1; font-size:12px; color:#9a9185;">Specs são <b>imutáveis</b> após salvar — relatórios existentes mantêm a versão que usaram.</div>
+            <button style="height:42px; padding:0 18px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-family:inherit; font-size:13.5px; font-weight:600; color:#4a443c; cursor:pointer;">Validar</button>
+            <button style="height:42px; padding:0 20px; background:#16294d; color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer;">Salvar &amp; ativar v4</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="width:1440px; display:flex; align-items:center; justify-content:center; gap:10px; padding-top:8px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#a39a8d; letter-spacing:.05em;">NAABSA · SISTEMA DE RELATÓRIOS AUTOMATIZADOS · 9 TELAS · HI-FI</div>
+  </div>
+
+  <!--APPEND-->
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  reports = [
+    { id: 'R-2487', vessel: 'MV Cabo Frio',      type: 'Draft Survey',     variant: 'Descarga', status: 'generated', date: '08/jun/2026', author: 'C. Andrade' },
+    { id: 'R-2486', vessel: 'MV Santos Express',  type: 'On/Off-Hire',      variant: 'On-Hire',  status: 'editing',   date: '07/jun/2026', author: 'R. Menezes' },
+    { id: 'R-2485', vessel: 'Iron Trader',        type: 'Bunker Surveyor',  variant: 'Carga',    status: 'in_review', date: '07/jun/2026', author: 'C. Andrade' },
+    { id: 'R-2484', vessel: 'MV Açu Voyager',     type: 'ROB',              variant: '—',        status: 'approved',  date: '06/jun/2026', author: 'P. Tavares' },
+    { id: 'R-2483', vessel: 'Tanker Guanabara',   type: 'MSC',              variant: '—',        status: 'extracted', date: '05/jun/2026', author: 'R. Menezes' },
+    { id: 'R-2482', vessel: 'MV Pampero',         type: 'Draft Survey',     variant: 'Carga',    status: 'draft',     date: '05/jun/2026', author: 'C. Andrade' },
+    { id: 'R-2481', vessel: 'MV Sepetiba Star',   type: 'On/Off-Hire',      variant: 'Off-Hire', status: 'generated', date: '03/jun/2026', author: 'P. Tavares' },
+    { id: 'R-2479', vessel: 'MV Rio Doce',        type: 'Bunker Surveyor',  variant: 'Descarga', status: 'purged',    date: '21/abr/2026', author: 'R. Menezes' },
+  ];
+
+  statusMap = {
+    draft:     { label: 'Rascunho',    bg: '#efece7', fg: '#7d7468', dot: '#b3aa9d' },
+    extracted: { label: 'Extraído',    bg: '#e9eef7', fg: '#27406e', dot: '#3a5994' },
+    in_review: { label: 'Em revisão',  bg: '#f6eed8', fg: '#8a6516', dot: '#bb8420' },
+    editing:   { label: 'Em edição',   bg: '#e6eefb', fg: '#1f4f9c', dot: '#2f6bd0' },
+    approved:  { label: 'Aprovado',    bg: '#e4f0e8', fg: '#2f6b48', dot: '#3a8159' },
+    generated: { label: 'Gerado',      bg: '#2f7d52', fg: '#ffffff', dot: '#bfe6cf' },
+    purged:    { label: 'Expurgado',   bg: '#f2f0ed', fg: '#a79e92', dot: '#cabfb1' },
+  };
+
+  reviewSections = [
+    { name: 'Identificação', fields: [
+      { label: 'Nome do navio', cell: 'B4', value: 'MV Cabo Frio', issue: null, override: false },
+      { label: 'IMO', cell: 'B5', value: '9456123', issue: null, override: false },
+      { label: 'Porto', cell: 'B6', value: 'Tubarão (Vitória)', issue: null, override: true },
+    ]},
+    { name: 'Survey', fields: [
+      { label: 'Data do survey', cell: 'B7', value: '—', issue: { level: 'error', msg: "Campo 'Data do survey' vazio na célula B7" }, override: false },
+      { label: 'Surveyor responsável', cell: 'B8', value: 'C. Andrade', issue: null, override: false },
+      { label: 'Tipo de carga', cell: 'B9', value: 'Minério de ferro', issue: null, override: false },
+    ]},
+    { name: 'Calado e deslocamento', fields: [
+      { label: 'Calado de proa (m)', cell: 'C12', value: '12,340', issue: null, override: false },
+      { label: 'Calado de popa (m)', cell: 'C13', value: '12,610', issue: null, override: false },
+      { label: 'Peso de carga (t)', cell: 'C18', value: '208.450', issue: { level: 'warning', msg: 'Peso de carga fora do intervalo usual (0–200.000)' }, override: false },
+      { label: 'Densidade da água', cell: 'C20', value: '1,0250', issue: null, override: false },
+    ]},
+  ];
+
+  auditEntries = [
+    { time: '08/jun 14:32', actor: 'C. Andrade', action: 'Relatório criado', kind: 'create', detail: 'Tipo Draft Survey · variante Descarga' },
+    { time: '08/jun 14:33', actor: 'C. Andrade', action: 'Planilha enviada', kind: 'upload', detail: 'draft_cabo_frio_descarga.xlsx · 4.2 MB' },
+    { time: '08/jun 14:33', actor: 'sistema', action: 'Extração concluída', kind: 'system', detail: '14 campos lidos · 1 erro · 1 aviso' },
+    { time: '08/jun 14:41', actor: 'C. Andrade', action: 'Override de campo', kind: 'edit', detail: "Porto: 'Tubarao' → 'Tubarão (Vitória)' (B6)" },
+    { time: '08/jun 14:42', actor: 'C. Andrade', action: 'Override de campo', kind: 'edit', detail: "Data do survey: vazio → '06/jun/2026' (B7)" },
+    { time: '08/jun 14:48', actor: 'sistema', action: '6 fotos processadas', kind: 'system', detail: 'EXIF corrigido · thumbnails geradas' },
+    { time: '08/jun 14:55', actor: 'C. Andrade', action: 'Fotos confirmadas', kind: 'photo', detail: '5 slots preenchidos · sugestões de IA aceitas' },
+    { time: '08/jun 15:10', actor: 'sistema', action: 'Snapshot de edição', kind: 'system', detail: 'document_json salvo · 4.218 nós' },
+    { time: '08/jun 15:24', actor: 'C. Andrade', action: 'Aprovado · PDF enfileirado', kind: 'status', detail: 'editing → approved' },
+    { time: '08/jun 15:25', actor: 'worker', action: 'PDF gerado', kind: 'system', detail: 'final.pdf · sha256 a1f3…9c2 · 38 s' },
+  ];
+
+  gallery = [
+    { name: 'IMG_4012', tone: '#3a4a63', flags: [],                 allocated: true },
+    { name: 'IMG_4013', tone: '#5b6b54', flags: ['ai'],             allocated: true },
+    { name: 'IMG_4014', tone: '#6b5a48', flags: ['dark'],           allocated: false },
+    { name: 'IMG_4015', tone: '#4a5b6b', flags: ['ai'],             allocated: true },
+    { name: 'IMG_4016', tone: '#7a6a5a', flags: ['blurry'],         allocated: false },
+    { name: 'IMG_4017', tone: '#52605a', flags: [],                 allocated: true },
+    { name: 'IMG_4018', tone: '#5a5063', flags: ['possible_dup'],   allocated: false },
+    { name: 'IMG_4019', tone: '#63563f', flags: ['ai'],             allocated: true },
+  ];
+
+  slots = [
+    { id: 'draft_fwd', label: 'Calado de proa', aspect: '4:3', req: true,  have: 1, max: 1, tone: '#3a4a63', ok: true },
+    { id: 'draft_aft', label: 'Calado de popa', aspect: '4:3', req: true,  have: 1, max: 1, tone: '#4a5b6b', ok: true, ai: true },
+    { id: 'draft_mid', label: 'Calado a meio-navio', aspect: '4:3', req: true, have: 0, max: 1, tone: null, ok: false },
+    { id: 'holds',     label: 'Porões', aspect: '16:9', req: true,  have: 2, min: 2, max: 6, tone: '#52605a', ok: true, multi: true },
+    { id: 'general',   label: 'Vista geral do navio', aspect: '16:9', req: false, have: 1, max: 2, tone: '#63563f', ok: true, ai: true },
+  ];
+
+  renderVals() {
+    const reportRows = this.reports.map(r => ({ ...r, st: this.statusMap[r.status] }));
+    const kindColor = {
+      create: '#16294d', upload: '#27406e', system: '#7d7468',
+      edit: '#bb8420', photo: '#2f6b48', status: '#bf2c30',
+    };
+    const auditView = this.auditEntries.map(a => ({ ...a, color: kindColor[a.kind] }));
+    const issStyle = {
+      error:   { bg: '#fbeceb', bd: '#f0c4c2', fg: '#9b2a2c', tag: 'Erro' },
+      warning: { bg: '#f9f1dc', bd: '#ecd9a6', fg: '#8a6516', tag: 'Aviso' },
+    };
+    const reviewSections = this.reviewSections.map(s => ({
+      ...s,
+      fields: s.fields.map(f => ({ ...f, iss: f.issue ? { ...f.issue, ...issStyle[f.issue.level] } : null })),
+    }));
+    const flagMap = {
+      ai:           { t: 'IA', bg: '#16294d', fg: '#fff' },
+      dark:         { t: 'escura', bg: '#3a3a3a', fg: '#fff' },
+      blurry:       { t: 'tremida', bg: '#8a6516', fg: '#fff' },
+      possible_dup: { t: 'duplicada?', bg: '#bf2c30', fg: '#fff' },
+    };
+    const gallery = this.gallery.map(g => ({ ...g, flagViews: g.flags.map(f => flagMap[f]) }));
+    return { reportRows, reviewSections, auditView, gallery, slots: this.slots };
+  }
+}
+</script>
+</body>
+</html>

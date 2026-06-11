@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; background:#e8e5df; }
+  ::selection { background: #16294d; color: #fff; }
+  input { font-family: inherit; outline: none; }
+  button { font-family: inherit; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeup { from { opacity:0; transform:translateY(8px);} to {opacity:1; transform:none;} }
+  @keyframes toastin { from { opacity:0; transform:translateY(10px) translateX(-50%);} to {opacity:1; transform:translateY(0) translateX(-50%);} }
+</style>
+</helmet>
+
+<div style="font-family:'Public Sans',system-ui,sans-serif; color:#151515; min-height:100vh; padding:40px 28px; display:flex; flex-direction:column; align-items:center; gap:14px;">
+
+  <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:9px;"><div style="width:22px; height:22px; background:#16294d; border-radius:5px; position:relative;"><div style="position:absolute; right:4px; bottom:4px; width:7px; height:7px; background:#bf2c30; border-radius:2px;"></div></div><span style="font-weight:800; font-size:14px; letter-spacing:.13em; color:#16294d;">NAABSA</span></div>
+    <span style="font-size:13px; color:#9a9185;">Protótipo interativo · clique para percorrer o fluxo do operador</span>
+  </div>
+
+  <!-- APP WINDOW -->
+  <div style="width:1320px; height:860px; background:#fff; border:1px solid #d8d3ca; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(20,20,20,.04), 0 30px 70px -30px rgba(20,20,20,.30); display:flex; flex-direction:column; position:relative;">
+    <!-- chrome -->
+    <div style="height:42px; background:#f3f1ed; border-bottom:1px solid #e7e3dc; display:flex; align-items:center; padding:0 16px; gap:8px; flex:none;">
+      <div style="display:flex; gap:7px;"><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span><span style="width:11px;height:11px;border-radius:50%;background:#dcd8d0;"></span></div>
+      <div style="flex:1; display:flex; justify-content:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; background:#fff; border:1px solid #e7e3dc; padding:5px 16px; border-radius:7px; min-width:340px; text-align:center;">{{ url }}</div></div>
+    </div>
+
+    <!-- LOGIN -->
+    <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1; display:grid; grid-template-columns:1.05fr 1fr; min-height:0;">
+        <div style="background:#16294d; padding:48px 52px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(#ffffff0a 1px,transparent 1px); background-size:100% 38px; opacity:.5;"></div>
+          <div style="position:relative; display:flex; align-items:center; gap:12px;"><div style="width:30px; height:30px; background:#fff; border-radius:6px; position:relative;"><div style="position:absolute; right:6px; bottom:6px; width:9px; height:9px; background:#bf2c30; border-radius:2px;"></div></div><div style="font-weight:800; font-size:21px; letter-spacing:.14em; color:#fff;">NAABSA</div></div>
+          <div style="position:relative;"><div style="width:46px; height:4px; background:#bf2c30; border-radius:3px; margin-bottom:24px;"></div><div style="font-size:31px; font-weight:800; color:#fff; line-height:1.12; letter-spacing:-.02em;">Relatórios de inspeção<br>marítima, automatizados.</div><div style="margin-top:16px; font-size:14px; color:#aeb8cc; line-height:1.6; max-width:380px;">Da planilha ao PDF, com extração determinística e o operador no controle de cada etapa.</div></div>
+          <div style="position:relative; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6f7a95; letter-spacing:.03em;">ACESSO INTERNO · 1–3 OPERADORES</div>
+        </div>
+        <div style="background:#faf8f5; display:flex; align-items:center; justify-content:center; padding:40px;">
+          <div style="width:360px;">
+            <div style="font-size:24px; font-weight:800; letter-spacing:-.01em;">Entrar</div>
+            <div style="font-size:13.5px; color:#7d7468; margin-top:6px;">Use as credenciais fornecidas pelo administrador.</div>
+            <sc-if value="{{ loginError }}" hint-placeholder-val="{{ false }}"><div style="margin-top:20px; display:flex; align-items:center; gap:10px; background:#fbeceb; border:1px solid #f0c4c2; border-radius:9px; padding:11px 13px;"><span style="width:18px;height:18px;border-radius:50%;background:#bf2c30;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;">!</span><span style="font-size:13px; color:#9b2a2c;">Preencha e-mail e senha para continuar.</span></div></sc-if>
+            <div style="margin-top:20px;"><label style="font-size:12.5px; font-weight:600; color:#3f3a33;">E-mail</label><input value="{{ email }}" onInput="{{ onEmail }}" placeholder="voce@naabsa.com.br" style="margin-top:7px; width:100%; height:46px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; padding:0 14px; font-size:14px; color:#1d1d1d;" /></div>
+            <div style="margin-top:16px;"><div style="display:flex; justify-content:space-between; align-items:center;"><label style="font-size:12.5px; font-weight:600; color:#3f3a33;">Senha</label><span style="font-size:12px; color:#16294d; font-weight:600; cursor:pointer;">Esqueci minha senha</span></div><input value="{{ pass }}" onInput="{{ onPass }}" type="password" placeholder="••••••••" style="margin-top:7px; width:100%; height:46px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; padding:0 14px; font-size:14px; color:#1d1d1d;" /></div>
+            <button onClick="{{ doLogin }}" style="margin-top:24px; width:100%; height:48px; background:#16294d; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; letter-spacing:.01em;">Entrar</button>
+            <div style="margin-top:20px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#b5ab9d;">SUPABASE AUTH · TLS · v1.0.0</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- APP SHELL -->
+    <sc-if value="{{ inApp }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:grid; grid-template-columns:230px 1fr; min-height:0;">
+        <!-- sidebar -->
+        <div style="background:#fbfaf8; border-right:1px solid #ece8e1; padding:20px 14px; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; gap:10px; padding:4px 8px 20px;"><div style="width:24px; height:24px; background:#16294d; border-radius:5px; position:relative;"><div style="position:absolute; right:5px; bottom:5px; width:7px; height:7px; background:#bf2c30; border-radius:2px;"></div></div><div style="font-weight:800; font-size:15px; letter-spacing:.13em; color:#16294d;">NAABSA</div></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; color:#b5ab9d; text-transform:uppercase; padding:0 8px 8px;">Trabalho</div>
+          <button onClick="{{ goDash }}" style="display:flex; align-items:center; gap:11px; height:40px; padding:0 12px; border:none; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; text-align:left; background: {{ navRel.bg }}; color: {{ navRel.fg }};">
+            <span style="width:16px;height:13px;border:1.6px solid currentColor;border-radius:2px;display:inline-block;position:relative;flex:none;opacity:.9;"><span style="position:absolute;top:3px;left:2px;right:2px;height:1.4px;background:currentColor;"></span><span style="position:absolute;top:6px;left:2px;right:6px;height:1.4px;background:currentColor;"></span></span>Relatórios
+          </button>
+          <button onClick="{{ goNovo }}" style="display:flex; align-items:center; gap:11px; height:40px; padding:0 12px; border:none; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; text-align:left; margin-top:2px; background: {{ navNovo.bg }}; color: {{ navNovo.fg }};">
+            <span style="width:16px;height:16px;position:relative;flex:none;"><span style="position:absolute;top:7px;left:2px;right:2px;height:1.6px;background:currentColor;"></span><span style="position:absolute;left:7px;top:2px;bottom:2px;width:1.6px;background:currentColor;"></span></span>Novo relatório
+          </button>
+          <div style="height:1px; background:#ece8e1; margin:13px 8px;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; color:#b5ab9d; text-transform:uppercase; padding:0 8px 8px;">Administração</div>
+          <button onClick="{{ goAdmin }}" style="display:flex; align-items:center; gap:11px; height:40px; padding:0 12px; border:none; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; text-align:left; background: {{ navAdmin.bg }}; color: {{ navAdmin.fg }};">
+            <span style="width:14px;height:14px;border:1.6px solid currentColor;border-radius:3px;flex:none;opacity:.9;"></span>Specs
+          </button>
+          <div style="flex:1;"></div>
+          <div style="display:flex; align-items:center; gap:11px; padding:10px 10px; border-top:1px solid #ece8e1;"><div style="width:34px; height:34px; border-radius:50%; background:#16294d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex:none;">CA</div><div style="line-height:1.25;"><div style="font-size:13px; font-weight:600;">C. Andrade</div><div style="font-size:11px; color:#9a9185;">Operador</div></div></div>
+        </div>
+
+        <!-- MAIN -->
+        <div style="background:#faf8f5; min-height:0; overflow-y:auto; position:relative;">
+
+          <!-- DASHBOARD -->
+          <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:26px 32px 18px; display:flex; align-items:flex-end; justify-content:space-between;">
+              <div><div style="font-size:26px; font-weight:800; letter-spacing:-.02em;">Relatórios</div><div style="font-size:13.5px; color:#7d7468; margin-top:4px;">{{ filteredCount }} de 8 · 30–50 produzidos por mês</div></div>
+              <button onClick="{{ goNovo }}" style="display:flex; align-items:center; gap:9px; height:44px; padding:0 18px; background:#16294d; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;"><span style="width:14px;height:14px;position:relative;flex:none;"><span style="position:absolute;top:6px;left:0;right:0;height:1.8px;background:#fff;"></span><span style="position:absolute;left:6px;top:0;bottom:0;width:1.8px;background:#fff;"></span></span>Novo relatório</button>
+            </div>
+            <div style="padding:6px 32px 16px; display:flex; align-items:center; gap:10px;">
+              <div style="display:flex; align-items:center; gap:9px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; width:260px;"><span style="width:14px;height:14px;border:1.6px solid #9a9185;border-radius:50%;position:relative;flex:none;"><span style="position:absolute;right:-4px;bottom:-3px;width:6px;height:1.6px;background:#9a9185;transform:rotate(45deg);"></span></span><input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Buscar por navio…" style="border:none; background:transparent; font-size:13.5px; width:100%; color:#1d1d1d;" /></div>
+              <div style="position:relative;"><button onClick="{{ toggleTipo }}" style="display:flex; align-items:center; gap:8px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; font-size:13.5px; color:#3f3a33; font-weight:500; cursor:pointer;">Tipo: {{ fTipo }} <span style="color:#b5ab9d;">▾</span></button>
+                <sc-if value="{{ menuTipo }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:46px; left:0; z-index:20; background:#fff; border:1px solid #e4e0d8; border-radius:10px; box-shadow:0 12px 30px -12px rgba(0,0,0,.25); padding:6px; width:200px;"><sc-for list="{{ tipoOpts }}" as="o" hint-placeholder-count="6"><div onClick="{{ o.pick }}" style="padding:9px 11px; border-radius:7px; font-size:13.5px; color:#3f3a33; cursor:pointer;" style-hover="background:#f4f2ee;">{{ o.label }}</div></sc-for></div></sc-if>
+              </div>
+              <div style="position:relative;"><button onClick="{{ toggleStatus }}" style="display:flex; align-items:center; gap:8px; height:40px; padding:0 13px; background:#fff; border:1px solid #d9d4cb; border-radius:9px; font-size:13.5px; color:#3f3a33; font-weight:500; cursor:pointer;">Status: {{ fStatus }} <span style="color:#b5ab9d;">▾</span></button>
+                <sc-if value="{{ menuStatus }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:46px; left:0; z-index:20; background:#fff; border:1px solid #e4e0d8; border-radius:10px; box-shadow:0 12px 30px -12px rgba(0,0,0,.25); padding:6px; width:190px;"><sc-for list="{{ statusOpts }}" as="o" hint-placeholder-count="8"><div onClick="{{ o.pick }}" style="padding:9px 11px; border-radius:7px; font-size:13.5px; color:#3f3a33; cursor:pointer;" style-hover="background:#f4f2ee;">{{ o.label }}</div></sc-for></div></sc-if>
+              </div>
+              <div style="flex:1;"></div>
+              <button onClick="{{ clearFilters }}" style="height:40px; padding:0 13px; background:transparent; border:none; font-size:12.5px; color:#7d7468; cursor:pointer; font-weight:600;">Limpar</button>
+            </div>
+            <div style="margin:0 32px 30px; background:#fff; border:1px solid #ece8e1; border-radius:12px; overflow:hidden;">
+              <div style="display:grid; grid-template-columns:108px 1.5fr 1.4fr 130px 110px 90px 30px; padding:13px 20px; background:#fbfaf8; border-bottom:1px solid #ece8e1; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#9a9185;"><div>ID</div><div>Navio</div><div>Tipo · Variante</div><div>Status</div><div>Atualizado</div><div>Autor</div><div></div></div>
+              <sc-for list="{{ reportRows }}" as="r" hint-placeholder-count="8">
+                <div onClick="{{ r.open }}" style="display:grid; grid-template-columns:108px 1.5fr 1.4fr 130px 110px 90px 30px; padding:15px 20px; border-bottom:1px solid #f2efe9; align-items:center; cursor:pointer;" style-hover="background:#fbfaf8;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#16294d; font-weight:500;">{{ r.id }}</div>
+                  <div style="font-size:14px; font-weight:600; color:#1d1d1d;">{{ r.vessel }}</div>
+                  <div style="font-size:13.5px; color:#4a443c;">{{ r.type }} <span style="color:#b5ab9d;">·</span> <span style="color:#7d7468;">{{ r.variant }}</span></div>
+                  <div><span style="display:inline-flex; align-items:center; gap:7px; padding:5px 11px 5px 9px; border-radius:99px; font-size:12px; font-weight:600; background: {{ r.st.bg }}; color: {{ r.st.fg }};"><span style="width:6px; height:6px; border-radius:50%; background: {{ r.st.dot }};"></span>{{ r.st.label }}</span></div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#6f675c;">{{ r.date }}</div>
+                  <div style="font-size:13px; color:#4a443c;">{{ r.author }}</div>
+                  <div style="color:#c4bcb0; font-size:16px; text-align:right;">›</div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}"><div style="padding:40px; text-align:center; color:#9a9185; font-size:13.5px;">Nenhum relatório corresponde aos filtros.</div></sc-if>
+            </div>
+          </sc-if>
+
+          <!-- WIZARD -->
+          <sc-if value="{{ isWizard }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:30px 40px 44px; min-height:100%;">
+              <!-- stepper -->
+              <div style="max-width:840px; margin:0 auto; display:flex; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">1</div><div style="font-size:13.5px;font-weight:700;color:#16294d;">Tipo</div></div>
+                <div style="flex:1; height:2px; background:#16294d; margin:0 14px;"></div>
+                <sc-if value="{{ wTipoStep }}" hint-placeholder-val="{{ true }}"><div style="display:flex; align-items:center; gap:10px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">2</div><div style="font-size:13.5px;font-weight:700;color:#16294d;">Variante</div></div></sc-if>
+                <sc-if value="{{ wUploadStep }}" hint-placeholder-val="{{ false }}"><div style="display:flex; align-items:center; gap:10px;"><div style="width:28px;height:28px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;">✓</div><div style="font-size:13.5px;font-weight:600;color:#16294d;">Variante</div></div></sc-if>
+                <div style="flex:1; height:2px; margin:0 14px; background: {{ wUploadStepLine }};"></div>
+                <div style="display:flex; align-items:center; gap:10px;"><div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700; background: {{ step3bg }}; color: {{ step3fg }}; border: {{ step3bd }};">3</div><div style="font-size:13.5px;font-weight:600; color: {{ step3tx }};">Planilha</div></div>
+              </div>
+
+              <!-- STEP TIPO/VARIANTE -->
+              <sc-if value="{{ wTipoStep }}" hint-placeholder-val="{{ true }}">
+                <div style="max-width:840px; margin:32px auto 0;">
+                  <div style="font-size:22px; font-weight:800; letter-spacing:-.01em;">Escolha o tipo de relatório</div>
+                  <div style="font-size:13.5px; color:#7d7468; margin-top:5px;">O motor usará o spec ativo deste tipo. A versão fica congelada no relatório.</div>
+                  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px;">
+                    <sc-for list="{{ typeCards }}" as="t" hint-placeholder-count="5">
+                      <div onClick="{{ t.pick }}" style="position:relative; background:#fff; border-radius:12px; padding:18px; cursor:pointer; border: {{ t.border }}; box-shadow: {{ t.shadow }};">
+                        <sc-if value="{{ t.checkShow }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:14px; right:14px; width:20px; height:20px; border-radius:50%; background:#16294d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px;">✓</div></sc-if>
+                        <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185;">{{ t.slug }}</div>
+                        <div style="font-size:17px; font-weight:700; margin-top:7px;">{{ t.name }}</div>
+                        <div style="font-size:12.5px; color:#7d7468; margin-top:5px;">{{ t.sub }}</div>
+                        <div style="margin-top:12px;"><span style="font-size:11px; padding:3px 9px; border-radius:99px; font-weight:600; background: {{ t.vbg }}; color: {{ t.vfg }};">{{ t.vlabel }}</span></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ hasVariants }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:24px; background:#fff; border:1.5px solid #e4e0d8; border-radius:12px; padding:20px 22px;">
+                      <div style="display:flex; align-items:center; gap:9px;"><span style="width:24px;height:24px;border-radius:50%;background:#16294d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">2</span><div style="font-size:15px; font-weight:700;">Variante do {{ wTypeName }}</div><span style="font-size:11.5px; color:#bf2c30; background:#fbeceb; border:1px solid #f0c4c2; padding:3px 9px; border-radius:99px; font-weight:600;">obrigatório</span></div>
+                      <div style="display:flex; gap:12px; margin-top:14px;">
+                        <sc-for list="{{ variantOpts }}" as="v" hint-placeholder-count="2">
+                          <div onClick="{{ v.pick }}" style="flex:1; border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:11px; cursor:pointer; border: {{ v.border }}; box-shadow: {{ v.shadow }};"><span style="width:18px;height:18px;border-radius:50%;flex:none; border: {{ v.ring }};"></span><div style="font-size:14px; font-weight:600;">{{ v.label }}</div></div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:26px;">
+                    <button onClick="{{ goDash }}" style="height:44px; padding:0 20px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-size:14px; font-weight:600; color:#4a443c; cursor:pointer;">Cancelar</button>
+                    <button onClick="{{ toUpload }}" style="height:44px; padding:0 24px; border:none; border-radius:10px; font-size:14px; font-weight:700; background: {{ contStyle.bg }}; color: {{ contStyle.fg }}; cursor: {{ contStyle.cur }};">Continuar para planilha →</button>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- STEP UPLOAD -->
+              <sc-if value="{{ wUploadStep }}" hint-placeholder-val="{{ false }}">
+                <div style="max-width:600px; margin:36px auto 0;">
+                  <div style="display:flex; gap:8px; margin-bottom:18px;"><span style="font-size:12.5px; background:#16294d; color:#fff; padding:5px 12px; border-radius:99px; font-weight:600;">{{ wTypeName }}</span><sc-if value="{{ wVariant }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; background:#eef1f7; color:#27406e; padding:5px 12px; border-radius:99px; font-weight:600;">{{ wVariant }}</span></sc-if></div>
+
+                  <sc-if value="{{ uploaded }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:2px solid #c4e0cf; border-radius:14px; background:#fff; padding:24px 26px; display:flex; align-items:center; gap:14px;"><div style="width:44px; height:54px; border-radius:7px; background:#e4f0e8; border:1px solid #c4e0cf; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; color:#2f7d52; flex:none;">XLSX</div><div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">draft_cabo_frio_descarga.xlsx</div><div style="font-size:12px; color:#2f6b48; margin-top:3px; display:flex; align-items:center; gap:6px;"><span style="width:16px;height:16px;border-radius:50%;background:#2f7d52;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;">✓</span>Enviado · 4.2 MB</div></div></div>
+                  </sc-if>
+                  <sc-if value="{{ uploading }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:2px dashed #c3bdb0; border-radius:14px; background:#fff; padding:30px 28px;"><div style="display:flex; align-items:center; gap:14px;"><div style="width:44px; height:54px; border-radius:7px; background:#eef1f7; border:1px solid #dde3ef; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; color:#27406e; flex:none;">XLSX</div><div style="flex:1;"><div style="font-size:14.5px; font-weight:600;">draft_cabo_frio_descarga.xlsx</div><div style="margin-top:10px; height:8px; background:#efece6; border-radius:99px; overflow:hidden;"><div style="height:100%; background:#16294d; border-radius:99px; width: {{ uploadPctStr }};"></div></div><div style="margin-top:8px; font-size:12px; color:#7d7468;">Enviando… {{ uploadPctStr }}</div></div></div></div>
+                  </sc-if>
+                  <sc-if value="{{ wIdle }}" hint-placeholder-val="{{ true }}">
+                    <div onClick="{{ chooseFile }}" style="border:2px dashed #c3bdb0; border-radius:14px; background:#fff; padding:40px 28px; text-align:center; cursor:pointer;" style-hover="border-color:#16294d; background:#fbfaf8;"><div style="width:52px; height:52px; border-radius:12px; background:#eef1f7; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span style="width:18px;height:18px;position:relative;"><span style="position:absolute;top:8px;left:0;right:0;height:2px;background:#27406e;"></span><span style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:#27406e;"></span></span></div><div style="font-size:15px; font-weight:700;">Clique para selecionar a planilha</div><div style="font-size:12.5px; color:#9a9185; margin-top:6px;">apenas <b style="font-family:'IBM Plex Mono',monospace; color:#7d7468;">.xlsx</b> · máx. 20 MB</div></div>
+                  </sc-if>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:28px;">
+                    <button onClick="{{ goNovo }}" style="height:44px; padding:0 20px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-size:14px; font-weight:600; color:#4a443c; cursor:pointer;">← Voltar</button>
+                    <button onClick="{{ extract }}" style="height:44px; padding:0 24px; border:none; border-radius:10px; font-size:14px; font-weight:700; display:flex; align-items:center; gap:9px; background: {{ extractStyle.bg }}; color: {{ extractStyle.fg }}; cursor: {{ extractStyle.cur }};"><sc-if value="{{ extracting }}" hint-placeholder-val="{{ false }}"><span style="width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></span></sc-if>{{ extractLabel }}</button>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- REVIEW -->
+          <sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px 0 0; min-height:100%; display:flex; flex-direction:column;">
+              <div style="padding:0 32px 18px; border-bottom:1px solid #ece8e1;">
+                <div style="display:flex; align-items:center; gap:10px;"><div style="font-size:23px; font-weight:800; letter-spacing:-.01em;">Revisão de dados</div><span style="display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:99px; font-size:12px; font-weight:600; background:#f6eed8; color:#8a6516;"><span style="width:6px;height:6px;border-radius:50%;background:#bb8420;"></span>Em revisão</span></div>
+                <div style="font-size:13px; color:#7d7468; margin-top:5px;">{{ actVessel }} · {{ actMeta }} · valor efetivo = <span style="font-family:'IBM Plex Mono',monospace; color:#16294d;">override ?? extraído</span></div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 300px; flex:1; min-height:0;">
+                <div style="padding:22px 32px 34px; display:flex; flex-direction:column; gap:22px; overflow-y:auto;">
+                  <sc-for list="{{ reviewSections }}" as="sec" hint-placeholder-count="3">
+                    <div>
+                      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#9a9185; margin-bottom:12px;">{{ sec.name }}</div>
+                      <div style="background:#fff; border:1px solid #ece8e1; border-radius:12px; overflow:hidden;">
+                        <sc-for list="{{ sec.fields }}" as="f" hint-placeholder-count="3">
+                          <div style="padding:14px 18px; border-bottom:1px solid #f2efe9; display:grid; grid-template-columns:1fr 220px; gap:18px; align-items:center;">
+                            <div>
+                              <div style="display:flex; align-items:center; gap:9px;"><span style="font-size:13.5px; font-weight:600; color:#2a2620;">{{ f.label }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; background:#f4f2ee; border:1px solid #e7e3dc; padding:2px 6px; border-radius:5px;">{{ f.cell }}</span><sc-if value="{{ f.override }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:700; color:#16294d; background:#eef1f7; border:1px solid #dde3ef; padding:2px 7px; border-radius:99px;">override</span></sc-if></div>
+                              <sc-if value="{{ f.iss }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px; display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; background: {{ f.iss.bg }}; border:1px solid {{ f.iss.bd }};"><span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color: {{ f.iss.fg }};">{{ f.iss.tag }}</span><span style="font-size:12px; color: {{ f.iss.fg }};">{{ f.iss.msg }}</span></div></sc-if>
+                            </div>
+                            <input value="{{ f.value }}" onInput="{{ f.onInput }}" placeholder="—" style="height:40px; background:#faf8f5; border-radius:9px; padding:0 12px; font-size:14px; color:#1d1d1d; font-family:'IBM Plex Mono',monospace; border: {{ f.bdr }};" />
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="border-left:1px solid #ece8e1; background:#fbfaf8; padding:24px 22px; display:flex; flex-direction:column; gap:14px;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#9a9185;">Pendências</div>
+                  <sc-if value="{{ hasError }}" hint-placeholder-val="{{ true }}"><div style="background:#fbeceb; border:1px solid #f0c4c2; border-radius:10px; padding:14px;"><div style="display:flex; align-items:center; gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#bf2c30;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">{{ errorCount }}</span><span style="font-size:13px; font-weight:700; color:#9b2a2c;">Erro bloqueante</span></div><div style="font-size:12px; color:#9b2a2c; margin-top:7px; line-height:1.45;">Preencha a data do survey (B7) no campo para liberar a etapa de fotos.</div></div></sc-if>
+                  <sc-if value="{{ canConfirm }}" hint-placeholder-val="{{ false }}"><div style="background:#e4f0e8; border:1px solid #c4e0cf; border-radius:10px; padding:14px;"><div style="display:flex; align-items:center; gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#2f7d52;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">✓</span><span style="font-size:13px; font-weight:700; color:#2f6b48;">Sem erros bloqueantes</span></div><div style="font-size:12px; color:#2f6b48; margin-top:7px; line-height:1.45;">Você pode confirmar os dados e seguir para as fotos.</div></div></sc-if>
+                  <sc-if value="{{ hasWarn }}" hint-placeholder-val="{{ true }}"><div style="background:#f9f1dc; border:1px solid #ecd9a6; border-radius:10px; padding:14px;"><div style="display:flex; align-items:center; gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#bb8420;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">{{ warnCount }}</span><span style="font-size:13px; font-weight:700; color:#8a6516;">Aviso</span></div><div style="font-size:12px; color:#8a6516; margin-top:7px; line-height:1.45;">Peso de carga acima do usual. Pode seguir mesmo assim.</div></div></sc-if>
+                  <div style="flex:1;"></div>
+                  <button onClick="{{ confirmData }}" style="width:100%; height:46px; border:none; border-radius:10px; font-size:14px; font-weight:700; background: {{ confirmStyle.bg }}; color: {{ confirmStyle.fg }}; cursor: {{ confirmStyle.cur }};">Confirmar dados →</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+<!-- PHOTOS -->
+          <sc-if value="{{ isPhotos }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px 30px 34px;">
+              <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:16px;">
+                <div><div style="display:flex; align-items:center; gap:10px;"><div style="font-size:23px; font-weight:800; letter-spacing:-.01em;">Fotos</div><span style="font-size:13px; color:#7d7468;">{{ actVessel }} · {{ actMeta }}</span></div><div style="font-size:13px; color:#7d7468; margin-top:5px;">Clique no slot vazio para alocar a próxima foto. Avanço bloqueado enquanto slots obrigatórios não estiverem completos.</div></div>
+              </div>
+              <sc-if value="{{ hasAiPending }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; align-items:center; gap:14px; background:#16294d; border-radius:12px; padding:14px 18px; margin-bottom:20px;"><div style="display:flex; align-items:center; gap:9px;"><span style="width:26px;height:26px;border-radius:7px;background:#bf2c30;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:none;">IA</span><span style="font-size:14px; font-weight:700; color:#fff;">{{ aiPendingCount }} fotos pré-alocadas pela IA</span></div><span style="font-size:13px; color:#aeb8cc;">Confirme ou mova — a confirmação zera a flag. Nada é decidido sem você.</span><div style="flex:1;"></div><button onClick="{{ confirmAllAi }}" style="height:36px; padding:0 16px; background:#fff; color:#16294d; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Confirmar todas</button></div>
+              </sc-if>
+              <div style="display:grid; grid-template-columns:1fr 1.15fr; gap:22px;">
+                <div style="background:#fff; border:1px solid #ece8e1; border-radius:12px; padding:18px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;"><div style="font-size:14px; font-weight:700;">Galeria</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185;">8 fotos · {{ totalAlloc }} alocadas</div></div>
+                  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+                    <sc-for list="{{ gallery }}" as="g" hint-placeholder-count="8">
+                      <div style="position:relative; border-radius:9px; overflow:hidden; aspect-ratio:4/3; background:{{ g.tone }}; border:1px solid rgba(0,0,0,.08);"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div><div style="position:absolute; left:8px; bottom:7px; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:rgba(255,255,255,.9);">{{ g.name }}</div><sc-if value="{{ g.allocated }}" hint-placeholder-val="{{ true }}"><div style="position:absolute; right:7px; top:7px; width:18px; height:18px; border-radius:50%; background:#2f7d52; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px;">✓</div></sc-if></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;"><div style="font-size:14px; font-weight:700;">Slots do spec</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color: {{ pendColor }};">{{ pendLabel }}</div></div>
+                  <sc-for list="{{ slots }}" as="sl" hint-placeholder-count="5">
+                    <div style="background:#fff; border:1px solid #ece8e1; border-radius:11px; padding:14px; display:flex; gap:14px; align-items:center;">
+                      <sc-if value="{{ sl.filled }}" hint-placeholder-val="{{ true }}">
+                        <div onClick="{{ sl.crop }}" style="position:relative; width:120px; aspect-ratio:4/3; border-radius:8px; overflow:hidden; background:{{ sl.tone }}; flex:none; cursor:pointer;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div><div style="position:absolute; right:6px; bottom:6px; width:22px; height:22px; border-radius:6px; background:rgba(255,255,255,.92); display:flex; align-items:center; justify-content:center;"><span style="width:11px;height:11px;border:1.5px solid #16294d;border-radius:2px;"></span></div></div>
+                      </sc-if>
+                      <sc-if value="{{ sl.filled }}" hint-placeholder-val="{{ false }}">
+                        <div onClick="{{ sl.fill }}" style="width:120px; aspect-ratio:4/3; border-radius:8px; border:2px dashed #c9c3b6; flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; background:#faf8f5;" style-hover="border-color:#16294d; background:#f4f6fb;"><span style="width:20px;height:20px;position:relative;"><span style="position:absolute;top:9px;left:0;right:0;height:2px;background:#9a9185;"></span><span style="position:absolute;left:9px;top:0;bottom:0;width:2px;background:#9a9185;"></span></span><span style="font-size:10.5px; color:#9a9185; font-weight:600;">Alocar</span></div>
+                      </sc-if>
+                      <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><span style="font-size:14px; font-weight:700;">{{ sl.label }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#27406e; background:#eef1f7; padding:2px 7px; border-radius:5px;">{{ sl.aspect }}</span><sc-if value="{{ sl.req }}" hint-placeholder-val="{{ true }}"><span style="font-size:10px; font-weight:700; color:#bf2c30; background:#fbeceb; border:1px solid #f0c4c2; padding:2px 7px; border-radius:99px;">obrigatório</span></sc-if><sc-if value="{{ sl.aiPending }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#fff; background:#16294d; padding:2px 7px; border-radius:99px;">sugestão IA</span></sc-if></div>
+                        <div style="margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#7d7468;">{{ sl.id }}</div>
+                        <sc-if value="{{ sl.aiPending }}" hint-placeholder-val="{{ false }}"><button onClick="{{ sl.confirm }}" style="margin-top:9px; height:30px; padding:0 12px; background:#eef1f7; color:#16294d; border:1px solid #dde3ef; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">Confirmar sugestão</button></sc-if>
+                      </div>
+                      <div style="flex:none; text-align:right;"><div style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color: {{ sl.countColor }};"><span style="width:7px;height:7px;border-radius:50%;background: {{ sl.countColor }};"></span>{{ sl.have }}/{{ sl.max }}</div></div>
+                    </div>
+                  </sc-for>
+                  <button onClick="{{ toEditor }}" style="margin-top:6px; height:46px; border:none; border-radius:10px; font-size:14px; font-weight:700; background: {{ advStyle.bg }}; color: {{ advStyle.fg }}; cursor: {{ advStyle.cur }};">Avançar para edição →</button>
+                </div>
+              </div>
+            </div>
+            <!-- crop modal -->
+            <sc-if value="{{ cropOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; inset:0; background:rgba(20,20,20,.55); display:flex; align-items:center; justify-content:center; z-index:40;">
+                <div style="width:520px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 30px 80px -20px rgba(0,0,0,.5);">
+                  <div style="padding:18px 22px; border-bottom:1px solid #ece8e1; display:flex; align-items:center; justify-content:space-between;"><div><div style="font-size:16px; font-weight:800;">Recortar foto</div><div style="font-size:12px; color:#7d7468; margin-top:2px;">Travado em <b style="font-family:'IBM Plex Mono',monospace; color:#27406e;">{{ cropSlot.aspect }}</b> · slot {{ cropSlot.label }}</div></div><div onClick="{{ closeCrop }}" style="width:30px; height:30px; border-radius:8px; background:#f4f2ee; display:flex; align-items:center; justify-content:center; color:#7d7468; font-size:16px; cursor:pointer;">✕</div></div>
+                  <div style="position:relative; height:280px; background:#1d1d1d; display:flex; align-items:center; justify-content:center; overflow:hidden;"><div style="position:absolute; inset:0; background:{{ cropSlot.tone }};"></div><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.06) 0 9px, transparent 9px 18px);"></div><div style="position:relative; width:280px; height:210px; border:2px solid #fff; box-shadow:0 0 0 9999px rgba(20,20,20,.5);"><div style="position:absolute; left:33.33%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.4);"></div><div style="position:absolute; left:66.66%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.4);"></div><div style="position:absolute; top:33.33%; left:0; right:0; height:1px; background:rgba(255,255,255,.4);"></div><div style="position:absolute; top:66.66%; left:0; right:0; height:1px; background:rgba(255,255,255,.4);"></div></div></div>
+                  <div style="padding:16px 22px; display:flex; align-items:center; gap:14px; border-bottom:1px solid #ece8e1;"><span style="font-size:12px; color:#7d7468; font-weight:600;">Zoom</span><div style="flex:1; height:5px; background:#e7e3dc; border-radius:99px; position:relative;"><div style="position:absolute; left:0; top:0; bottom:0; width:42%; background:#16294d; border-radius:99px;"></div><div style="position:absolute; left:42%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#fff; border:2px solid #16294d;"></div></div><span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#7d7468;">1.4×</span></div>
+                  <div style="padding:16px 22px; display:flex; justify-content:flex-end; gap:10px;"><button onClick="{{ closeCrop }}" style="height:42px; padding:0 18px; background:#fff; border:1.5px solid #d9d4cb; border-radius:9px; font-size:14px; font-weight:600; color:#4a443c; cursor:pointer;">Cancelar</button><button onClick="{{ saveCrop }}" style="height:42px; padding:0 20px; background:#16294d; color:#fff; border:none; border-radius:9px; font-size:14px; font-weight:700; cursor:pointer;">Salvar recorte</button></div>
+                </div>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <!-- EDITOR -->
+          <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; min-height:100%;">
+              <div style="height:60px; background:#fff; border-bottom:1px solid #ece8e1; display:flex; align-items:center; padding:0 24px; gap:16px; flex:none;">
+                <div><div style="font-size:14.5px; font-weight:700;">Draft Survey — {{ actVessel }}</div><div style="font-size:11.5px; color:#9a9185;">{{ actMeta }} · spec v3</div></div>
+                <div style="display:flex; align-items:center; gap:7px; padding:5px 11px; background:#e4f0e8; border-radius:99px;"><span style="width:7px;height:7px;border-radius:50%;background:#2f7d52;"></span><span style="font-size:12px; color:#2f6b48; font-weight:600;">Salvo · há 2 s</span></div>
+                <div style="flex:1;"></div>
+                <button onClick="{{ toPreview }}" style="display:flex; align-items:center; gap:8px; height:42px; padding:0 16px; background:#fff; border:1.5px solid #d9d4cb; border-radius:10px; font-size:13.5px; font-weight:600; color:#3f3a33; cursor:pointer;"><span style="width:14px;height:11px;border:1.5px solid #7d7468;border-radius:2px;flex:none;"></span>Preview</button>
+                <button onClick="{{ approve }}" style="height:42px; padding:0 18px; background:#16294d; color:#fff; border:none; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer;">Aprovar e gerar PDF</button>
+              </div>
+              <div style="height:48px; background:#fbfaf8; border-bottom:1px solid #ece8e1; display:flex; align-items:center; padding:0 18px; gap:6px; flex:none;">
+                <div style="display:flex; align-items:center; gap:7px; height:34px; padding:0 12px; background:#fff; border:1px solid #e4e0d8; border-radius:8px; font-size:13px; font-weight:600; color:#3f3a33;">Parágrafo <span style="color:#b5ab9d;">▾</span></div>
+                <div style="width:1px; height:22px; background:#e4e0d8; margin:0 4px;"></div>
+                <div style="width:34px; height:34px; border-radius:7px; background:#16294d; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">B</div>
+                <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-style:italic; font-size:14px; color:#3f3a33;">I</div>
+                <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; text-decoration:underline; font-size:14px; color:#3f3a33;">U</div>
+                <div style="width:1px; height:22px; background:#e4e0d8; margin:0 4px;"></div>
+                <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-size:15px; color:#3f3a33;">•≡</div>
+                <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center; font-size:12px; color:#3f3a33; font-weight:700;">1.</div>
+                <div style="width:34px; height:34px; border-radius:7px; background:#fff; border:1px solid #e4e0d8; display:flex; align-items:center; justify-content:center;"><span style="width:16px;height:14px;border:1.5px solid #7d7468;border-radius:2px;position:relative;"><span style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#7d7468;"></span><span style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#7d7468;"></span></span></div>
+                <div style="flex:1;"></div>
+                <div style="display:flex; align-items:center; gap:8px; height:34px; padding:0 12px; background:#fff; border:1px solid #e4e0d8; border-radius:8px; width:170px;"><span style="width:13px;height:13px;border:1.5px solid #9a9185;border-radius:50%;flex:none;"></span><span style="font-size:12.5px; color:#a39a8d;">Localizar…</span></div>
+              </div>
+              <div style="background:#efece6; padding:30px; flex:1; display:flex; justify-content:center;">
+                <div style="width:680px; background:#fff; border:1px solid #e4e0d8; border-radius:6px; box-shadow:0 8px 30px -16px rgba(0,0,0,.2); padding:48px 54px; height:fit-content;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em; color:#bf2c30; font-weight:600;">NAABSA MARINE SURVEYORS &amp; CONSULTANTS</div>
+                  <div style="font-size:26px; font-weight:800; letter-spacing:-.01em; margin-top:10px;">Draft Survey Report</div>
+                  <div style="font-size:13.5px; color:#7d7468; margin-top:4px;">Operação de descarga · Porto de Tubarão (Vitória)</div>
+                  <div style="height:1px; background:#ece8e1; margin:20px 0 22px;"></div>
+                  <div style="font-size:16px; font-weight:700; margin-bottom:10px;">1. Identificação do navio</div>
+                  <div style="font-size:14px; line-height:1.85; color:#2a2620;">O navio <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">{{ actVessel }}</span> (IMO <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">9456123</span>), atracado no porto de <span style="background:#eef1f7; border-bottom:1.5px solid #b9c6e0; padding:1px 3px; border-radius:2px;">Tubarão (Vitória)</span>, foi vistoriado para apuração da carga descarregada.</div>
+                  <div style="position:relative; margin:22px 0; border:1.5px solid #cdd6e6; border-radius:8px; overflow:hidden;"><div style="position:absolute; top:9px; right:10px; display:flex; align-items:center; gap:5px; background:#16294d; color:#fff; padding:3px 9px; border-radius:99px; font-size:10px; font-weight:700;"><span style="width:9px;height:8px;border:1.4px solid #fff;border-radius:2px;border-bottom:none;display:inline-block;"></span>dataTable · travado</div><div style="background:#f4f7fc; padding:10px 16px; font-size:12.5px; font-weight:700; color:#27406e; border-bottom:1px solid #dde3ef;">Leituras de calado (m)</div><div style="display:grid; grid-template-columns:1fr 1fr 1fr;"><div style="padding:11px 16px; border-right:1px solid #eef0f4;"><div style="font-size:11px; color:#9a9185;">Proa</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#16294d;">12,340</div></div><div style="padding:11px 16px; border-right:1px solid #eef0f4;"><div style="font-size:11px; color:#9a9185;">Meio</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#16294d;">12,475</div></div><div style="padding:11px 16px;"><div style="font-size:11px; color:#9a9185;">Popa</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#16294d;">12,610</div></div></div></div>
+                  <div style="font-size:16px; font-weight:700; margin:24px 0 12px;">2. Registro fotográfico</div>
+                  <div style="position:relative; width:280px; height:210px; border-radius:8px; overflow:hidden; background:#3a4a63; outline:2px dashed #cdd6e6; outline-offset:3px;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 9px, transparent 9px 18px);"></div><div style="position:absolute; top:8px; right:8px; display:flex; align-items:center; gap:5px; background:#16294d; color:#fff; padding:3px 9px; border-radius:99px; font-size:10px; font-weight:700;"><span style="width:9px;height:8px;border:1.4px solid #fff;border-radius:2px;border-bottom:none;display:inline-block;"></span>photoFrame</div><div style="position:absolute; left:9px; bottom:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:rgba(255,255,255,.9);">draft_fwd · 4:3 · cover</div></div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- PREVIEW -->
+          <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; min-height:100%;">
+              <div style="height:56px; background:#16294d; display:flex; align-items:center; padding:0 22px; gap:14px; flex:none;">
+                <span style="font-size:14px; font-weight:700; color:#fff;">Preview paginado</span>
+                <sc-if value="{{ pdfGenerating }}" hint-placeholder-val="{{ false }}"><span style="display:flex; align-items:center; gap:8px; padding:4px 12px; background:rgba(255,255,255,.12); border-radius:99px; font-size:12px; color:#cdd6e6; font-weight:600;"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></span>Gerando PDF…</span></sc-if>
+                <sc-if value="{{ pdfReady }}" hint-placeholder-val="{{ true }}"><span style="display:flex; align-items:center; gap:7px; padding:4px 12px; background:rgba(127,209,163,.16); border-radius:99px; font-size:12px; color:#9fe3bb; font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:#7fd1a3;"></span>PDF pronto · idêntico ao preview</span></sc-if>
+                <div style="flex:1;"></div>
+                <sc-if value="{{ pdfReady }}" hint-placeholder-val="{{ true }}"><button onClick="{{ regenerate }}" style="height:38px; padding:0 14px; background:rgba(255,255,255,.12); color:#fff; border:none; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer;">Regenerar</button></sc-if>
+                <button onClick="{{ downloadPdf }}" style="height:38px; padding:0 16px; border:none; border-radius:9px; font-size:13px; font-weight:700; background: {{ dlStyle.bg }}; color: {{ dlStyle.fg }}; cursor: {{ dlStyle.cur }};">Baixar PDF</button>
+              </div>
+              <div style="background:#d9d5cd; padding:34px; flex:1; display:flex; gap:28px; justify-content:center;">
+                <div style="width:440px; height:622px; background:#fff; box-shadow:0 10px 36px -14px rgba(0,0,0,.34); padding:38px 40px; display:flex; flex-direction:column;">
+                  <div style="display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2px solid #16294d; padding-bottom:13px;"><div style="display:flex; align-items:center; gap:9px;"><div style="width:22px; height:22px; background:#16294d; border-radius:4px; position:relative;"><div style="position:absolute; right:4px; bottom:4px; width:6px; height:6px; background:#bf2c30; border-radius:1.5px;"></div></div><div><div style="font-weight:800; font-size:13px; letter-spacing:.12em; color:#16294d;">NAABSA</div><div style="font-family:'IBM Plex Mono',monospace; font-size:7px; color:#9a9185;">MARINE SURVEYORS</div></div></div><div style="text-align:right;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9px; color:#9a9185;">REF R-2488</div></div></div>
+                  <div style="font-size:18px; font-weight:800; margin-top:16px;">Draft Survey Report</div>
+                  <div style="font-size:10.5px; color:#7d7468; margin-top:3px;">Operação de descarga · Tubarão (Vitória)</div>
+                  <div style="margin-top:14px; display:grid; grid-template-columns:1fr 1fr; border:1px solid #e4e0d8; border-radius:5px; overflow:hidden;"><div style="padding:7px 11px; border-right:1px solid #eef0f4; border-bottom:1px solid #eef0f4;"><div style="font-size:8px; color:#9a9185;">NAVIO</div><div style="font-size:11px; font-weight:600;">{{ actVessel }}</div></div><div style="padding:7px 11px; border-bottom:1px solid #eef0f4;"><div style="font-size:8px; color:#9a9185;">IMO</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;">9456123</div></div><div style="padding:7px 11px; border-right:1px solid #eef0f4;"><div style="font-size:8px; color:#9a9185;">SURVEYOR</div><div style="font-size:11px; font-weight:600;">C. Andrade</div></div><div style="padding:7px 11px;"><div style="font-size:8px; color:#9a9185;">DATA</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;">06/jun/2026</div></div></div>
+                  <div style="font-size:12px; font-weight:700; margin-top:16px;">1. Leituras de calado</div>
+                  <div style="margin-top:7px; border:1px solid #e4e0d8; border-radius:5px; overflow:hidden;"><div style="display:grid; grid-template-columns:1fr 1fr 1fr; background:#f4f7fc; border-bottom:1px solid #dde3ef;"><div style="padding:5px 11px; font-size:8.5px; color:#27406e; font-weight:700;">PROA</div><div style="padding:5px 11px; font-size:8.5px; color:#27406e; font-weight:700;">MEIO</div><div style="padding:5px 11px; font-size:8.5px; color:#27406e; font-weight:700;">POPA</div></div><div style="display:grid; grid-template-columns:1fr 1fr 1fr;"><div style="padding:7px 11px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#16294d;">12,340</div><div style="padding:7px 11px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#16294d;">12,475</div><div style="padding:7px 11px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#16294d;">12,610</div></div></div>
+                  <div style="flex:1;"></div><div style="border-top:1px solid #e4e0d8; padding-top:9px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#9a9185;"><span>NAABSA</span><span>PÁGINA 1 DE 2</span></div>
+                </div>
+                <div style="width:440px; height:622px; background:#fff; box-shadow:0 10px 36px -14px rgba(0,0,0,.34); padding:38px 40px; display:flex; flex-direction:column;">
+                  <div style="font-size:12px; font-weight:700;">2. Registro fotográfico</div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;"><div><div style="aspect-ratio:4/3; border-radius:4px; background:#3a4a63; position:relative; overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div></div><div style="font-size:9px; color:#7d7468; margin-top:4px;">Calado de proa</div></div><div><div style="aspect-ratio:4/3; border-radius:4px; background:#4a5b6b; position:relative; overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div></div><div style="font-size:9px; color:#7d7468; margin-top:4px;">Calado de popa</div></div><div style="grid-column:1 / -1;"><div style="aspect-ratio:16/9; border-radius:4px; background:#52605a; position:relative; overflow:hidden;"><div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px);"></div></div><div style="font-size:9px; color:#7d7468; margin-top:4px;">Porões 1–4</div></div></div>
+                  <div style="font-size:12px; font-weight:700; margin-top:16px;">3. Conclusão</div><div style="font-size:10px; line-height:1.7; color:#3a352e; margin-top:6px;">A quantidade total descarregada foi apurada em 208.450 t conforme leituras de calado e densidade da água.</div>
+                  <div style="flex:1;"></div><div style="border-top:1px solid #e4e0d8; padding-top:9px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#9a9185;"><span>NAABSA</span><span>PÁGINA 2 DE 2</span></div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- HISTORY -->
+          <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:30px 36px 40px;">
+              <div style="max-width:780px; margin:0 auto;">
+                <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px;"><div><div style="font-size:23px; font-weight:800; letter-spacing:-.01em;">Histórico do relatório</div><div style="font-size:13px; color:#7d7468; margin-top:5px;">R-2487 · MV Cabo Frio · todas as ações em ordem cronológica.</div></div></div>
+                <div style="background:#fff; border:1px solid #ece8e1; border-radius:12px; padding:8px 22px;">
+                  <sc-for list="{{ auditView }}" as="a" hint-placeholder-count="10">
+                    <div style="display:flex; gap:16px; padding:15px 0; border-bottom:1px solid #f2efe9;"><div style="flex:none; width:96px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a9185; padding-top:2px;">{{ a.time }}</div><div style="flex:none; padding-top:4px;"><span style="width:11px; height:11px; border-radius:50%; background: {{ a.color }}; display:block; box-shadow:0 0 0 3px #fff, 0 0 0 4.5px {{ a.color }};"></span></div><div style="flex:1;"><div style="display:flex; align-items:center; gap:10px;"><span style="font-size:14px; font-weight:700; color:#1d1d1d;">{{ a.action }}</span><span style="font-size:11.5px; color:#7d7468; background:#f4f2ee; border:1px solid #ece8e1; padding:2px 8px; border-radius:99px;">{{ a.actor }}</span></div><div style="font-size:12.5px; color:#7d7468; margin-top:4px; font-family:'IBM Plex Mono',monospace;">{{ a.detail }}</div></div></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ADMIN -->
+          <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid; grid-template-columns:290px 1fr; min-height:100%;">
+              <div style="background:#fbfaf8; border-right:1px solid #ece8e1; padding:22px 18px;">
+                <div style="font-size:18px; font-weight:800; letter-spacing:-.01em; margin-bottom:4px;">Specs</div>
+                <div style="font-size:12.5px; color:#7d7468; margin-bottom:18px;">Uma versão ativa por tipo.</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ specList }}" as="sp" hint-placeholder-count="5">
+                    <div onClick="{{ sp.pick }}" style="background:#fff; border-radius:10px; padding:12px 13px; cursor:pointer; border: {{ sp.border }}; box-shadow: {{ sp.shadow }};"><div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700;">{{ sp.name }}</span><span style="font-size:10.5px; font-weight:700; color:#2f6b48; background:#e4f0e8; padding:2px 8px; border-radius:99px;">{{ sp.ver }} ativa</span></div><div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#9a9185; margin-top:4px;">{{ sp.slug }} · {{ sp.count }} versões</div></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:#faf8f5; display:flex; flex-direction:column;">
+                <div style="padding:22px 28px 16px; border-bottom:1px solid #ece8e1; display:flex; align-items:flex-end; justify-content:space-between;"><div><div style="display:flex; align-items:center; gap:10px;"><div style="font-size:20px; font-weight:800;">{{ adminCur.name }}</div><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#9a9185;">{{ adminCur.slug }}</span></div><div style="display:flex; gap:7px; margin-top:10px;"><span style="font-size:11.5px; font-weight:600; color:#fff; background:#16294d; padding:4px 11px; border-radius:99px;">{{ adminCur.ver }} · ativa</span><span style="font-size:11.5px; font-weight:700; color:#16294d; background:#eef1f7; border:1px solid #dde3ef; padding:4px 11px; border-radius:99px;">+ nova versão</span></div></div><div style="display:flex; align-items:center; gap:9px; padding:7px 13px; background:#e4f0e8; border:1px solid #c4e0cf; border-radius:9px;"><span style="width:16px;height:16px;border-radius:50%;background:#2f7d52;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;">✓</span><span style="font-size:12.5px; font-weight:600; color:#2f6b48;">JSON válido</span></div></div>
+                <div style="flex:1; margin:18px 28px; background:#11203b; border-radius:10px; overflow:hidden; display:flex; flex-direction:column;">
+                  <div style="height:38px; background:#0c1830; display:flex; align-items:center; padding:0 16px; gap:8px;"><span style="width:9px;height:9px;border-radius:50%;background:#bf2c30;"></span><span style="width:9px;height:9px;border-radius:50%;background:#bb8420;"></span><span style="width:9px;height:9px;border-radius:50%;background:#2f7d52;"></span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#7f8aa3; margin-left:8px;">{{ adminCur.slug }}.json</span></div>
+                  <div style="flex:1; padding:18px 20px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.75; color:#c7d2e6;">
+<span style="color:#5f6f8c;">1</span>  <span style="color:#7fb0e8;">"report_type"</span>: <span style="color:#9ad8a8;">"{{ adminCur.slug }}"</span>,<br>
+<span style="color:#5f6f8c;">2</span>  <span style="color:#7fb0e8;">"version"</span>: <span style="color:#e8b87f;">4</span>,<br>
+<span style="color:#5f6f8c;">3</span>  <span style="color:#7fb0e8;">"source"</span>: {<br>
+<span style="color:#5f6f8c;">4</span>    <span style="color:#7fb0e8;">"sheet"</span>: <span style="color:#9ad8a8;">"DADOS"</span>,<br>
+<span style="color:#5f6f8c;">5</span>    <span style="color:#7fb0e8;">"fingerprint"</span>: { <span style="color:#7fb0e8;">"cell"</span>: <span style="color:#9ad8a8;">"A1"</span>, <span style="color:#7fb0e8;">"expect"</span>: <span style="color:#9ad8a8;">"NAABSA-DRAFT"</span> },<br>
+<span style="color:#5f6f8c;">6</span>    <span style="color:#7fb0e8;">"common"</span>: { <span style="color:#7fb0e8;">"fields"</span>: {<br>
+<span style="color:#5f6f8c;">7</span>      <span style="color:#7fb0e8;">"vessel_name"</span>: { <span style="color:#7fb0e8;">"cell"</span>: <span style="color:#9ad8a8;">"B4"</span>, <span style="color:#7fb0e8;">"type"</span>: <span style="color:#9ad8a8;">"string"</span> }<br>
+<span style="color:#5f6f8c;">8</span>    } }<br>
+<span style="color:#5f6f8c;">9</span>  }
+                  </div>
+                </div>
+                <div style="padding:0 28px 22px; display:flex; align-items:center; gap:12px;"><div style="flex:1; font-size:12px; color:#9a9185;">Specs são <b>imutáveis</b> após salvar — relatórios mantêm a versão usada.</div><button onClick="{{ activateSpec }}" style="height:42px; padding:0 20px; background:#16294d; color:#fff; border:none; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer;">Salvar &amp; ativar v4</button></div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!--APPEND-->
+
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- TOAST -->
+    <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; bottom:24px; left:50%; transform:translateX(-50%); background:#16294d; color:#fff; padding:13px 20px; border-radius:11px; box-shadow:0 16px 40px -12px rgba(0,0,0,.4); display:flex; align-items:center; gap:11px; z-index:50; animation:toastin .25s ease;">
+        <span style="width:20px;height:20px;border-radius:50%;background:#2f7d52;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;">✓</span>
+        <span style="font-size:13.5px; font-weight:600;">{{ toast }}</span>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'login',
+    email: '', pass: '', loginError: false,
+    search: '', fType: 'Todos', fStatus: 'Todos', menu: null,
+    active: null,
+    // wizard
+    wStep: 1, wType: null, wVariant: null, uploading: false, uploadPct: 0, uploaded: false, extracting: false,
+    // review
+    overrides: {},
+    // photos
+    alloc: {}, aiConfirmed: {}, crop: null, galAlloc: 0,
+    // editor / pdf
+    pdf: 'idle',
+    toast: null,
+    adminSpec: 'draft_survey',
+  };
+
+  auditEntries = [
+    { time: '08/jun 14:32', actor: 'C. Andrade', action: 'Relatório criado', kind: 'create', detail: 'Tipo Draft Survey · variante Descarga' },
+    { time: '08/jun 14:33', actor: 'C. Andrade', action: 'Planilha enviada', kind: 'upload', detail: 'draft_cabo_frio_descarga.xlsx · 4.2 MB' },
+    { time: '08/jun 14:33', actor: 'sistema', action: 'Extração concluída', kind: 'system', detail: '14 campos lidos · 1 erro · 1 aviso' },
+    { time: '08/jun 14:41', actor: 'C. Andrade', action: 'Override de campo', kind: 'edit', detail: "Porto: 'Tubarao' → 'Tubarão (Vitória)' (B6)" },
+    { time: '08/jun 14:42', actor: 'C. Andrade', action: 'Override de campo', kind: 'edit', detail: "Data do survey: vazio → '06/jun/2026' (B7)" },
+    { time: '08/jun 14:48', actor: 'sistema', action: '6 fotos processadas', kind: 'system', detail: 'EXIF corrigido · thumbnails geradas' },
+    { time: '08/jun 14:55', actor: 'C. Andrade', action: 'Fotos confirmadas', kind: 'photo', detail: '5 slots preenchidos · sugestões de IA aceitas' },
+    { time: '08/jun 15:10', actor: 'sistema', action: 'Snapshot de edição', kind: 'system', detail: 'document_json salvo · 4.218 nós' },
+    { time: '08/jun 15:24', actor: 'C. Andrade', action: 'Aprovado · PDF enfileirado', kind: 'status', detail: 'editing → approved' },
+    { time: '08/jun 15:25', actor: 'worker', action: 'PDF gerado', kind: 'system', detail: 'final.pdf · sha256 a1f3…9c2 · 38 s' },
+  ];
+
+  selectSpec = (slug) => this.setState({ adminSpec: slug });
+  activateSpec = () => this.flash('Spec validado e ativado · v4');
+
+  statusMap = {
+    draft:     { label: 'Rascunho',   bg: '#efece7', fg: '#7d7468', dot: '#b3aa9d' },
+    extracted: { label: 'Extraído',   bg: '#e9eef7', fg: '#27406e', dot: '#3a5994' },
+    in_review: { label: 'Em revisão', bg: '#f6eed8', fg: '#8a6516', dot: '#bb8420' },
+    editing:   { label: 'Em edição',  bg: '#e6eefb', fg: '#1f4f9c', dot: '#2f6bd0' },
+    approved:  { label: 'Aprovado',   bg: '#e4f0e8', fg: '#2f6b48', dot: '#3a8159' },
+    generated: { label: 'Gerado',     bg: '#2f7d52', fg: '#ffffff', dot: '#bfe6cf' },
+    purged:    { label: 'Expurgado',  bg: '#f2f0ed', fg: '#a79e92', dot: '#cabfb1' },
+  };
+
+  reports = [
+    { id: 'R-2487', vessel: 'MV Cabo Frio',      type: 'Draft Survey',    variant: 'Descarga', status: 'generated', date: '08/jun/2026', author: 'C. Andrade' },
+    { id: 'R-2486', vessel: 'MV Santos Express',  type: 'On/Off-Hire',     variant: 'On-Hire',  status: 'editing',   date: '07/jun/2026', author: 'R. Menezes' },
+    { id: 'R-2485', vessel: 'Iron Trader',        type: 'Bunker Surveyor', variant: 'Carga',    status: 'in_review', date: '07/jun/2026', author: 'C. Andrade' },
+    { id: 'R-2484', vessel: 'MV Açu Voyager',     type: 'ROB',             variant: '—',        status: 'approved',  date: '06/jun/2026', author: 'P. Tavares' },
+    { id: 'R-2483', vessel: 'Tanker Guanabara',   type: 'MSC',             variant: '—',        status: 'extracted', date: '05/jun/2026', author: 'R. Menezes' },
+    { id: 'R-2482', vessel: 'MV Pampero',         type: 'Draft Survey',    variant: 'Carga',    status: 'draft',     date: '05/jun/2026', author: 'C. Andrade' },
+    { id: 'R-2481', vessel: 'MV Sepetiba Star',   type: 'On/Off-Hire',     variant: 'Off-Hire', status: 'generated', date: '03/jun/2026', author: 'P. Tavares' },
+    { id: 'R-2479', vessel: 'MV Rio Doce',        type: 'Bunker Surveyor', variant: 'Descarga', status: 'purged',    date: '21/abr/2026', author: 'R. Menezes' },
+  ];
+
+  componentWillUnmount() { clearInterval(this._up); clearTimeout(this._t); }
+
+  flash(msg) { clearTimeout(this._t); this.setState({ toast: msg }); this._t = setTimeout(() => this.setState({ toast: null }), 2600); }
+  go(screen) { this.setState({ screen, menu: null }); }
+
+  doLogin = () => {
+    if (!this.state.email.trim() || !this.state.pass.trim()) { this.setState({ loginError: true }); return; }
+    this.setState({ loginError: false, screen: 'dashboard' });
+  };
+
+  openReport = (r) => {
+    const map = { generated: 'preview', approved: 'preview', editing: 'editor', in_review: 'review', extracted: 'review', draft: 'review', purged: 'history' };
+    const next = { active: r, screen: map[r.status] || 'review' };
+    if (r.status === 'generated' || r.status === 'approved') next.pdf = 'generated';
+    this.setState(next);
+  };
+
+  startWizard = () => this.setState({ screen: 'wizard', wStep: 1, wType: null, wVariant: null, uploading: false, uploadPct: 0, uploaded: false, extracting: false });
+  pickType = (slug) => this.setState({ wType: slug, wVariant: null });
+  pickVariant = (v) => this.setState({ wVariant: v });
+  toUpload = () => this.setState({ wStep: 3 });
+  chooseFile = () => {
+    if (this.state.uploading || this.state.uploaded) return;
+    this.setState({ uploading: true, uploadPct: 0 });
+    clearInterval(this._up);
+    this._up = setInterval(() => {
+      this.setState(s => {
+        const p = Math.min(100, s.uploadPct + 9);
+        if (p >= 100) { clearInterval(this._up); return { uploadPct: 100, uploading: false, uploaded: true }; }
+        return { uploadPct: p };
+      });
+    }, 110);
+  };
+  extract = () => {
+    if (!this.state.uploaded) return;
+    this.setState({ extracting: true });
+    clearTimeout(this._t2);
+    this._t2 = setTimeout(() => {
+      const TV = this.typeNames;
+      this.setState({ extracting: false, screen: 'review', overrides: {}, active: { id: 'R-2488', vessel: 'MV Cabo Frio', type: TV[this.state.wType] || 'Draft Survey', variant: this.state.wVariant || 'Descarga', status: 'in_review' } });
+    }, 1700);
+  };
+
+  typeNames = { draft_survey: 'Draft Survey', bunker_surveyor: 'Bunker Surveyor', msc: 'MSC', on_off_hire: 'On/Off-Hire', rob: 'ROB' };
+  typeVariants = { draft_survey: ['Carregamento', 'Descarga'], bunker_surveyor: ['Carga', 'Descarga'], on_off_hire: ['On-Hire', 'Off-Hire'], msc: null, rob: null };
+
+  setField = (f, v) => this.setState(s => ({ overrides: { ...s.overrides, [f]: v } }));
+  confirmData = () => { this.flash('Dados confirmados · etapa de fotos liberada'); this.setState({ screen: 'photos' }); };
+
+  fillSlot = (id) => this.setState(s => ({ alloc: { ...s.alloc, [id]: (s.alloc[id] || 0) + 1 }, galAlloc: s.galAlloc + 1 }));
+  confirmAi = (id) => this.setState(s => ({ aiConfirmed: { ...s.aiConfirmed, [id]: true } }));
+  confirmAllAi = () => { this.setState(s => ({ aiConfirmed: { draft_aft: true, general: true } })); this.flash('Sugestões da IA confirmadas'); };
+  openCrop = (id) => this.setState({ crop: id });
+  closeCrop = () => this.setState({ crop: null });
+  saveCrop = () => { this.setState({ crop: null }); this.flash('Recorte salvo'); };
+  toEditor = () => this.setState({ screen: 'editor' });
+
+  toPreview = () => this.setState({ screen: 'preview' });
+  approve = () => {
+    this.setState({ screen: 'preview', pdf: 'generating' });
+    clearTimeout(this._t3);
+    this._t3 = setTimeout(() => { this.setState({ pdf: 'generated' }); this.flash('PDF gerado · final.pdf'); }, 2800);
+  };
+  downloadPdf = () => this.flash('Download iniciado · final.pdf');
+  regenerate = () => { this.setState({ screen: 'editor', pdf: 'idle' }); this.flash('Voltou para edição · regenerar quando pronto'); };
+
+  onSearch = (e) => this.setState({ search: e.target.value });
+  onEmail = (e) => this.setState({ email: e.target.value });
+  onPass = (e) => this.setState({ pass: e.target.value });
+  toggleMenu = (m) => this.setState(s => ({ menu: s.menu === m ? null : m }));
+  setFilter = (kind, val) => this.setState({ [kind]: val, menu: null });
+  clearFilters = () => this.setState({ search: '', fType: 'Todos', fStatus: 'Todos', menu: null });
+
+  renderVals() {
+    const s = this.state;
+    const inApp = s.screen !== 'login';
+    const paths = { login: '/login', dashboard: '/dashboard', wizard: '/reports/new', review: '/reports/R-2488/review', photos: '/reports/R-2488/photos', editor: '/reports/R-2488/edit', preview: '/reports/R-2488/print', history: '/reports/R-2487/history', admin: '/admin/specs' };
+    const url = 'relatorios.naabsa.com.br' + (paths[s.screen] || '/dashboard');
+
+    const navOn = { bg: '#16294d', fg: '#fff' };
+    const navOff = { bg: 'transparent', fg: '#4a443c' };
+    const relScreens = ['dashboard', 'review', 'photos', 'editor', 'preview', 'history'];
+    const navRel = relScreens.includes(s.screen) ? navOn : navOff;
+    const navNovo = s.screen === 'wizard' ? navOn : navOff;
+    const navAdmin = s.screen === 'admin' ? navOn : navOff;
+
+    // dashboard filtering
+    const q = s.search.trim().toLowerCase();
+    const filtered = this.reports.filter(r =>
+      (!q || r.vessel.toLowerCase().includes(q)) &&
+      (s.fType === 'Todos' || r.type === s.fType) &&
+      (s.fStatus === 'Todos' || this.statusMap[r.status].label === s.fStatus)
+    );
+    const reportRows = filtered.map(r => ({ ...r, st: this.statusMap[r.status], open: () => this.openReport(r) }));
+    const tipoOpts = ['Todos', 'Draft Survey', 'Bunker Surveyor', 'MSC', 'On/Off-Hire', 'ROB'].map(t => ({ label: t, pick: () => this.setFilter('fType', t) }));
+    const statusOpts = ['Todos', 'Rascunho', 'Extraído', 'Em revisão', 'Em edição', 'Aprovado', 'Gerado', 'Expurgado'].map(t => ({ label: t, pick: () => this.setFilter('fStatus', t) }));
+
+    // ---- WIZARD ----
+    const TV = this.typeVariants, TN = this.typeNames;
+    const typeMeta = {
+      draft_survey: 'Cálculo de calado · carga e descarga', bunker_surveyor: 'Medição de combustível a bordo',
+      msc: 'Marine survey & condition', on_off_hire: 'Entrega e devolução de afretamento', rob: 'Remaining on board',
+    };
+    const order = ['draft_survey', 'bunker_surveyor', 'msc', 'on_off_hire', 'rob'];
+    const typeCards = order.map(slug => {
+      const sel = s.wType === slug; const hv = TV[slug];
+      return { slug, name: TN[slug], sub: typeMeta[slug], vlabel: hv ? hv.length + ' variantes' : 'sem variante',
+        vbg: hv ? '#eef1f7' : '#f4f2ee', vfg: hv ? '#27406e' : '#9a9185',
+        border: sel ? '2px solid #16294d' : '1.5px solid #e4e0d8', shadow: sel ? '0 0 0 4px rgba(22,41,77,.08)' : 'none',
+        checkShow: sel, pick: () => this.pickType(slug) };
+    });
+    const hasVariants = s.wType && TV[s.wType];
+    const variantOpts = hasVariants ? TV[s.wType].map(v => ({ label: v, sel: s.wVariant === v,
+      border: s.wVariant === v ? '2px solid #16294d' : '1.5px solid #e4e0d8', shadow: s.wVariant === v ? '0 0 0 4px rgba(22,41,77,.08)' : 'none',
+      ring: s.wVariant === v ? '5px solid #16294d' : '2px solid #cfcabf', pick: () => this.pickVariant(v) })) : [];
+    const canContinue = !!(s.wType && (!hasVariants || s.wVariant));
+    const contStyle = canContinue ? { bg: '#16294d', fg: '#fff', cur: 'pointer' } : { bg: '#dcd8d0', fg: '#8a8276', cur: 'not-allowed' };
+    const extractStyle = s.uploaded ? { bg: '#16294d', fg: '#fff', cur: 'pointer' } : { bg: '#dcd8d0', fg: '#8a8276', cur: 'not-allowed' };
+
+    // ---- REVIEW ----
+    const ex = { vessel_name: 'MV Cabo Frio', imo: '9456123', port: 'Tubarão (Vitória)', survey_date: '', surveyor: 'C. Andrade', cargo: 'Minério de ferro', draft_fwd: '12,340', draft_aft: '12,610', cargo_weight: '208.450', density: '1,0250' };
+    const ov = s.overrides; const eff = f => (ov[f] !== undefined ? ov[f] : ex[f]);
+    const fieldDefs = [
+      { sec: 'Identificação', items: [['vessel_name', 'Nome do navio', 'B4'], ['imo', 'IMO', 'B5'], ['port', 'Porto', 'B6']] },
+      { sec: 'Survey', items: [['survey_date', 'Data do survey', 'B7'], ['surveyor', 'Surveyor responsável', 'B8'], ['cargo', 'Tipo de carga', 'B9']] },
+      { sec: 'Calado e deslocamento', items: [['draft_fwd', 'Calado de proa (m)', 'C12'], ['draft_aft', 'Calado de popa (m)', 'C13'], ['cargo_weight', 'Peso de carga (t)', 'C18'], ['density', 'Densidade da água', 'C20']] },
+    ];
+    const issStyle = { error: { bg: '#fbeceb', bd: '#f0c4c2', fg: '#9b2a2c', tag: 'Erro' }, warning: { bg: '#f9f1dc', bd: '#ecd9a6', fg: '#8a6516', tag: 'Aviso' } };
+    const fieldIssue = (f, val) => {
+      if (f === 'survey_date' && (!val || !String(val).trim())) return { level: 'error', msg: "Campo 'Data do survey' vazio na célula B7" };
+      if (f === 'cargo_weight') { const n = parseFloat(String(val).replace(/\./g, '').replace(',', '.')); if (n > 200000) return { level: 'warning', msg: 'Peso de carga fora do intervalo usual (0–200.000)' }; }
+      return null;
+    };
+    let errorCount = 0, warnCount = 0;
+    const reviewSections = fieldDefs.map(sec => ({ name: sec.sec, fields: sec.items.map(([f, label, cell]) => {
+      const val = eff(f); const issue = fieldIssue(f, val);
+      if (issue) { if (issue.level === 'error') errorCount++; else warnCount++; }
+      return { field: f, label, cell, value: val || '', override: ov[f] !== undefined, iss: issue ? { ...issue, ...issStyle[issue.level] } : null,
+        bdr: issue ? (issue.level === 'error' ? '1.5px solid #e7a6a4' : '1.5px solid #e0cda0') : '1.5px solid #e0dbd1',
+        onInput: (e) => this.setField(f, e.target.value) };
+    }) }));
+    const canConfirm = errorCount === 0;
+    const confirmStyle = canConfirm ? { bg: '#16294d', fg: '#fff', cur: 'pointer' } : { bg: '#dcd8d0', fg: '#8a8276', cur: 'not-allowed' };
+
+    // ---- PHOTOS ----
+    const photoBase = [
+      { name: 'IMG_4012', tone: '#3a4a63' }, { name: 'IMG_4013', tone: '#5b6b54' }, { name: 'IMG_4014', tone: '#6b5a48' }, { name: 'IMG_4015', tone: '#4a5b6b' },
+      { name: 'IMG_4016', tone: '#7a6a5a' }, { name: 'IMG_4017', tone: '#52605a' }, { name: 'IMG_4018', tone: '#5a5063' }, { name: 'IMG_4019', tone: '#63563f' },
+    ];
+    const totalAlloc = Math.min(8, 5 + s.galAlloc);
+    const gallery = photoBase.map((g, i) => ({ ...g, allocated: i < totalAlloc }));
+    const slotBase = [
+      { id: 'draft_fwd', label: 'Calado de proa', aspect: '4:3', req: true, need: 1, tone: '#3a4a63', max: 1 },
+      { id: 'draft_aft', label: 'Calado de popa', aspect: '4:3', req: true, need: 1, tone: '#4a5b6b', max: 1, ai: true },
+      { id: 'draft_mid', label: 'Calado a meio-navio', aspect: '4:3', req: true, need: 1, tone: null, max: 1 },
+      { id: 'holds', label: 'Porões', aspect: '16:9', req: true, need: 2, tone: '#52605a', max: 6 },
+      { id: 'general', label: 'Vista geral do navio', aspect: '16:9', req: false, need: 0, tone: '#63563f', max: 2, ai: true },
+    ];
+    const slotHave = { draft_fwd: 1, draft_aft: 1, draft_mid: 0, holds: 2, general: 1 };
+    const slots = slotBase.map(sl => {
+      const have = (slotHave[sl.id] || 0) + (s.alloc[sl.id] || 0);
+      const ok = sl.req ? have >= sl.need : true;
+      const tone = sl.tone || (have > 0 ? '#3a4a63' : null);
+      const aiPending = sl.ai && !s.aiConfirmed[sl.id];
+      return { ...sl, have, ok, tone, filled: have > 0, aiPending, countColor: ok ? '#2f7d52' : '#bf2c30',
+        fill: () => this.fillSlot(sl.id), confirm: () => this.confirmAi(sl.id), crop: () => this.openCrop(sl.id) };
+    });
+    const requiredPending = slots.filter(sl => sl.req && !sl.ok).length;
+    const canAdvance = requiredPending === 0;
+    const advStyle = canAdvance ? { bg: '#16294d', fg: '#fff', cur: 'pointer' } : { bg: '#dcd8d0', fg: '#8a8276', cur: 'not-allowed' };
+    const aiPendingCount = slots.filter(sl => sl.aiPending).length;
+    const cropSlot = s.crop ? slots.find(x => x.id === s.crop) : null;
+
+    // ---- AUDIT / ADMIN ----
+    const kindColor = { create: '#16294d', upload: '#27406e', system: '#7d7468', edit: '#bb8420', photo: '#2f6b48', status: '#bf2c30' };
+    const auditView = this.auditEntries.map(a => ({ ...a, color: kindColor[a.kind] }));
+    const specList = [
+      { slug: 'draft_survey', name: 'Draft Survey', ver: 'v3', count: 3 }, { slug: 'bunker_surveyor', name: 'Bunker Surveyor', ver: 'v2', count: 2 },
+      { slug: 'msc', name: 'MSC', ver: 'v1', count: 1 }, { slug: 'on_off_hire', name: 'On/Off-Hire', ver: 'v4', count: 4 }, { slug: 'rob', name: 'ROB', ver: 'v1', count: 1 },
+    ].map(sp => ({ ...sp, sel: s.adminSpec === sp.slug, border: s.adminSpec === sp.slug ? '2px solid #16294d' : '1.5px solid #e4e0d8',
+      shadow: s.adminSpec === sp.slug ? '0 0 0 3px rgba(22,41,77,.07)' : 'none', pick: () => this.selectSpec(sp.slug) }));
+    const adminCur = specList.find(x => x.sel) || specList[0];
+
+    const act = s.active || {};
+
+    return {
+      url, isLogin: s.screen === 'login', inApp,
+      email: s.email, pass: s.pass, loginError: s.loginError, onEmail: this.onEmail, onPass: this.onPass, doLogin: this.doLogin,
+      navRel, navNovo, navAdmin,
+      goDash: () => this.go('dashboard'), goNovo: this.startWizard, goAdmin: () => this.go('admin'),
+      isDashboard: s.screen === 'dashboard',
+      reportRows, filteredCount: filtered.length, noResults: filtered.length === 0,
+      search: s.search, onSearch: this.onSearch,
+      fTipo: s.fType, fStatus: s.fStatus, toggleTipo: () => this.toggleMenu('tipo'), toggleStatus: () => this.toggleMenu('status'),
+      menuTipo: s.menu === 'tipo', menuStatus: s.menu === 'status', tipoOpts, statusOpts, clearFilters: this.clearFilters,
+      // wizard
+      isWizard: s.screen === 'wizard', wTipoStep: s.wStep < 3, wUploadStep: s.wStep === 3,
+      typeCards, hasVariants, variantOpts, wTypeName: s.wType ? TN[s.wType] : '', canContinue, contStyle, toUpload: this.toUpload,
+      wUploadStepLine: s.wStep === 3 ? '#16294d' : '#dcd8d0',
+      step3bg: s.wStep === 3 ? '#16294d' : '#fff', step3fg: s.wStep === 3 ? '#fff' : '#b5ab9d',
+      step3bd: s.wStep === 3 ? 'none' : '2px solid #dcd8d0', step3tx: s.wStep === 3 ? '#16294d' : '#a39a8d',
+      wIdle: !s.uploading && !s.uploaded, extractLabel: s.extracting ? 'Extraindo…' : 'Extrair dados',
+      uploading: s.uploading, uploadPct: s.uploadPct, uploadPctStr: s.uploadPct + '%', uploaded: s.uploaded, extracting: s.extracting,
+      chooseFile: this.chooseFile, extract: this.extract, extractStyle, wVariant: s.wVariant,
+      // review
+      isReview: s.screen === 'review', reviewSections, errorCount, warnCount, hasError: errorCount > 0, hasWarn: warnCount > 0,
+      canConfirm, confirmStyle, confirmData: this.confirmData, actVessel: act.vessel || 'MV Cabo Frio', actMeta: (act.type || 'Draft Survey') + ' · ' + (act.variant || 'Descarga'),
+      // photos
+      isPhotos: s.screen === 'photos', gallery, slots, totalAlloc, requiredPending, canAdvance, advStyle, toEditor: this.toEditor,
+      pendColor: requiredPending > 0 ? '#bf2c30' : '#2f7d52',
+      pendLabel: requiredPending > 0 ? (requiredPending + ' slot obrigatório pendente') : 'Slots obrigatórios completos',
+      aiPendingCount, hasAiPending: aiPendingCount > 0, confirmAllAi: this.confirmAllAi,
+      cropOpen: !!cropSlot, cropSlot, closeCrop: this.closeCrop, saveCrop: this.saveCrop,
+      // editor
+      isEditor: s.screen === 'editor', toPreview: this.toPreview, approve: this.approve,
+      // preview
+      isPreview: s.screen === 'preview', pdfGenerating: s.pdf === 'generating', pdfReady: s.pdf === 'generated',
+      downloadPdf: this.downloadPdf, regenerate: this.regenerate, backEditor: this.toEditor,
+      dlStyle: s.pdf === 'generated' ? { bg: '#fff', fg: '#16294d', cur: 'pointer' } : { bg: 'rgba(255,255,255,.2)', fg: '#aeb8cc', cur: 'not-allowed' },
+      // history / admin
+      isHistory: s.screen === 'history', auditView,
+      isAdmin: s.screen === 'admin', specList, adminCur, activateSpec: this.activateSpec,
+      toast: s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
