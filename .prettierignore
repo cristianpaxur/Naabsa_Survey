@@ -1,0 +1,18 @@
+# Dependências e saídas
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Lockfile e handoff de design (gerados/externos)
+pnpm-lock.yaml
+design/
+
+# Documentação extensa do projeto (preserva formatação autoral)
+PRD.md
+CLAUDE.md
+implementation/

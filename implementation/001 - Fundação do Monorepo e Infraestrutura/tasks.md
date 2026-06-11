@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 2/10 tarefas concluídas (20%)
+> **Progresso:** 3/10 tarefas concluídas (30%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -34,7 +34,7 @@
   - **Dependências:** T-001
   - **Estimativa:** Pequena
 
-- [ ] **T-003:** Configurar ESLint + Prettier com regra de isolamento do core
+- [x] **T-003:** Configurar ESLint + Prettier com regra de isolamento do core
   - **Descrição:** Config única de lint/format; regra `no-restricted-imports` impedindo `packages/core` de importar `next`, `@supabase/*` e `apps/*` (RF-003 da spec).
   - **Arquivos envolvidos:** `eslint.config.mjs`, `.prettierrc`
   - **Critério de conclusão:** `pnpm lint` verde; import proibido no core falha o lint (testado com arquivo temporário).
@@ -104,7 +104,7 @@
 |--------|--------|-------------------|-------------|
 | T-001  | ✅ Concluída | 2026-06-11 | pnpm 11.6.0; scripts agregadores `-r --if-present`; gate verde (exit 0) |
 | T-002  | ✅ Concluída | 2026-06-11 | tsconfig.base.json estrito (TS 5.9.3); tsconfig-solução raiz adiado p/ T-004 (precisa de references) |
-| T-003  | ⬜ Pendente | — | — |
+| T-003  | ✅ Concluída | 2026-06-11 | ESLint 9 flat + typescript-eslint 8 + Prettier 3; sonda confirmou bloqueio de next/@supabase/@naabsa/web no core |
 | T-004  | ⬜ Pendente | — | — |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |
