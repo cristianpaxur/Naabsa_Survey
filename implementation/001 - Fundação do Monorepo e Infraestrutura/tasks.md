@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 3/10 tarefas concluídas (30%)
+> **Progresso:** 4/10 tarefas concluídas (40%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -43,7 +43,7 @@
 
 ### Fase 2: Implementação Core
 
-- [ ] **T-004:** Criar esqueleto `packages/core` e `packages/db`
+- [x] **T-004:** Criar esqueleto `packages/core` e `packages/db`
   - **Descrição:** Estrutura `packages/core/src/{extractor,spec-schema,document-builder}/` (PRD §7) com index vazio exportável; `packages/db/` com pastas `migrations/` e `types/`.
   - **Arquivos envolvidos:** `packages/core/**`, `packages/db/**`
   - **Critério de conclusão:** Workspaces buildam; estrutura idêntica ao PRD §7.
@@ -105,7 +105,7 @@
 | T-001  | ✅ Concluída | 2026-06-11 | pnpm 11.6.0; scripts agregadores `-r --if-present`; gate verde (exit 0) |
 | T-002  | ✅ Concluída | 2026-06-11 | tsconfig.base.json estrito (TS 5.9.3); tsconfig-solução raiz adiado p/ T-004 (precisa de references) |
 | T-003  | ✅ Concluída | 2026-06-11 | ESLint 9 flat + typescript-eslint 8 + Prettier 3; sonda confirmou bloqueio de next/@supabase/@naabsa/web no core |
-| T-004  | ⬜ Pendente | — | — |
+| T-004  | ✅ Concluída | 2026-06-11 | @naabsa/core (extractor/spec-schema/document-builder) e @naabsa/db (migrations/types); tsconfig-solução raiz com references; `tsc -b` e typecheck verdes |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |
 | T-007  | ⬜ Pendente | — | — |

@@ -1,0 +1,5 @@
+{
+  "//": "tsconfig raiz (solução por project references). Não compila nada diretamente; serve a editores e ao `tsc -b`. Cada workspace tem seu próprio tsconfig (composite). Referências de apps/web e apps/worker são adicionadas nas T-005/T-006.",
+  "files": [],
+  "references": [{ "path": "packages/core" }, { "path": "packages/db" }]
+}
