@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 0/10 tarefas concluídas (0%)
+> **Progresso:** 1/10 tarefas concluídas (10%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -20,7 +20,7 @@
 
 ### Fase 1: Preparação e Setup
 
-- [ ] **T-001:** Inicializar monorepo pnpm workspaces
+- [x] **T-001:** Inicializar monorepo pnpm workspaces
   - **Descrição:** Criar `package.json` raiz, `pnpm-workspace.yaml` (apps/*, packages/*) e scripts raiz `lint`, `typecheck`, `test` que agregam todos os workspaces.
   - **Arquivos envolvidos:** `package.json`, `pnpm-workspace.yaml`, `.gitignore`, `.nvmrc`
   - **Critério de conclusão:** `pnpm install` resolve sem erros; `.env` e `node_modules` ignorados no git.
@@ -102,7 +102,7 @@
 
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
-| T-001  | ⬜ Pendente | — | — |
+| T-001  | ✅ Concluída | 2026-06-11 | pnpm 11.6.0; scripts agregadores `-r --if-present`; gate verde (exit 0) |
 | T-002  | ⬜ Pendente | — | — |
 | T-003  | ⬜ Pendente | — | — |
 | T-004  | ⬜ Pendente | — | — |

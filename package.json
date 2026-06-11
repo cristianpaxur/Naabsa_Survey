@@ -1,0 +1,17 @@
+{
+  "name": "naabsa-survey",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de Relatórios Automatizados Naabsa — monorepo (app, worker, core, db)",
+  "packageManager": "pnpm@11.6.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "build": "pnpm -r --if-present run build",
+    "dev": "pnpm -r --if-present --parallel run dev"
+  }
+}

@@ -1,0 +1,37 @@
+# Dependências
+node_modules/
+.pnpm-store/
+
+# Saídas de build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Ambiente e segredos (PRD §13 — nunca commitar)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Cobertura e testes
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Dados locais de container (Caddy/Docker)
+caddy_data/
+caddy_config/
+
+# SO e editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
