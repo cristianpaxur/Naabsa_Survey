@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 1/10 tarefas concluídas (10%)
+> **Progresso:** 2/10 tarefas concluídas (20%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -27,7 +27,7 @@
   - **Dependências:** Nenhuma
   - **Estimativa:** Pequena
 
-- [ ] **T-002:** Configurar TypeScript estrito compartilhado
+- [x] **T-002:** Configurar TypeScript estrito compartilhado
   - **Descrição:** `tsconfig.base.json` com `strict: true`, `noUncheckedIndexedAccess`, paths dos packages; tsconfigs por workspace estendendo a base.
   - **Arquivos envolvidos:** `tsconfig.base.json`, `*/tsconfig.json`
   - **Critério de conclusão:** `pnpm typecheck` roda verde no esqueleto.
@@ -103,7 +103,7 @@
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
 | T-001  | ✅ Concluída | 2026-06-11 | pnpm 11.6.0; scripts agregadores `-r --if-present`; gate verde (exit 0) |
-| T-002  | ⬜ Pendente | — | — |
+| T-002  | ✅ Concluída | 2026-06-11 | tsconfig.base.json estrito (TS 5.9.3); tsconfig-solução raiz adiado p/ T-004 (precisa de references) |
 | T-003  | ⬜ Pendente | — | — |
 | T-004  | ⬜ Pendente | — | — |
 | T-005  | ⬜ Pendente | — | — |
