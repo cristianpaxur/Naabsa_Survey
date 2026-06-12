@@ -27,6 +27,13 @@ COPY apps/worker/package.json apps/worker/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
+# ┌─ impl 007 (process_photo / sharp + HEIC) ─────────────────────────────────┐
+# │ O job process_photo usa `sharp`. O pacote npm pré-compilado para linux-x64 │
+# │ (sharp@0.34) embute libvips com suporte a HEIF/HEIC, então node:22-slim    │
+# │ basta — não é necessário instalar libvips do SO. Se trocar para uma base   │
+# │ musl (alpine) ou outra arquitetura, validar o suporte HEIC do sharp.       │
+# └────────────────────────────────────────────────────────────────────────────┘
+
 # --- runner: fonte + execução via tsx (core/db são TS, sem build) ---
 FROM deps AS runner
 COPY packages ./packages

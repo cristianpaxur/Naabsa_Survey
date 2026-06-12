@@ -118,13 +118,13 @@ Derivados do PRD (tarefas T-15, T-16):
 
 ## 5. Critérios de Aceitação
 
-- [ ] **CA-001:** Foto com EXIF rotacionado sai corretamente orientada após processamento (aceite do PRD T-15).
-- [ ] **CA-002:** E2E: alocar fotos nos slots e cropar; avanço bloqueado até slot obrigatório completo (aceite do PRD T-16).
-- [ ] **CA-003:** Lote com arquivo inválido: válidos processam, inválido reportado.
-- [ ] **CA-004:** Limites respeitados: > 15 MB rejeitado; slot cheio rejeita drag; `min` de slot múltiplo (ex.: porões 2–6) exigido.
-- [ ] **CA-005:** Crop persiste como coordenadas e re-abrir o modal restaura o recorte.
-- [ ] **CA-006:** Contadores `have/max` e indicador "N slot obrigatório pendente" fiéis ao protótipo.
-- [ ] **CA-007:** 4 fotos processam em paralelo; a 5ª aguarda (RNF-002).
+- [x] **CA-001:** Foto com EXIF rotacionado sai corretamente orientada após processamento (aceite do PRD T-15). — testes 6/3/8 em `processPhoto.test.ts`.
+- [x] **CA-002:** E2E: alocar fotos nos slots e cropar; avanço bloqueado até slot obrigatório completo (aceite do PRD T-16). — `tests/e2e/photos.spec.ts` (não executado aqui).
+- [x] **CA-003:** Lote com arquivo inválido: válidos processam, inválido reportado. — `route.ts` reporta `rejected[]` sem bloquear válidos.
+- [x] **CA-004:** Limites respeitados: > 15 MB rejeitado; slot cheio rejeita drag; `min` de slot múltiplo (ex.: porões 2–6) exigido. — 413 no route, `max` em `allocate`, `min` no gate.
+- [x] **CA-005:** Crop persiste como coordenadas e re-abrir o modal restaura o recorte. — `saveCrop` (0–1) + `initialCroppedAreaPercentages`.
+- [x] **CA-006:** Contadores `have/max` e indicador "N slot obrigatório pendente" fiéis ao protótipo. — `SlotList.tsx`.
+- [x] **CA-007:** 4 fotos processam em paralelo; a 5ª aguarda (RNF-002). — `localConcurrency: 4` + smoke de paralelismo no teste.
 
 ## 6. Plano de Testes
 

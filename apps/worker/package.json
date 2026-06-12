@@ -6,14 +6,19 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@naabsa/core": "workspace:*",
-    "@naabsa/db": "workspace:*"
+    "@naabsa/db": "workspace:*",
+    "@supabase/supabase-js": "^2.108.1",
+    "pg-boss": "^12.18.3",
+    "sharp": "^0.35.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.9"
   }
 }
