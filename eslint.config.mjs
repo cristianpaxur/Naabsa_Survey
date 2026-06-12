@@ -63,6 +63,14 @@ export default tseslint.config(
     },
   },
 
+  // Testes podem usar `any` (entradas malformadas, mocks).
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', 'tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
   // Desliga regras que conflitam com o Prettier (sempre por último).
   eslintConfigPrettier,
 );

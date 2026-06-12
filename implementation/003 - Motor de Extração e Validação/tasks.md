@@ -2,7 +2,7 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 1/12 tarefas concluídas (8%)
+> **Progresso:** 3/12 tarefas concluídas (25%)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -29,14 +29,14 @@
 
 ### Fase 2: Spec Schema (PRD T-04)
 
-- [ ] **T-002:** Escrever `spec.schema.json`
+- [x] **T-002:** Escrever `spec.schema.json`
   - **Descrição:** JSON Schema completo do contrato JSONB: campos obrigatórios, tipos de campo (`number.decimals`, `date.format`, `enum.options`), regras `compare`/`range`, `photo_slots`.
   - **Arquivos envolvidos:** `packages/core/src/spec-schema/spec.schema.json`
   - **Critério de conclusão:** Schema valida o exemplo do PRD §8 e rejeita mutações inválidas.
   - **Dependências:** T-001
   - **Estimativa:** Média
 
-- [ ] **T-003:** Implementar `validateSpec()` com mensagens pt-BR
+- [x] **T-003:** Implementar `validateSpec()` com mensagens pt-BR
   - **Descrição:** Wrapper de validação (ajv) traduzindo erros para mensagens claras exibíveis na UI do admin (009).
   - **Arquivos envolvidos:** `packages/core/src/spec-schema/validateSpec.ts`
   - **Critério de conclusão:** Fixtures válidas passam; 10+ inválidas rejeitam com mensagem (CA-001).
@@ -123,8 +123,8 @@
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
 | T-001  | ✅ Concluída | 2026-06-12 | types.ts: ReportSpec/FieldDef(união discriminada)/ValidationRule/PhotoSlot/Issue/ExtractionResult; exportados pelo barril |
-| T-002  | ⬜ Pendente | — | — |
-| T-003  | ⬜ Pendente | — | — |
+| T-002  | ✅ Concluída | 2026-06-12 | spec.schema.json (draft-07): exclusividade date→format/enum→options/number→decimals; additionalProperties false |
+| T-003  | ✅ Concluída | 2026-06-12 | validateSpec (ajv 8) com erros pt-BR; 21 testes (1 válido + 18 inválidos) verdes (CA-001) |
 | T-004  | ⬜ Pendente | — | — |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |

@@ -1,3 +1,2 @@
-// Contrato do report spec — implementação 003 (T-002..T-003).
-// Aqui viverão: spec.schema.json, validateSpec() e os tipos do spec.
-export {};
+// Contrato do report spec — JSON Schema + validador (PRD §8).
+export * from './validateSpec';

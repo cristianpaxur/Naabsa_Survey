@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://naabsa.com.br/schemas/report-spec.json",
+  "title": "Naabsa Report Spec",
+  "description": "Contrato JSONB do spec de relatório (PRD §8).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_type", "version", "variants", "source"],
+  "properties": {
+    "report_type": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "variants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "source": { "$ref": "#/definitions/source" },
+    "validations": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/validation" }
+    },
+    "photo_slots": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/photoSlot" }
+    }
+  },
+  "definitions": {
+    "cell": {
+      "type": "string",
+      "pattern": "^[A-Z]+[0-9]+$",
+      "description": "Referência de célula A1 (ex.: B7, AA12)."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheet", "fingerprint", "common"],
+      "properties": {
+        "sheet": { "type": "string", "minLength": 1 },
+        "fingerprint": { "$ref": "#/definitions/fingerprint" },
+        "common": { "$ref": "#/definitions/fieldsBlock" },
+        "by_variant": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/fieldsBlock" }
+        }
+      }
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cell", "expect"],
+      "properties": {
+        "cell": { "$ref": "#/definitions/cell" },
+        "expect": { "type": "string", "minLength": 1 }
+      }
+    },
+    "fieldsBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields"],
+      "properties": {
+        "fields": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/definitions/fieldDef" }
+        }
+      }
+    },
+    "fieldDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cell", "type", "label", "section"],
+      "properties": {
+        "cell": { "$ref": "#/definitions/cell" },
+        "type": { "enum": ["string", "number", "date", "enum", "boolean"] },
+        "label": { "type": "string", "minLength": 1 },
+        "section": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "pattern": { "type": "string" },
+        "decimals": { "type": "integer", "minimum": 0 },
+        "format": { "type": "string", "minLength": 1 },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "date" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["format"] },
+          "else": { "properties": { "format": false } }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "enum" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["options"] },
+          "else": { "properties": { "options": false } }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "number" } },
+            "required": ["type"]
+          },
+          "else": { "properties": { "decimals": false } }
+        }
+      ]
+    },
+    "validation": {
+      "oneOf": [
+        { "$ref": "#/definitions/compareValidation" },
+        { "$ref": "#/definitions/rangeValidation" }
+      ]
+    },
+    "compareValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "left", "op", "right", "level", "message"],
+      "properties": {
+        "rule": { "const": "compare" },
+        "left": { "type": "string", "minLength": 1 },
+        "op": { "enum": [">=", "<=", ">", "<", "==", "!="] },
+        "right": { "type": "string", "minLength": 1 },
+        "level": { "$ref": "#/definitions/level" },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rangeValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "field", "level", "message"],
+      "anyOf": [{ "required": ["min"] }, { "required": ["max"] }],
+      "properties": {
+        "rule": { "const": "range" },
+        "field": { "type": "string", "minLength": 1 },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "level": { "$ref": "#/definitions/level" },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    },
+    "level": { "enum": ["error", "warning"] },
+    "photoSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "aspect"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "aspect": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" },
+        "required": { "type": "boolean" },
+        "min": { "type": "integer", "minimum": 0 },
+        "max": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
