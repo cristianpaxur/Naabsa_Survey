@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "dotenv -e ../../.env -- next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "dotenv -e ../../.env -- next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -24,6 +24,7 @@
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "dotenv-cli": "^7.4.4",
     "vitest": "^2.1.9"
   }
 }

@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 6/12 tarefas concluídas (50%)
+> **Progresso:** 7/12 tarefas concluídas (58%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -70,7 +70,7 @@
   - **Dependências:** T-004
   - **Estimativa:** Pequena
 
-- [ ] **T-007:** Tela 02 — Dashboard com filtros e busca
+- [x] **T-007:** Tela 02 — Dashboard com filtros e busca
   - **Descrição:** Listagem server-side (tipo, variante, navio, status, data, autor); filtros tipo/status/período por query params; busca por navio; empty-state; clique roteia pela etapa do status (mapa `openReport` do protótipo); CTA "Novo relatório".
   - **Arquivos envolvidos:** `apps/web/app/(app)/dashboard/page.tsx`
   - **Critério de conclusão:** CA-004 atendido com dados reais do banco.
@@ -130,7 +130,7 @@
 | T-004  | ✅ Concluída | 2026-06-12 | (app)/layout server lê user+profile; Sidebar client (nav ativa por path, Specs só admin, logout); fiel ao protótipo. Nota: cast de resultados supabase-js (parser yields never com strict TS) |
 | T-005  | ✅ Concluída | 2026-06-12 | state-machine.ts (grafo §3.2, isValidTransition, transition c/ guarda otimista + audit) + audit.ts; vitest no web; 4 testes (7×7) verdes (CA-003) |
 | T-006  | ✅ Concluída | 2026-06-12 | StatusBadge + STATUS_MAP com as cores exatas dos 7 estados (statusMap do protótipo) |
-| T-007  | ⬜ Pendente | — | — |
+| T-007  | ✅ Concluída | 2026-06-12 | Dashboard server-side: tabela fiel ao protótipo, filtros tipo/status/período + busca por navio (query params), empty-state, roteamento por status, CTA. dotenv-cli carrega o .env da raiz no dev/start |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
 | T-010  | ⬜ Pendente | — | — |
