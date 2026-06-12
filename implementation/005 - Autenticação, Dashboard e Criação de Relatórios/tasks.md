@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 3/12 tarefas concluídas (25%)
+> **Progresso:** 4/12 tarefas concluídas (33%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -45,7 +45,7 @@
   - **Dependências:** T-001
   - **Estimativa:** Média
 
-- [ ] **T-004:** App shell com sidebar
+- [x] **T-004:** App shell com sidebar
   - **Descrição:** Layout `(app)` com sidebar do protótipo (logo NAABSA, Relatórios, Novo relatório, Specs, usuário/papel) e estados ativos de navegação.
   - **Arquivos envolvidos:** `apps/web/app/(app)/layout.tsx`, `components/ui/sidebar.tsx`
   - **Critério de conclusão:** Shell idêntico ao protótipo; navegação funcional.
@@ -127,7 +127,7 @@
 | T-001  | ✅ Concluída | 2026-06-12 | @supabase/ssr: client/server/middleware tipados com Database; NEXT_PUBLIC_* no env; seed-dev (2 usuários + spec ativo) rodado no cloud |
 | T-002  | ✅ Concluída | 2026-06-12 | Login fiel ao protótipo (split navy/papel, fontes Public Sans/IBM Plex Mono via next/font); signInWithPassword; erros pt-BR; build verde. Login ao vivo no E2E (T-010) |
 | T-003  | ✅ Concluída | 2026-06-12 | middleware.ts: refresh de sessão + proteção de (app)/*; sem sessão→/login, sem papel→/acesso-negado; /login e /reports/*/print públicos; api/estáticos fora do matcher |
-| T-004  | ⬜ Pendente | — | — |
+| T-004  | ✅ Concluída | 2026-06-12 | (app)/layout server lê user+profile; Sidebar client (nav ativa por path, Specs só admin, logout); fiel ao protótipo. Nota: cast de resultados supabase-js (parser yields never com strict TS) |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |
 | T-007  | ⬜ Pendente | — | — |
