@@ -8,6 +8,15 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "migrate": "tsx src/migrate.ts"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2"
   }
 }

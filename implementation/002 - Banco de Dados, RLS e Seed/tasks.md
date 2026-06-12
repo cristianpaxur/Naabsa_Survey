@@ -20,11 +20,11 @@
 
 ### Fase 1: Preparação e Setup
 
-- [ ] **T-001:** Configurar Supabase CLI e ambiente local
-  - **Descrição:** Inicializar config do Supabase no repo (`supabase init`), documentar `supabase start`/`db reset` e adicionar scripts `pnpm db:reset`, `pnpm db:types` na raiz.
-  - **Arquivos envolvidos:** `supabase/config.toml`, `package.json`
-  - **Critério de conclusão:** Supabase local sobe e reseta limpo.
-  - **Dependências:** Nenhuma (001 concluída)
+- [ ] **T-001:** Configurar Supabase CLI e vincular ao projeto hosted
+  - **Descrição:** `supabase init` no repo; `supabase link --project-ref <ref>` ao projeto cloud; scripts `pnpm db:push`, `pnpm db:types` na raiz. Documentar as variáveis no `.env` (gitignored). **Ambiente local (`supabase start`) diferido para o deploy ao VPS.**
+  - **Arquivos envolvidos:** `supabase/config.toml`, `package.json`, `.env` (local, não commitado)
+  - **Critério de conclusão:** Repo vinculado ao projeto hosted; `supabase db push` alcança o banco.
+  - **Dependências:** Nenhuma (001 concluída) · **Bloqueio:** credenciais do projeto Supabase cloud
   - **Estimativa:** Pequena
 
 ### Fase 2: Implementação Core

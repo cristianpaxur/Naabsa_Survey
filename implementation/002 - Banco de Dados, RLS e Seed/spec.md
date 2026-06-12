@@ -36,9 +36,14 @@ pode ser implementado com segurança. RLS incorreta é risco direto de vazamento
 ## 3. Especificação Técnica
 
 ### 3.1 Visão Geral da Arquitetura
-Postgres (Supabase hosted) com RLS em todas as tabelas. O web usa `anon key` + sessão do
-usuário; o worker usa `service role` (bypass de RLS). Migrations idempotentes e ordenadas
-em `packages/db/migrations/`, aplicáveis via Supabase CLI.
+Postgres (**Supabase hosted/cloud**) com RLS em todas as tabelas. O web usa `anon key` +
+sessão do usuário; o worker usa `service role` (bypass de RLS). Migrations idempotentes e
+ordenadas em `packages/db/migrations/`, aplicadas ao **projeto hosted** via Supabase CLI
+(`supabase link` + `supabase db push`) ou diretamente via `DATABASE_URL`.
+
+> **Decisão (usuário, 2026-06-11):** no desenvolvimento usamos o **Supabase da nuvem** para
+> agilizar; o ambiente **Supabase local (CLI/Docker, `supabase start`)** fica para a fase de
+> deploy ao VPS (impl 010). Esta implementação NÃO exige banco local.
 
 ### 3.2 Componentes Afetados
 
@@ -72,10 +77,17 @@ DDL integral do PRD §6 (fonte de verdade). Pontos de atenção:
 - Seed (PRD §3.1): `draft_survey` [loading, discharge], `bunker_surveyor` [loading, discharge], `msc` [], `on_off_hire` [on_hire, off_hire], `rob` [].
 
 ### 3.5 Fluxo de Execução
-1. `supabase db reset` (ou apply em projeto limpo) roda as migrations em ordem.
-2. Seed insere os 5 `report_types`.
-3. `supabase gen types typescript` atualiza `packages/db/types/database.ts`.
-4. Testes de RLS rodam contra o Supabase local validando as matrizes de acesso.
+1. `pnpm db:migrate` — runner próprio (`packages/db`, via `pg`) executa as migrations de
+   `packages/db/migrations/*.sql` em ordem, em transação, contra `DATABASE_URL` (projeto
+   hosted). Migrations idempotentes ⇒ seguras para re-rodar.
+2. O seed (0004) insere os 5 `report_types` (`on conflict do nothing`).
+3. `pnpm db:types` — `supabase gen types typescript --db-url $DATABASE_URL` atualiza
+   `packages/db/types/database.ts`.
+4. Testes de RLS rodam contra o **projeto hosted** (via `@supabase/supabase-js` com anon key
+   + usuários de teste) validando as matrizes de acesso por papel.
+
+> Mantém as migrations em `packages/db/migrations/` (PRD §7) e é cross-platform (sem depender
+> de `psql` no host nem da pasta `supabase/migrations/` exigida pelo `supabase db push`).
 
 ### 3.6 Tratamento de Erros
 - Migration reaplicada: scripts idempotentes (`if not exists` / guards) ou controle de versão
@@ -105,7 +117,7 @@ Derivados do PRD (tarefa T-02):
 
 ## 5. Critérios de Aceitação
 
-- [ ] **CA-001:** Migrations aplicam em Supabase limpo sem erro (aceite do PRD T-02).
+- [ ] **CA-001:** Migrations aplicam no projeto Supabase hosted via `supabase db push` sem erro (aceite do PRD T-02).
 - [ ] **CA-002:** Seed resulta em exatamente 5 `report_types` com slugs/variantes do PRD §3.1.
 - [ ] **CA-003:** Testes de RLS: operator não lê `profiles` de terceiros; não escreve em `report_specs`; admin escreve; anônimo não lê nada.
 - [ ] **CA-004:** `update` em `report_specs` falha mesmo como admin (imutabilidade RF-35).
@@ -142,7 +154,12 @@ exercita a matriz de acesso de cada tabela nos dois papéis + anônimo.
 **001** (monorepo, `packages/db` existente, scripts raiz).
 
 ### 8.2 Dependências Externas
-Supabase CLI (banco local para testes), projeto Supabase hosted (produção).
+- **Projeto Supabase hosted (cloud)** — dev e produção. Requer credenciais no `.env`
+  (gitignored): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `DATABASE_URL` e, para o CLI, o project-ref + access token. **Bloqueia a aplicação das
+  migrations e os testes de RLS** (CA-001..005) até serem fornecidas.
+- Supabase CLI (para `link`/`db push`/`gen types`). Ambiente local (`supabase start`)
+  **diferido para o deploy ao VPS**.
 
 ## 9. Observações e Decisões de Design
 
@@ -151,6 +168,9 @@ Supabase CLI (banco local para testes), projeto Supabase hosted (produção).
   trigger — decisão do PRD T-13; o banco fornece apenas o enum.
 - A FK `report_types.active_spec_id → report_specs.id` é adicionada em migration separada
   (dependência circular entre as duas tabelas, como anotado no DDL do PRD).
+- **Imutabilidade de `report_specs` (decisão do usuário, 2026-06-11):** defesa dupla —
+  política RLS negando UPDATE **e** trigger `BEFORE UPDATE` que lança erro explícito. Garante
+  a regra mesmo para o `service role` (que ignora RLS) — daí a importância do trigger.
 
 ---
 

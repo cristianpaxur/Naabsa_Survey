@@ -15,7 +15,8 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "build": "pnpm -r --if-present run build",
-    "dev": "pnpm -r --if-present --parallel run dev"
+    "dev": "pnpm -r --if-present --parallel run dev",
+    "db:migrate": "pnpm --filter @naabsa/db migrate"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
