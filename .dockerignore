@@ -1,0 +1,33 @@
+# Dependências e saídas (reinstaladas/recompiladas na imagem)
+**/node_modules
+**/.next
+**/dist
+**/build
+**/out
+**/coverage
+**/*.tsbuildinfo
+.pnpm-store
+
+# Git e metadados
+.git
+.gitignore
+.gitattributes
+
+# Ambiente e segredos (PRD §13 — nunca na imagem)
+.env
+.env.*
+!.env.example
+
+# Documentação e handoff (não vão para runtime)
+design
+implementation
+tests
+PRD.md
+CLAUDE.md
+README.md
+
+# Editores/SO
+.idea
+.vscode
+**/.DS_Store
+Thumbs.db

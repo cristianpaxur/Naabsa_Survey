@@ -3,8 +3,8 @@ packages:
   - 'packages/*'
 
 # Dependências nativas autorizadas a rodar scripts de build (pnpm 11+).
-# sharp: processamento de imagem do worker (impl 007).
 # esbuild: motor do tsx (worker) e do Vitest.
-onlyBuiltDependencies:
-  - sharp
-  - esbuild
+# sharp: processamento de imagem do worker (impl 007).
+allowBuilds:
+  esbuild: true
+  sharp: true

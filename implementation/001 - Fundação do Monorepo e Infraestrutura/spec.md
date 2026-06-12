@@ -153,6 +153,16 @@ Acesso ao VPS (PRD §15) **apenas** para o deploy final — não bloqueia o dese
 - Os jobs do worker (`process_photo`, `generate_pdf`, `retention_purge`, `ai_review`) são
   apenas pastas/stubs aqui; a lógica chega nas implementações 004, 007 e 010.
 - O script `pnpm test` raiz deve agregar todos os workspaces para servir de gate único de CI.
+- **Decisão (T-008) — base do worker:** na fundação a imagem do worker usa `node:22-slim`,
+  não a imagem Playwright. O worker do esqueleto só executa `tsx` (sem Chromium); a troca para
+  `mcr.microsoft.com/playwright:<versão>-jammy` é **diferida para a impl 004**, quando o pacote
+  npm `playwright` e o job `generate_pdf` entram — momento natural para alinhar a versão da
+  imagem com a do pacote. O Dockerfile do worker documenta o ponto de troca. Evita carregar
+  uma base de ~1,8 GB antes de qualquer código usá-la.
+- **Decisão (T-008) — `allowBuilds`:** o pnpm 11.6 não honra `onlyBuiltDependencies`; a
+  autorização de scripts de build de dependências nativas (`esbuild`, `sharp`) é feita via
+  `allowBuilds: { esbuild: true, sharp: true }` no `pnpm-workspace.yaml` — essencial para o
+  `pnpm install` limpo dentro do Docker.
 
 ---
 

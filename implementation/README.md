@@ -10,7 +10,7 @@
 
 | # | Implementação | Tarefas PRD | Status | Progresso |
 |---|---|---|---|---|
-| [001](./001%20-%20Fundação%20do%20Monorepo%20e%20Infraestrutura/spec.md) | Fundação do Monorepo e Infraestrutura | T-01, T-03 | 🔵 Em Andamento | 7/10 |
+| [001](./001%20-%20Fundação%20do%20Monorepo%20e%20Infraestrutura/spec.md) | Fundação do Monorepo e Infraestrutura | T-01, T-03 | 🔵 Em Andamento | 8/10 |
 | [002](./002%20-%20Banco%20de%20Dados,%20RLS%20e%20Seed/spec.md) | Banco de Dados, RLS e Seed | T-02 | 🟡 Planejada | 0/9 |
 | [003](./003%20-%20Motor%20de%20Extração%20e%20Validação/spec.md) | Motor de Extração e Validação | T-04..T-07 | 🟡 Planejada | 0/12 |
 | [004](./004%20-%20Document-Builder%20e%20Geração%20de%20PDF/spec.md) | Document-Builder e Geração de PDF | T-08..T-10 | 🟡 Planejada | 0/11 |

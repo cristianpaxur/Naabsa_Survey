@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+# Imagem do app web (Next.js standalone). Contexto de build = raiz do monorepo:
+#   docker build -f apps/web/Dockerfile .
+
+# --- base: Node + pnpm (via corepack, versão fixada em package.json) ---
+FROM node:22-slim AS base
+ENV PNPM_HOME="/pnpm" PATH="/pnpm:$PATH" CI=true
+RUN corepack enable
+WORKDIR /app
+
+# --- deps: instala dependências do monorepo (camada cacheável pelos manifests) ---
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/core/package.json packages/core/package.json
+COPY packages/db/package.json packages/db/package.json
+COPY apps/web/package.json apps/web/package.json
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# --- builder: copia o fonte e gera o build standalone do Next ---
+FROM deps AS builder
+COPY . .
+RUN pnpm --filter @naabsa/web build
+
+# --- runner: imagem final mínima, usuário não-root ---
+FROM node:22-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
+RUN groupadd --system --gid 1001 nodejs \
+ && useradd --system --uid 1001 --gid nodejs nextjs
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+USER nextjs
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]

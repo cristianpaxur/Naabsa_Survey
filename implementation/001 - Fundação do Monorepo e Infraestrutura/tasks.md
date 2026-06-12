@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 7/10 tarefas concluídas (70%)
+> **Progresso:** 8/10 tarefas concluídas (80%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -73,8 +73,9 @@
 
 ### Fase 3: Infraestrutura Docker
 
-- [ ] **T-008:** Dockerfiles do app e do worker
+- [x] **T-008:** Dockerfiles do app e do worker
   - **Descrição:** Multi-stage builds; worker baseado em imagem Playwright com Chromium; usuário não-root; só artefatos de produção na imagem final (RNF-002).
+  - **Nota:** base Playwright do worker **diferida para a impl 004** (worker do esqueleto só roda tsx); na fundação usa `node:22-slim`. Ver Decisão T-008 na [spec](./spec.md) §9.
   - **Arquivos envolvidos:** `apps/web/Dockerfile`, `apps/worker/Dockerfile`, `.dockerignore`
   - **Critério de conclusão:** `docker build` de ambas as imagens conclui localmente.
   - **Dependências:** T-005, T-006
@@ -109,7 +110,7 @@
 | T-005  | ✅ Concluída | 2026-06-11 | Next 15.5.19 + React 19; 11 rotas do PRD §7 + /api/health; env via instrumentation.ts (warn-only); `next build` exit 0 (12 rotas); next-env.d.ts gitignored |
 | T-006  | ✅ Concluída | 2026-06-11 | Node+tsx; entrypoint c/ env + 4 stubs de jobs + shutdown SIGTERM/SIGINT; smoke (WORKER_SMOKE=1) sobe/encerra limpo exit 0; esbuild allowlisted |
 | T-007  | ✅ Concluída | 2026-06-11 | Vitest 2.1.9 no @naabsa/core; sentinela (2 testes) verde; tests/golden e tests/fixtures com README |
-| T-008  | ⬜ Pendente | — | — |
+| T-008  | ✅ Concluída | 2026-06-11 | web (Next standalone, 408MB) e worker (node-slim) multi-stage não-root; ambas buildam e rodam (web /api/health 200; worker smoke exit 0); base Playwright do worker diferida p/ impl 004 |
 | T-009  | ⬜ Pendente | — | — |
 | T-010  | ⬜ Pendente | — | — |
 
