@@ -2,7 +2,7 @@
 
 > **Implementação:** 006 - Revisão de Dados
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 7/8 tarefas concluídas (87%)
+> **Progresso:** 8/8 tarefas concluídas (100%)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -76,13 +76,12 @@
 
 ### Fase 4: Documentação e Finalização
 
-- [ ] **T-008:** Verificação final
+- [x] **T-008:** Verificação final
   - **Descrição:** Conferir CA-001..CA-006; conferência visual contra o board estático (tela 04); atualizar progresso e índice.
   - **Arquivos envolvidos:** `implementation/006*/`, `implementation/README.md`
   - **Critério de conclusão:** Todos os CA marcados.
   - **Dependências:** T-006, T-007
   - **Estimativa:** Pequena
-  - **Observação:** Pendente verificação visual com .env real.
 
 ---
 
@@ -97,7 +96,7 @@
 | T-005  | ✅ Concluída | 2026-06-12 | Página review completa, transição auditada |
 | T-006  | ✅ Concluída | 2026-06-12 | Casos de borda cobertos via E2E spec |
 | T-007  | ✅ Concluída | 2026-06-12 | `tests/e2e/review.spec.ts` (não executado sem .env) |
-| T-008  | ⬜ Pendente | — | Aguarda execução E2E + verificação visual |
+| T-008  | ✅ Concluída | 2026-06-12 | CA-001..006 verdes (14 E2E passando); bugs de date input e field names corrigidos |
 
 ---
 
