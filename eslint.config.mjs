@@ -44,6 +44,8 @@ export default tseslint.config(
       '**/.pnpm-store/**',
       // Arquivo de tipos gerado pelo Next.js (não editar/lintar).
       '**/next-env.d.ts',
+      // Tipos gerados do Supabase (não editar/lintar — regerados por CLI).
+      '**/types/database.ts',
       // Handoff de design (código externo do Claude Design — não é nosso fonte).
       'design/**',
     ],

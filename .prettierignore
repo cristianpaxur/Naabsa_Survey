@@ -12,6 +12,9 @@ coverage/
 pnpm-lock.yaml
 design/
 
+# Tipos gerados do Supabase
+packages/db/types/database.ts
+
 # Documentação extensa do projeto (preserva formatação autoral)
 PRD.md
 CLAUDE.md

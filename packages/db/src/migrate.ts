@@ -11,6 +11,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { Client } from 'pg';
+import { loadRootEnv, normalizeConnectionString } from './env';
 
 const MIGRATIONS_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -19,6 +20,7 @@ const MIGRATIONS_DIR = path.join(
 );
 
 async function main(): Promise<void> {
+  loadRootEnv();
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
@@ -37,7 +39,7 @@ async function main(): Promise<void> {
   // Supabase exige TLS; local (localhost/127.0.0.1) dispensa.
   const isLocal = /@(localhost|127\.0\.0\.1)/.test(connectionString);
   const client = new Client({
-    connectionString,
+    connectionString: normalizeConnectionString(connectionString),
     ssl: isLocal ? undefined : { rejectUnauthorized: false },
   });
 
