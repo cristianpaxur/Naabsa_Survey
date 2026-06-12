@@ -1,37 +1,12 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useActionState } from 'react';
+import { login, type LoginState } from '@/lib/actions/auth';
+
+const initial: LoginState = { error: null };
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [pass, setPass] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || !pass.trim()) {
-      setError('Preencha e-mail e senha para continuar.');
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password: pass,
-    });
-    if (authError) {
-      setError('E-mail ou senha inválidos.');
-      setLoading(false);
-      return;
-    }
-    router.push('/dashboard');
-    router.refresh();
-  }
+  const [state, formAction, pending] = useActionState(login, initial);
 
   return (
     <main
@@ -142,7 +117,7 @@ export default function LoginPage() {
           padding: 40,
         }}
       >
-        <form onSubmit={onSubmit} style={{ width: 360 }}>
+        <form action={formAction} style={{ width: 360 }}>
           <div
             style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.01em' }}
           >
@@ -152,7 +127,7 @@ export default function LoginPage() {
             Use as credenciais fornecidas pelo administrador.
           </div>
 
-          {error && (
+          {state.error && (
             <div
               role="alert"
               style={{
@@ -183,19 +158,21 @@ export default function LoginPage() {
               >
                 !
               </span>
-              <span style={{ fontSize: 13, color: '#9b2a2c' }}>{error}</span>
+              <span style={{ fontSize: 13, color: '#9b2a2c' }}>
+                {state.error}
+              </span>
             </div>
           )}
 
-          <Field label="E-mail">
+          <div style={{ marginTop: 20 }}>
+            <label style={labelStyle}>E-mail</label>
             <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
               type="email"
               placeholder="voce@naabsa.com.br"
               style={inputStyle}
             />
-          </Field>
+          </div>
 
           <div style={{ marginTop: 16 }}>
             <div
@@ -213,8 +190,7 @@ export default function LoginPage() {
               </span>
             </div>
             <input
-              value={pass}
-              onChange={(e) => setPass(e.target.value)}
+              name="password"
               type="password"
               placeholder="••••••••"
               style={{ ...inputStyle, marginTop: 7 }}
@@ -223,7 +199,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={pending}
             style={{
               marginTop: 24,
               width: '100%',
@@ -234,12 +210,12 @@ export default function LoginPage() {
               borderRadius: 10,
               fontSize: 15,
               fontWeight: 700,
-              cursor: loading ? 'wait' : 'pointer',
+              cursor: pending ? 'wait' : 'pointer',
               letterSpacing: '.01em',
-              opacity: loading ? 0.8 : 1,
+              opacity: pending ? 0.8 : 1,
             }}
           >
-            {loading ? 'Entrando…' : 'Entrar'}
+            {pending ? 'Entrando…' : 'Entrar'}
           </button>
 
           <div
@@ -277,21 +253,6 @@ const labelStyle = {
   fontWeight: 600,
   color: '#3f3a33',
 } as const;
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ marginTop: 20 }}>
-      <label style={labelStyle}>{label}</label>
-      {children}
-    </div>
-  );
-}
 
 function Logo({ size }: { size: number }) {
   return (

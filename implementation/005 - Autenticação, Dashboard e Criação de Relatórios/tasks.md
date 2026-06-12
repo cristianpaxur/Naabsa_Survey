@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 9/12 tarefas concluídas (75%)
+> **Progresso:** 10/12 tarefas concluídas (83%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -95,7 +95,7 @@
 
 ### Fase 5: Testes e Validação
 
-- [ ] **T-010:** E2E de login e acesso
+- [x] **T-010:** E2E de login e acesso
   - **Descrição:** Playwright: login feliz, credencial errada, rota protegida sem sessão, usuário sem papel (aceite do PRD T-11).
   - **Arquivos envolvidos:** `tests/e2e/login.spec.ts`
   - **Critério de conclusão:** CA-001 verde.
@@ -133,7 +133,7 @@
 | T-007  | ✅ Concluída | 2026-06-12 | Dashboard server-side: tabela fiel ao protótipo, filtros tipo/status/período + busca por navio (query params), empty-state, roteamento por status, CTA. dotenv-cli carrega o .env da raiz no dev/start |
 | T-008  | ✅ Concluída | 2026-06-12 | Wizard (stepper, cards dos 5 tipos, variante obrigatória, tipos sem spec ativo desabilitados); createReport congela spec ativo (RF-05) + audita. Refactor ServerClient unifica o tipo do cliente |
 | T-009  | ✅ Concluída | 2026-06-12 | Route handler /api/reports/[id]/spreadsheet: valida .xlsx/20MB, extrai (motor 003), erro de fingerprint mantém draft, sobe ao Storage (service), persiste extracted_data/issues/vessel_name, audita + draft→extracted; dropzone real → redireciona à revisão |
-| T-010  | ⬜ Pendente | — | — |
+| T-010  | ✅ Concluída | 2026-06-12 | Playwright configurado; 4 testes de login E2E verdes ao vivo (redirect, credencial inválida, campos vazios, login feliz). Login refatorado para Server Action (cookie confiável) — corrige o race do cliente |
 | T-011  | ⬜ Pendente | — | — |
 | T-012  | ⬜ Pendente | — | — |
 

@@ -17,11 +17,16 @@
     "build": "pnpm -r --if-present run build",
     "dev": "pnpm -r --if-present --parallel run dev",
     "db:migrate": "pnpm --filter @naabsa/db migrate",
-    "db:seed-dev": "pnpm --filter @naabsa/db seed:dev"
+    "db:seed-dev": "pnpm --filter @naabsa/db seed:dev",
+    "e2e": "dotenv -e .env -- playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.49.1",
+    "@supabase/supabase-js": "^2.47.10",
+    "dotenv-cli": "^7.4.4",
     "eslint": "^9.18.0",
+    "exceljs": "^4.4.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.4.2",
     "typescript": "^5.7.3",
