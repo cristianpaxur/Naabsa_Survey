@@ -2,8 +2,12 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 0/12 tarefas concluídas (0%)
-> **Última atualização:** 2026-06-11
+> **Progresso:** 1/12 tarefas concluídas (8%)
+> **Última atualização:** 2026-06-12
+>
+> **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
+> de teste e um spec sintético ativo de `draft_survey`. Login: `operador@naabsa.dev` /
+> `admin@naabsa.dev` (senha `naabsa123`).
 
 ---
 
@@ -20,7 +24,7 @@
 
 ### Fase 1: Autenticação (PRD T-11)
 
-- [ ] **T-001:** Clientes Supabase e validação de env
+- [x] **T-001:** Clientes Supabase e validação de env
   - **Descrição:** `lib/supabase/{client,server}.ts` (browser/server) tipados com `packages/db`; falha de boot clara sem env.
   - **Arquivos envolvidos:** `apps/web/lib/supabase/*`
   - **Critério de conclusão:** Sessão lida no server e no client.
@@ -120,7 +124,7 @@
 
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
-| T-001  | ⬜ Pendente | — | — |
+| T-001  | ✅ Concluída | 2026-06-12 | @supabase/ssr: client/server/middleware tipados com Database; NEXT_PUBLIC_* no env; seed-dev (2 usuários + spec ativo) rodado no cloud |
 | T-002  | ⬜ Pendente | — | — |
 | T-003  | ⬜ Pendente | — | — |
 | T-004  | ⬜ Pendente | — | — |

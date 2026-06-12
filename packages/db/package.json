@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -b",
     "migrate": "tsx src/migrate.ts",
+    "seed:dev": "tsx src/seed-dev.ts",
     "test": "vitest run"
   },
   "dependencies": {
+    "@naabsa/core": "workspace:*",
     "pg": "^8.13.1"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 # Autenticação, Dashboard e Criação de Relatórios
 
 > **ID:** 005
-> **Status:** 🟡 Planejada
+> **Status:** 🔵 Em Andamento
 > **Prioridade:** 🟠 Alta
 > **Criada em:** 2026-06-11
 > **Última atualização:** 2026-06-11
