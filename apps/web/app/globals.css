@@ -5,6 +5,10 @@
   --rocha: #7d7468;
   --tinta: #151515;
   --papel: #faf8f5;
+  --borda: #ece8e1;
+
+  --font-sans: 'Public Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 * {
@@ -20,10 +24,17 @@ body {
 body {
   background: var(--papel);
   color: var(--tinta);
-  font-family:
-    'Public Sans',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--navy);
+  color: #fff;
+}
+
+input,
+button {
+  font-family: inherit;
 }

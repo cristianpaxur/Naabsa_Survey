@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 1/12 tarefas concluídas (8%)
+> **Progresso:** 2/12 tarefas concluídas (17%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -31,7 +31,7 @@
   - **Dependências:** Nenhuma (002 concluída)
   - **Estimativa:** Pequena
 
-- [ ] **T-002:** Tela 01 — Login
+- [x] **T-002:** Tela 01 — Login
   - **Descrição:** Página `(auth)/login` fiel ao protótipo (split navy/papel, banner de erro, tokens Public Sans/IBM Plex Mono); signIn por e-mail/senha; sem signup.
   - **Arquivos envolvidos:** `apps/web/app/(auth)/login/page.tsx`, `components/ui/*`
   - **Critério de conclusão:** Login funciona; credencial inválida e campos vazios mostram erro pt-BR.
@@ -125,7 +125,7 @@
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
 | T-001  | ✅ Concluída | 2026-06-12 | @supabase/ssr: client/server/middleware tipados com Database; NEXT_PUBLIC_* no env; seed-dev (2 usuários + spec ativo) rodado no cloud |
-| T-002  | ⬜ Pendente | — | — |
+| T-002  | ✅ Concluída | 2026-06-12 | Login fiel ao protótipo (split navy/papel, fontes Public Sans/IBM Plex Mono via next/font); signInWithPassword; erros pt-BR; build verde. Login ao vivo no E2E (T-010) |
 | T-003  | ⬜ Pendente | — | — |
 | T-004  | ⬜ Pendente | — | — |
 | T-005  | ⬜ Pendente | — | — |
