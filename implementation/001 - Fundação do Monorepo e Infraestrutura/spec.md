@@ -1,7 +1,7 @@
 # Fundação do Monorepo e Infraestrutura
 
 > **ID:** 001
-> **Status:** 🟡 Planejada
+> **Status:** 🟢 Concluída
 > **Prioridade:** 🔴 Crítica
 > **Criada em:** 2026-06-11
 > **Última atualização:** 2026-06-11
@@ -108,12 +108,12 @@ Derivados do PRD (tarefas T-01 e T-03):
 
 ## 5. Critérios de Aceitação
 
-- [ ] **CA-001:** `pnpm lint` e `pnpm test` passam verdes no esqueleto (aceite do PRD T-01).
-- [ ] **CA-002:** `pnpm typecheck` passa com `strict: true` em todos os workspaces.
-- [ ] **CA-003:** `docker compose up` sobe `app` e `worker` localmente (aceite do PRD T-03).
-- [ ] **CA-004:** Estrutura de pastas idêntica ao PRD §7 (inspeção).
-- [ ] **CA-005:** Lint falha se `packages/core` importar `next`, `@supabase/*` ou código do worker (teste de regra).
-- [ ] **CA-006:** `.env.example` lista todas as variáveis do PRD §13 e `.env` está no `.gitignore`.
+- [x] **CA-001:** `pnpm lint` e `pnpm test` passam verdes no esqueleto (aceite do PRD T-01).
+- [x] **CA-002:** `pnpm typecheck` passa com `strict: true` em todos os workspaces.
+- [x] **CA-003:** `docker compose up` sobe `app` e `worker` localmente (aceite do PRD T-03).
+- [x] **CA-004:** Estrutura de pastas idêntica ao PRD §7 (inspeção).
+- [x] **CA-005:** Lint falha se `packages/core` importar `next`, `@supabase/*` ou código do worker (teste de regra).
+- [x] **CA-006:** `.env.example` lista todas as variáveis do PRD §13 e `.env` está no `.gitignore`.
 
 ## 6. Plano de Testes
 

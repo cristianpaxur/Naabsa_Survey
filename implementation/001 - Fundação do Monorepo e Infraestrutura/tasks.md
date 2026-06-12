@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 9/10 tarefas concluídas (90%)
+> **Progresso:** 10/10 tarefas concluídas (100%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -90,7 +90,7 @@
 
 ### Fase 4: Documentação e Finalização
 
-- [ ] **T-010:** Verificação final e documentação de bootstrap
+- [x] **T-010:** Verificação final e documentação de bootstrap
   - **Descrição:** Conferir CA-001..CA-006 da spec; escrever seção "Como rodar" no README raiz (install, dev, test, compose); registrar progresso.
   - **Arquivos envolvidos:** `README.md`, `implementation/001*/tasks.md`, `implementation/README.md`
   - **Critério de conclusão:** Todos os CA marcados; lint+typecheck+test verdes em máquina limpa.
@@ -112,7 +112,7 @@
 | T-007  | ✅ Concluída | 2026-06-11 | Vitest 2.1.9 no @naabsa/core; sentinela (2 testes) verde; tests/golden e tests/fixtures com README |
 | T-008  | ✅ Concluída | 2026-06-11 | web (Next standalone, 408MB) e worker (node-slim) multi-stage não-root; ambas buildam e rodam (web /api/health 200; worker smoke exit 0); base Playwright do worker diferida p/ impl 004 |
 | T-009  | ✅ Concluída | 2026-06-11 | compose app/worker/caddy; Caddy reverse-proxy (APP_DOMAIN→:80 local / TLS prod); `compose up` sobe os 3 e app responde via Caddy (HTTP 200). Fix: keepalive do worker (event loop) — sem ele saía 0 em loop |
-| T-010  | ⬜ Pendente | — | — |
+| T-010  | ✅ Concluída | 2026-06-11 | README raiz com "Como rodar"; CA-001..006 conferidos (gate verde, estrutura PRD §7, isolamento do core, .env ignorado); fundação concluída |
 
 ---
 
