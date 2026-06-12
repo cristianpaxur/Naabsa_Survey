@@ -2,7 +2,7 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 6/12 tarefas concluídas (50%)
+> **Progresso:** 7/12 tarefas concluídas (58%)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -68,7 +68,7 @@
 
 ### Fase 4: Validações e Issues (PRD T-06)
 
-- [ ] **T-007:** Validações por campo e regras cruzadas
+- [x] **T-007:** Validações por campo e regras cruzadas
   - **Descrição:** `validate.ts`: `required`, `min`, `max`, `pattern`, `enum` por campo + `validations[]` (`compare`, `range`), níveis error/warning, mensagens pt-BR com célula (RF-08).
   - **Arquivos envolvidos:** `packages/core/src/extractor/validate.ts`
   - **Critério de conclusão:** Fixtures com erros conhecidos produzem issues exatas (CA-004).
@@ -128,7 +128,7 @@
 | T-004  | ✅ Concluída | 2026-06-12 | coerce.ts (5 tipos): serial Excel 1900/1904, número pt-BR (.milhar ,decimal), enum case-insensitive, boolean pt-BR; 25 testes (CA-002) |
 | T-005  | ✅ Concluída | 2026-06-12 | extract.ts: aba→fingerprint(RF-09)→common+by_variant→coerção; normalizeCell (fórmula/richText/hyperlink); I/O fica no app; 7 testes |
 | T-006  | ✅ Concluída | 2026-06-12 | synthFixtures.ts: builder ExcelJS in-memory + sampleSpec (draft_survey c/ variantes); usado por extract/determinismo |
-| T-007  | ⬜ Pendente | — | — |
+| T-007  | ✅ Concluída | 2026-06-12 | validate.ts (required/min/max/pattern + compare/range) pt-BR; pipeline.ts (runExtraction, pula validação se aba/fingerprint falham); 8 testes (CA-004) |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
 | T-010  | ⬜ Pendente | — | — |
