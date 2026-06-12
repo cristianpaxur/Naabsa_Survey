@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 8/12 tarefas concluídas (67%)
+> **Progresso:** 9/12 tarefas concluídas (75%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -86,7 +86,7 @@
   - **Dependências:** T-004, T-005
   - **Estimativa:** Grande
 
-- [ ] **T-009:** Upload da planilha + disparo da extração
+- [x] **T-009:** Upload da planilha + disparo da extração
   - **Descrição:** Route handler multipart (.xlsx, ≤ 20 MB, 413/415), upload ao Storage, rodar extractor (003), persistir `extracted_data`/`extraction_issues` (imutáveis) + `vessel_name`, transicionar `draft→extracted`, auditar; UI com barra de progresso e spinner "Extraindo…" fiel ao protótipo.
   - **Arquivos envolvidos:** `apps/web/app/api/reports/[id]/spreadsheet/route.ts`, wizard
   - **Critério de conclusão:** Planilha válida chega a `extracted` e redireciona à revisão; fingerprint errado exibe erro RF-09 mantendo `draft`.
@@ -132,7 +132,7 @@
 | T-006  | ✅ Concluída | 2026-06-12 | StatusBadge + STATUS_MAP com as cores exatas dos 7 estados (statusMap do protótipo) |
 | T-007  | ✅ Concluída | 2026-06-12 | Dashboard server-side: tabela fiel ao protótipo, filtros tipo/status/período + busca por navio (query params), empty-state, roteamento por status, CTA. dotenv-cli carrega o .env da raiz no dev/start |
 | T-008  | ✅ Concluída | 2026-06-12 | Wizard (stepper, cards dos 5 tipos, variante obrigatória, tipos sem spec ativo desabilitados); createReport congela spec ativo (RF-05) + audita. Refactor ServerClient unifica o tipo do cliente |
-| T-009  | ⬜ Pendente | — | — |
+| T-009  | ✅ Concluída | 2026-06-12 | Route handler /api/reports/[id]/spreadsheet: valida .xlsx/20MB, extrai (motor 003), erro de fingerprint mantém draft, sobe ao Storage (service), persiste extracted_data/issues/vessel_name, audita + draft→extracted; dropzone real → redireciona à revisão |
 | T-010  | ⬜ Pendente | — | — |
 | T-011  | ⬜ Pendente | — | — |
 | T-012  | ⬜ Pendente | — | — |
