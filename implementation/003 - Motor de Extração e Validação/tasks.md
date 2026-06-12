@@ -2,7 +2,7 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 7/12 tarefas concluídas (58%)
+> **Progresso:** 8/12 tarefas concluídas (67%)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -75,7 +75,7 @@
   - **Dependências:** T-005
   - **Estimativa:** Grande
 
-- [ ] **T-008:** Implementar `resolveFieldValue()`
+- [x] **T-008:** Implementar `resolveFieldValue()`
   - **Descrição:** Função única `override ?? extracted` (RF-13), tratando `undefined` vs valores falsy legítimos (0, '', false).
   - **Arquivos envolvidos:** `packages/core/src/resolveFieldValue.ts`
   - **Critério de conclusão:** Testes de override presente/ausente/falsy verdes (CA-006).
@@ -129,7 +129,7 @@
 | T-005  | ✅ Concluída | 2026-06-12 | extract.ts: aba→fingerprint(RF-09)→common+by_variant→coerção; normalizeCell (fórmula/richText/hyperlink); I/O fica no app; 7 testes |
 | T-006  | ✅ Concluída | 2026-06-12 | synthFixtures.ts: builder ExcelJS in-memory + sampleSpec (draft_survey c/ variantes); usado por extract/determinismo |
 | T-007  | ✅ Concluída | 2026-06-12 | validate.ts (required/min/max/pattern + compare/range) pt-BR; pipeline.ts (runExtraction, pula validação se aba/fingerprint falham); 8 testes (CA-004) |
-| T-008  | ⬜ Pendente | — | — |
+| T-008  | ✅ Concluída | 2026-06-12 | resolveFieldValue (RF-13): override ?? extraído, mantém falsy (0/''/false); 6 testes (CA-006) |
 | T-009  | ⬜ Pendente | — | — |
 | T-010  | ⬜ Pendente | — | — |
 | T-011  | 🔴 Bloqueada | — | Aguarda tipo prioritário + planilha real (PRD §15) |

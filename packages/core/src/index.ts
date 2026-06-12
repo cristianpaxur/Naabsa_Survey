@@ -8,6 +8,7 @@
  *  - document-builder→ template → JSON TipTap (implementação 004)
  */
 export * from './types';
+export * from './resolveFieldValue';
 export * from './spec-schema';
 export * from './extractor';
 export * from './document-builder';
