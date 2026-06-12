@@ -23,6 +23,45 @@ export interface ProcessPhotoPayload {
   reportId: string;
 }
 
+export interface TransformResult {
+  processed: Buffer;
+  thumb: Buffer;
+}
+
+/**
+ * Núcleo puro do pipeline sharp (testável sem Storage): EXIF auto-orientation,
+ * sRGB, JPEG q82, lado maior ≤ 2500 px (processada) e ≤ 400 px (thumb), sem
+ * ampliar imagens menores. Recebe e devolve buffers.
+ */
+export async function transformImage(input: Buffer): Promise<TransformResult> {
+  // rotate() sem argumentos aplica a orientação do EXIF e remove o metadado.
+  const base = sharp(input).rotate().toColorspace('srgb');
+
+  const processed = await base
+    .clone()
+    .resize({
+      width: MAX_EDGE,
+      height: MAX_EDGE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+
+  const thumb = await base
+    .clone()
+    .resize({
+      width: THUMB_EDGE,
+      height: THUMB_EDGE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+
+  return { processed, thumb };
+}
+
 /** Caminho da processada/thumb a partir do original, preservando o uuid. */
 function derivePaths(
   reportId: string,
@@ -71,38 +110,7 @@ export async function processPhoto(
   }
   const input = Buffer.from(await blob.arrayBuffer());
 
-  // Base: EXIF auto-orientation + sRGB. rotate() sem argumentos aplica a
-  // orientação do EXIF e remove o metadado (evita rotação dupla no render).
-  const base = sharp(input).rotate().toColorspace('srgb');
-
-  const meta = await base.metadata();
-  const width = meta.width ?? 0;
-  const height = meta.height ?? 0;
-  const longest = Math.max(width, height);
-
-  // Processada: limita o lado maior a 2500 px (sem ampliar — withoutEnlargement).
-  const processed = await base
-    .clone()
-    .resize({
-      width: longest > MAX_EDGE ? (width >= height ? MAX_EDGE : undefined) : undefined,
-      height: longest > MAX_EDGE ? (height > width ? MAX_EDGE : undefined) : undefined,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .jpeg({ quality: JPEG_QUALITY })
-    .toBuffer();
-
-  // Thumbnail: 400 px no lado maior, mesmo critério (não amplia).
-  const thumb = await base
-    .clone()
-    .resize({
-      width: THUMB_EDGE,
-      height: THUMB_EDGE,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .jpeg({ quality: JPEG_QUALITY })
-    .toBuffer();
+  const { processed, thumb } = await transformImage(input);
 
   const { processedPath, thumbPath } = derivePaths(reportId, originalPath);
 

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
+import { pendingRequiredSlots } from '@/lib/photo-gate';
 
 export interface Crop {
   x: number;
@@ -227,21 +228,6 @@ export async function saveCrop(
     payload: { photoId, slotId: photo.slot_id, crop },
   });
   return { ok: true };
-}
-
-/**
- * Conta, por slot, quantas fotos estão alocadas. Slot obrigatório precisa de
- * `min` (default 1) fotos. Retorna a lista de slots pendentes.
- */
-export function pendingRequiredSlots(
-  slots: PhotoSlot[],
-  counts: Record<string, number>,
-): PhotoSlot[] {
-  return slots.filter((s) => {
-    if (!s.required) return false;
-    const need = s.min ?? 1;
-    return (counts[s.id] ?? 0) < need;
-  });
 }
 
 /**

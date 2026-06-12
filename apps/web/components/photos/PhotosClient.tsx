@@ -4,13 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { PhotoSlot } from '@naabsa/core';
-import {
-  allocate,
-  saveCrop,
-  advance,
-  pendingRequiredSlots,
-  type Crop,
-} from '@/lib/actions/photos';
+import { allocate, saveCrop, advance, type Crop } from '@/lib/actions/photos';
+import { pendingRequiredSlots } from '@/lib/photo-gate';
 import { Gallery } from './Gallery';
 import { SlotList } from './SlotList';
 import { CropModal } from './CropModal';
