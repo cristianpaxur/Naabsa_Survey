@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 2/12 tarefas concluídas (17%)
+> **Progresso:** 3/12 tarefas concluídas (25%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -38,7 +38,7 @@
   - **Dependências:** T-001
   - **Estimativa:** Média
 
-- [ ] **T-003:** Middleware de sessão e papel
+- [x] **T-003:** Middleware de sessão e papel
   - **Descrição:** Proteger `(app)/*`; resolver papel via `profiles`; sem sessão → `/login`; sem papel → página de acesso negado.
   - **Arquivos envolvidos:** `apps/web/middleware.ts`
   - **Critério de conclusão:** Rotas protegidas inacessíveis sem login/papel (CA-001 parcial).
@@ -126,7 +126,7 @@
 |--------|--------|-------------------|-------------|
 | T-001  | ✅ Concluída | 2026-06-12 | @supabase/ssr: client/server/middleware tipados com Database; NEXT_PUBLIC_* no env; seed-dev (2 usuários + spec ativo) rodado no cloud |
 | T-002  | ✅ Concluída | 2026-06-12 | Login fiel ao protótipo (split navy/papel, fontes Public Sans/IBM Plex Mono via next/font); signInWithPassword; erros pt-BR; build verde. Login ao vivo no E2E (T-010) |
-| T-003  | ⬜ Pendente | — | — |
+| T-003  | ✅ Concluída | 2026-06-12 | middleware.ts: refresh de sessão + proteção de (app)/*; sem sessão→/login, sem papel→/acesso-negado; /login e /reports/*/print públicos; api/estáticos fora do matcher |
 | T-004  | ⬜ Pendente | — | — |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |
