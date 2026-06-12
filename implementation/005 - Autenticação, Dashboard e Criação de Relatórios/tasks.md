@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 4/12 tarefas concluídas (33%)
+> **Progresso:** 5/12 tarefas concluídas (42%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -54,7 +54,7 @@
 
 ### Fase 2: Máquina de estados e auditoria (PRD T-13)
 
-- [ ] **T-005:** Módulo `state-machine.ts`
+- [x] **T-005:** Módulo `state-machine.ts`
   - **Descrição:** Grafo do PRD §3.2 como dados; `transition(reportId, to, actor)` valida, atualiza e audita; transição inválida lança erro pt-BR e audita a tentativa.
   - **Arquivos envolvidos:** `apps/web/lib/state-machine.ts`, `apps/web/lib/audit.ts`
   - **Critério de conclusão:** Tabela 7×7 de transições testada (CA-003).
@@ -128,7 +128,7 @@
 | T-002  | ✅ Concluída | 2026-06-12 | Login fiel ao protótipo (split navy/papel, fontes Public Sans/IBM Plex Mono via next/font); signInWithPassword; erros pt-BR; build verde. Login ao vivo no E2E (T-010) |
 | T-003  | ✅ Concluída | 2026-06-12 | middleware.ts: refresh de sessão + proteção de (app)/*; sem sessão→/login, sem papel→/acesso-negado; /login e /reports/*/print públicos; api/estáticos fora do matcher |
 | T-004  | ✅ Concluída | 2026-06-12 | (app)/layout server lê user+profile; Sidebar client (nav ativa por path, Specs só admin, logout); fiel ao protótipo. Nota: cast de resultados supabase-js (parser yields never com strict TS) |
-| T-005  | ⬜ Pendente | — | — |
+| T-005  | ✅ Concluída | 2026-06-12 | state-machine.ts (grafo §3.2, isValidTransition, transition c/ guarda otimista + audit) + audit.ts; vitest no web; 4 testes (7×7) verdes (CA-003) |
 | T-006  | ⬜ Pendente | — | — |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |
