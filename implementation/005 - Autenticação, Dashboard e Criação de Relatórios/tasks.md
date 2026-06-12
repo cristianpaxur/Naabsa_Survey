@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 11/12 tarefas concluídas (92%)
+> **Progresso:** 12/12 tarefas concluídas (100%) — ✅ Implementação concluída
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -111,7 +111,7 @@
 
 ### Fase 6: Documentação e Finalização
 
-- [ ] **T-012:** Verificação final
+- [x] **T-012:** Verificação final
   - **Descrição:** Conferir CA-001..CA-007, casos de borda (reinício→draft, uploads simultâneos, sessão expirada, tipos sem variante); atualizar progresso e índice.
   - **Arquivos envolvidos:** `implementation/005*/`, `implementation/README.md`
   - **Critério de conclusão:** Todos os CA marcados; bordas cobertas por teste ou decisão documentada.
@@ -135,7 +135,7 @@
 | T-009  | ✅ Concluída | 2026-06-12 | Route handler /api/reports/[id]/spreadsheet: valida .xlsx/20MB, extrai (motor 003), erro de fingerprint mantém draft, sobe ao Storage (service), persiste extracted_data/issues/vessel_name, audita + draft→extracted; dropzone real → redireciona à revisão |
 | T-010  | ✅ Concluída | 2026-06-12 | Playwright configurado; 4 testes de login E2E verdes ao vivo (redirect, credencial inválida, campos vazios, login feliz). Login refatorado para Server Action (cookie confiável) — corrige o race do cliente |
 | T-011  | ✅ Concluída | 2026-06-12 | create-report.spec.ts: 2 testes verdes ao vivo — draft_survey (com variante=discharge) e ROB (sem variante) chegam a `extracted` com `vessel_name`/`variant` corretos e trilha completa (create/upload/extraction/transition). Seed ganhou spec sintético de `rob` (NAABSA-ROB) p/ o caminho sem-variante. Fixtures .xlsx geradas via ExcelJS; cleanup via service role (CA-002, CA-007) |
-| T-012  | ⬜ Pendente | — | — |
+| T-012  | ✅ Concluída | 2026-06-12 | CA-001..CA-007 mapeados a evidências no spec.md (todos marcados); 8 testes E2E verdes ao vivo + unit 7×7. Fechadas as lacunas: E2E "sem papel"→acesso-negado (login action passou a resolver o papel e redirecionar direto, corrigindo a URL) e E2E de variante obrigatória (CA-005). Bordas 6.4 documentadas com método de verificação. 005 → 🟢 |
 
 ---
 

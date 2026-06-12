@@ -1,10 +1,10 @@
 # Autenticação, Dashboard e Criação de Relatórios
 
 > **ID:** 005
-> **Status:** 🔵 Em Andamento
+> **Status:** 🟢 Concluída
 > **Prioridade:** 🟠 Alta
 > **Criada em:** 2026-06-11
-> **Última atualização:** 2026-06-11
+> **Última atualização:** 2026-06-12
 > **Autor:** Agente AI
 
 ---
@@ -121,13 +121,13 @@ Derivados do PRD (tarefas T-11..T-13):
 
 ## 5. Critérios de Aceitação
 
-- [ ] **CA-001:** E2E de login: sucesso, erro de credencial e acesso negado sem papel (aceite do PRD T-11).
-- [ ] **CA-002:** E2E: criar relatório (tipo com e sem variante) chega a `extracted` (aceite do PRD T-12).
-- [ ] **CA-003:** Transições inválidas rejeitadas com erro; log gravado (aceite do PRD T-13).
-- [ ] **CA-004:** Dashboard filtra por tipo/status/período e busca por navio; badge de cada um dos 7 estados com as cores do design system.
-- [ ] **CA-005:** Variante obrigatória bloqueia o avanço do wizard quando não selecionada.
-- [ ] **CA-006:** `spec_id` do relatório não muda quando o admin ativa nova versão de spec depois.
-- [ ] **CA-007:** Trilha de auditoria completa para um relatório recém-criado (criação, upload, extração, transição).
+- [x] **CA-001:** E2E de login: sucesso, erro de credencial e acesso negado sem papel (aceite do PRD T-11). — `tests/e2e/login.spec.ts` (5 casos verdes ao vivo): rota protegida→login, credencial inválida, campos vazios, login feliz→dashboard, usuário sem papel→`/acesso-negado`.
+- [x] **CA-002:** E2E: criar relatório (tipo com e sem variante) chega a `extracted` (aceite do PRD T-12). — `tests/e2e/create-report.spec.ts`: `draft_survey`/Descarga e `rob` (sem variante) chegam a `extracted`.
+- [x] **CA-003:** Transições inválidas rejeitadas com erro; log gravado (aceite do PRD T-13). — `apps/web/lib/state-machine.test.ts` (tabela 7×7; tentativa inválida auditada).
+- [x] **CA-004:** Dashboard filtra por tipo/status/período e busca por navio; badge de cada um dos 7 estados com as cores do design system. — Implementado server-side (query params) em `dashboard/page.tsx`; `StatusBadge` com as cores exatas do `statusMap`. Conformidade visual conferida com o board; sem E2E dedicado de UI (decisão: verificação visual + render server-side com dados reais).
+- [x] **CA-005:** Variante obrigatória bloqueia o avanço do wizard quando não selecionada. — `create-report.spec.ts` ("variante obrigatória bloqueia o avanço"): "Continuar" desabilitado até escolher a variante.
+- [x] **CA-006:** `spec_id` do relatório não muda quando o admin ativa nova versão de spec depois. — Garantido por construção: `createReport` congela `active_spec_id` no INSERT e o app nunca reescreve `reports.spec_id` (RF-05). `report_specs` é imutável (trigger da 002). Regressão dedicada de reativação fica para a 009 (Admin de Specs), onde a UI de ativação existe.
+- [x] **CA-007:** Trilha de auditoria completa para um relatório recém-criado (criação, upload, extração, transição). — `create-report.spec.ts` verifica `audit_log` com `create`, `upload`, `extraction` e `transition`.
 
 ## 6. Plano de Testes
 
@@ -141,10 +141,10 @@ Upload handler com arquivos: válido, > 20 MB, não-xlsx, fingerprint errado; ve
 E2E Playwright (CA-001, CA-002) contra o projeto Supabase hosted; CA-003..CA-007 entre unit/integração/E2E.
 
 ### 6.4 Casos de Borda (Edge Cases)
-- Reiniciar relatório (`→ draft`) com nova planilha: `extracted_data` anterior preservado? (PRD: novo upload gera novo resultado; decisão: sobrescrever ao reiniciar é o ÚNICO caso permitido, auditado).
-- Dois uploads simultâneos no mesmo relatório (lock otimista; segundo falha com mensagem).
-- Sessão expirada no meio do wizard (redirect a login sem perder o relatório `draft`).
-- Tipo sem variantes pula a etapa de variante (msc, rob).
+- Reiniciar relatório (`→ draft`) com nova planilha: `extracted_data` anterior preservado? (PRD: novo upload gera novo resultado; decisão: sobrescrever ao reiniciar é o ÚNICO caso permitido, auditado). **Verificação:** transições `* → draft` cobertas pela tabela 7×7 (`state-machine.test.ts`); o reupload sobrescreve `extracted_data` no route handler (003 é puro/determinístico).
+- Dois uploads simultâneos no mesmo relatório (lock otimista; segundo falha com mensagem). **Verificação:** `transition()` usa guarda otimista (`update ... { count: 'exact' }`) — a segunda transição `draft→extracted` não encontra a linha em `draft` e falha. Coberto pela lógica de `state-machine.ts`.
+- Sessão expirada no meio do wizard (redirect a login sem perder o relatório `draft`). **Verificação:** middleware sem sessão → `/login` (E2E "rota protegida sem sessão"); o relatório `draft` permanece no banco e reaparece no dashboard.
+- Tipo sem variantes pula a etapa de variante (msc, rob). **Verificação:** E2E `rob` (sem variante) em `create-report.spec.ts`.
 
 ## 7. Riscos e Mitigações
 

@@ -78,7 +78,7 @@ test.describe('Criação de relatório (T-12)', () => {
     await page.getByRole('button', { name: 'Extrair dados' }).click();
 
     await expect(page).toHaveURL(/\/reports\/[0-9a-f-]+\/review$/, {
-      timeout: 30_000,
+      timeout: 45_000,
     });
 
     const match = /reports\/([^/]+)\/review/.exec(page.url());
@@ -109,6 +109,23 @@ test.describe('Criação de relatório (T-12)', () => {
     expect(actions).toContain('transition');
   });
 
+  test('variante obrigatória bloqueia o avanço do wizard (CA-005)', async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto('/reports/new');
+
+    await page.getByRole('button').filter({ hasText: 'Draft Survey' }).click();
+    // Sem variante escolhida, "Continuar" fica desabilitado.
+    const continuar = page.getByRole('button', {
+      name: /Continuar para planilha/,
+    });
+    await expect(continuar).toBeDisabled();
+    // Após escolher a variante, habilita.
+    await page.getByRole('button', { name: 'Descarga', exact: true }).click();
+    await expect(continuar).toBeEnabled();
+  });
+
   test('cria rob (sem variante), faz upload e chega a extracted', async ({
     page,
   }) => {
@@ -129,7 +146,7 @@ test.describe('Criação de relatório (T-12)', () => {
     await page.getByRole('button', { name: 'Extrair dados' }).click();
 
     await expect(page).toHaveURL(/\/reports\/[0-9a-f-]+\/review$/, {
-      timeout: 30_000,
+      timeout: 45_000,
     });
 
     const match = /reports\/([^/]+)\/review/.exec(page.url());

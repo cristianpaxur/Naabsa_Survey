@@ -24,11 +24,22 @@ export async function login(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error || !data.user) {
     return { error: 'E-mail ou senha inválidos.' };
   }
 
+  // Resolve o papel já aqui: sem profile, manda direto ao acesso negado (a URL
+  // fica correta). O middleware permanece como segunda linha de defesa (RF-02).
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('user_id', data.user.id)
+    .maybeSingle();
+
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect(profile ? '/dashboard' : '/acesso-negado');
 }
