@@ -2,7 +2,7 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 4/12 tarefas concluídas (33%)
+> **Progresso:** 6/12 tarefas concluídas (50%)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -52,14 +52,14 @@
   - **Dependências:** T-001
   - **Estimativa:** Grande
 
-- [ ] **T-005:** Pipeline de extração (aba, fingerprint, campos)
+- [x] **T-005:** Pipeline de extração (aba, fingerprint, campos)
   - **Descrição:** `extract.ts`: localizar `source.sheet`, conferir fingerprint (erro RF-09 nomeando tipo detectado), ler `common` + `by_variant[variant]` com coerção; fórmulas lidas pelo valor calculado.
   - **Arquivos envolvidos:** `packages/core/src/extractor/extract.ts`
   - **Critério de conclusão:** Fixture perfeita extrai todos os campos; fingerprint errado gera o erro específico (CA-005).
   - **Dependências:** T-004
   - **Estimativa:** Grande
 
-- [ ] **T-006:** Gerar fixtures sintéticas de planilha
+- [x] **T-006:** Gerar fixtures sintéticas de planilha
   - **Descrição:** Script que gera `.xlsx` de teste com ExcelJS (cenários: completa, campos vazios, tipos errados, fingerprint divergente) + specs sintéticos correspondentes.
   - **Arquivos envolvidos:** `tests/fixtures/planilhas/*`, `tests/fixtures/specs/*`
   - **Critério de conclusão:** Fixtures versionadas e regeneráveis por script.
@@ -126,8 +126,8 @@
 | T-002  | ✅ Concluída | 2026-06-12 | spec.schema.json (draft-07): exclusividade date→format/enum→options/number→decimals; additionalProperties false |
 | T-003  | ✅ Concluída | 2026-06-12 | validateSpec (ajv 8) com erros pt-BR; 21 testes (1 válido + 18 inválidos) verdes (CA-001) |
 | T-004  | ✅ Concluída | 2026-06-12 | coerce.ts (5 tipos): serial Excel 1900/1904, número pt-BR (.milhar ,decimal), enum case-insensitive, boolean pt-BR; 25 testes (CA-002) |
-| T-005  | ⬜ Pendente | — | — |
-| T-006  | ⬜ Pendente | — | — |
+| T-005  | ✅ Concluída | 2026-06-12 | extract.ts: aba→fingerprint(RF-09)→common+by_variant→coerção; normalizeCell (fórmula/richText/hyperlink); I/O fica no app; 7 testes |
+| T-006  | ✅ Concluída | 2026-06-12 | synthFixtures.ts: builder ExcelJS in-memory + sampleSpec (draft_survey c/ variantes); usado por extract/determinismo |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
