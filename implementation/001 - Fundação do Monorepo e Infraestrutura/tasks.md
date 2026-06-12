@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 6/10 tarefas concluídas (60%)
+> **Progresso:** 7/10 tarefas concluídas (70%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -64,7 +64,7 @@
   - **Dependências:** T-002
   - **Estimativa:** Pequena
 
-- [ ] **T-007:** Configurar Vitest com teste-sentinela
+- [x] **T-007:** Configurar Vitest com teste-sentinela
   - **Descrição:** Vitest no `packages/core` (e config raiz agregadora); um teste trivial provando o pipeline de testes; criar `tests/golden/` e `tests/fixtures/` vazios com README curto.
   - **Arquivos envolvidos:** `vitest.config.ts`, `packages/core/src/index.test.ts`, `tests/**`
   - **Critério de conclusão:** `pnpm test` verde na raiz (CA-001).
@@ -108,7 +108,7 @@
 | T-004  | ✅ Concluída | 2026-06-11 | @naabsa/core (extractor/spec-schema/document-builder) e @naabsa/db (migrations/types); tsconfig-solução raiz com references; `tsc -b` e typecheck verdes |
 | T-005  | ✅ Concluída | 2026-06-11 | Next 15.5.19 + React 19; 11 rotas do PRD §7 + /api/health; env via instrumentation.ts (warn-only); `next build` exit 0 (12 rotas); next-env.d.ts gitignored |
 | T-006  | ✅ Concluída | 2026-06-11 | Node+tsx; entrypoint c/ env + 4 stubs de jobs + shutdown SIGTERM/SIGINT; smoke (WORKER_SMOKE=1) sobe/encerra limpo exit 0; esbuild allowlisted |
-| T-007  | ⬜ Pendente | — | — |
+| T-007  | ✅ Concluída | 2026-06-11 | Vitest 2.1.9 no @naabsa/core; sentinela (2 testes) verde; tests/golden e tests/fixtures com README |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
 | T-010  | ⬜ Pendente | — | — |
