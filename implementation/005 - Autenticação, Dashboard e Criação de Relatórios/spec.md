@@ -138,7 +138,7 @@ Derivados do PRD (tarefas T-11..T-13):
 Upload handler com arquivos: válido, > 20 MB, não-xlsx, fingerprint errado; verificação de persistência (`extracted_data`, issues, `vessel_name`).
 
 ### 6.3 Testes de Aceitação
-E2E Playwright (CA-001, CA-002) contra Supabase local; CA-003..CA-007 entre unit/integração/E2E.
+E2E Playwright (CA-001, CA-002) contra o projeto Supabase hosted; CA-003..CA-007 entre unit/integração/E2E.
 
 ### 6.4 Casos de Borda (Edge Cases)
 - Reiniciar relatório (`→ draft`) com nova planilha: `extracted_data` anterior preservado? (PRD: novo upload gera novo resultado; decisão: sobrescrever ao reiniciar é o ÚNICO caso permitido, auditado).
@@ -171,6 +171,21 @@ Supabase Auth + Storage; Playwright para E2E. Nenhum insumo do cliente bloqueia.
   - **03 Novo relatório** (`isWizard`): stepper 1-Tipo/2-Variante/3-Planilha, cards de tipo com slug mono e contagem de variantes, seleção de variante com badge "obrigatório", dropzone .xlsx 20 MB, barra de progresso animada e botão "Extrair dados" com spinner.
 - Sidebar/app shell (logo NAABSA, navegação Relatórios/Novo/Specs, usuário com papel) nasce aqui e é reutilizado por 006–010.
 - Roteamento por status ao abrir relatório (como no protótipo `openReport`): extracted/in_review → review; editing → edit; approved/generated → preview; purged → history.
+
+### Decisões para tornar a 005 testável agora (usuário, 2026-06-12)
+
+- **Usuários iniciais via seed script.** `packages/db` ganha um script (service
+  role) que provisiona um **operador** e um **admin** de teste com linhas em
+  `profiles` (roles corretos), idempotente. É pré-requisito do login e do E2E;
+  senhas trocáveis depois. (Gestão de usuários na UI continua fora de escopo.)
+- **Spec ativo sintético.** Como a planilha real do cliente está bloqueada
+  (003/T-011), o seed também insere um `report_specs` v1 para `draft_survey`
+  usando o **spec sintético do 003** (`sampleSpec`, fingerprint `NAABSA-DRAFT`) e
+  o ativa (`report_types.active_spec_id`). Assim o fluxo criar→upload→`extracted`
+  funciona de verdade. Quando o spec real chegar, ele é ativado via Admin (009) e,
+  por RF-05, relatórios antigos mantêm o `spec_id` congelado — sem regressão.
+- Para o upload da planilha de teste, reutiliza-se o gerador `buildWorkbook`/
+  `buildCompleteWorkbook` do 003 (escrito como `.xlsx` real) como fixture do E2E.
 
 ---
 
