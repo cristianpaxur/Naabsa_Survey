@@ -2,7 +2,7 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 8/12 tarefas concluídas (67%)
+> **Progresso:** 10/12 tarefas concluídas (83%) — T-011/T-012 bloqueadas (planilha real do cliente)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -84,14 +84,14 @@
 
 ### Fase 5: Testes e Validação
 
-- [ ] **T-009:** Teste de determinismo (RNF-01)
+- [x] **T-009:** Teste de determinismo (RNF-01)
   - **Descrição:** Rodar o extractor 3× sobre a mesma fixture e exigir igualdade profunda (PRD §11).
   - **Arquivos envolvidos:** `packages/core/src/extractor/determinism.test.ts`
   - **Critério de conclusão:** CA-003 verde no CI.
   - **Dependências:** T-005, T-007
   - **Estimativa:** Pequena
 
-- [ ] **T-010:** Teste de performance (RNF-03)
+- [x] **T-010:** Teste de performance (RNF-03)
   - **Descrição:** Fixture de ~5 MB extraída em < 5 s (medição no teste, com margem para CI).
   - **Arquivos envolvidos:** `packages/core/src/extractor/perf.test.ts`
   - **Critério de conclusão:** Limite atendido localmente e documentado.
@@ -130,8 +130,8 @@
 | T-006  | ✅ Concluída | 2026-06-12 | synthFixtures.ts: builder ExcelJS in-memory + sampleSpec (draft_survey c/ variantes); usado por extract/determinismo |
 | T-007  | ✅ Concluída | 2026-06-12 | validate.ts (required/min/max/pattern + compare/range) pt-BR; pipeline.ts (runExtraction, pula validação se aba/fingerprint falham); 8 testes (CA-004) |
 | T-008  | ✅ Concluída | 2026-06-12 | resolveFieldValue (RF-13): override ?? extraído, mantém falsy (0/''/false); 6 testes (CA-006) |
-| T-009  | ⬜ Pendente | — | — |
-| T-010  | ⬜ Pendente | — | — |
+| T-009  | ✅ Concluída | 2026-06-12 | determinism.test: runExtraction 3× → igualdade profunda + JSON idêntico (CA-003) |
+| T-010  | ✅ Concluída | 2026-06-12 | perf.test: 300 campos < 1s (RNF-03; load do .xlsx fica no app). Núcleo: 72 testes verdes |
 | T-011  | 🔴 Bloqueada | — | Aguarda tipo prioritário + planilha real (PRD §15) |
 | T-012  | 🔴 Bloqueada | — | Aguarda T-011 |
 

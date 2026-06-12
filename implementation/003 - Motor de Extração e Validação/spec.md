@@ -125,13 +125,13 @@ Derivados do PRD (tarefas T-04..T-07):
 
 ## 5. Critérios de Aceitação
 
-- [ ] **CA-001:** Fixtures de spec válidas passam no `validateSpec`; 10+ casos inválidos rejeitam com mensagem (aceite do PRD T-04).
-- [ ] **CA-002:** Unit tests por tipo de campo (string, number+decimals, date serial, enum, boolean) verdes (aceite do PRD T-05).
-- [ ] **CA-003:** Teste de determinismo: extractor 3× sobre a mesma fixture ⇒ igualdade profunda (RNF-01).
-- [ ] **CA-004:** Fixtures com erros conhecidos produzem `Issue[]` exatas, em pt-BR, com célula (aceite do PRD T-06).
-- [ ] **CA-005:** Planilha de tipo errado produz o `error` de fingerprint do RF-09.
-- [ ] **CA-006:** `resolveFieldValue` coberta por testes (override presente, ausente, valor falsy legítimo).
-- [ ] **CA-007:** Extração da planilha real do cliente sem issues inesperadas (aceite do PRD T-07 — bloqueado por insumo).
+- [x] **CA-001:** Fixtures de spec válidas passam no `validateSpec`; 10+ casos inválidos rejeitam com mensagem (aceite do PRD T-04).
+- [x] **CA-002:** Unit tests por tipo de campo (string, number+decimals, date serial, enum, boolean) verdes (aceite do PRD T-05).
+- [x] **CA-003:** Teste de determinismo: extractor 3× sobre a mesma fixture ⇒ igualdade profunda (RNF-01).
+- [x] **CA-004:** Fixtures com erros conhecidos produzem `Issue[]` exatas, em pt-BR, com célula (aceite do PRD T-06).
+- [x] **CA-005:** Planilha de tipo errado produz o `error` de fingerprint do RF-09.
+- [x] **CA-006:** `resolveFieldValue` coberta por testes (override presente, ausente, valor falsy legítimo).
+- [ ] **CA-007:** Extração da planilha real do cliente sem issues inesperadas (aceite do PRD T-07 — **bloqueado por insumo**: aguarda tipo prioritário + planilha real).
 
 ## 6. Plano de Testes
 
