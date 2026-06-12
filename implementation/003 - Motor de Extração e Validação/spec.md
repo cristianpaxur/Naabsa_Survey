@@ -1,7 +1,7 @@
 # Motor de Extração e Validação
 
 > **ID:** 003
-> **Status:** 🟡 Planejada
+> **Status:** 🔵 Em Andamento
 > **Prioridade:** 🔴 Crítica
 > **Criada em:** 2026-06-11
 > **Última atualização:** 2026-06-11

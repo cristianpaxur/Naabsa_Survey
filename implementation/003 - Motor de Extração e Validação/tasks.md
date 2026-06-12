@@ -2,8 +2,8 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 0/12 tarefas concluídas (0%)
-> **Última atualização:** 2026-06-11
+> **Progresso:** 1/12 tarefas concluídas (8%)
+> **Última atualização:** 2026-06-12
 
 ---
 
@@ -20,7 +20,7 @@
 
 ### Fase 1: Preparação e Setup
 
-- [ ] **T-001:** Definir tipos do domínio do motor
+- [x] **T-001:** Definir tipos do domínio do motor
   - **Descrição:** Criar `ReportSpec`, `FieldDef`, `ValidationRule`, `PhotoSlot`, `Issue`, `ExtractionResult` em `packages/core/src/types.ts`, espelhando o PRD §8.
   - **Arquivos envolvidos:** `packages/core/src/types.ts`
   - **Critério de conclusão:** Tipos compilam e cobrem todo o contrato do PRD §8.
@@ -122,7 +122,7 @@
 
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
-| T-001  | ⬜ Pendente | — | — |
+| T-001  | ✅ Concluída | 2026-06-12 | types.ts: ReportSpec/FieldDef(união discriminada)/ValidationRule/PhotoSlot/Issue/ExtractionResult; exportados pelo barril |
 | T-002  | ⬜ Pendente | — | — |
 | T-003  | ⬜ Pendente | — | — |
 | T-004  | ⬜ Pendente | — | — |

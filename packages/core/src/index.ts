@@ -7,6 +7,7 @@
  *  - extractor       → leitura/validação de planilha + resolveFieldValue (003)
  *  - document-builder→ template → JSON TipTap (implementação 004)
  */
+export * from './types';
 export * from './spec-schema';
 export * from './extractor';
 export * from './document-builder';
