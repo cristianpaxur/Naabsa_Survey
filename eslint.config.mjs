@@ -48,6 +48,8 @@ export default tseslint.config(
       '**/types/database.ts',
       // Handoff de design (código externo do Claude Design — não é nosso fonte).
       'design/**',
+      // Worktrees dos agentes de CI (geradas pelo Claude Code — não são fonte do projeto).
+      '.claude/**',
     ],
   },
 
