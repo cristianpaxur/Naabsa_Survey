@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 5/10 tarefas concluídas (50%)
+> **Progresso:** 6/10 tarefas concluídas (60%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -57,7 +57,7 @@
   - **Dependências:** T-002
   - **Estimativa:** Média
 
-- [ ] **T-006:** Criar esqueleto `apps/worker`
+- [x] **T-006:** Criar esqueleto `apps/worker`
   - **Descrição:** Processo Node TS com entrypoint, validação de env no boot e pastas `src/jobs/{processPhoto,generatePdf,retentionPurge,aiReview}.ts` como stubs sem lógica.
   - **Arquivos envolvidos:** `apps/worker/**`
   - **Critério de conclusão:** `pnpm start` no worker sobe, loga "worker pronto" e encerra limpo com SIGTERM.
@@ -107,7 +107,7 @@
 | T-003  | ✅ Concluída | 2026-06-11 | ESLint 9 flat + typescript-eslint 8 + Prettier 3; sonda confirmou bloqueio de next/@supabase/@naabsa/web no core |
 | T-004  | ✅ Concluída | 2026-06-11 | @naabsa/core (extractor/spec-schema/document-builder) e @naabsa/db (migrations/types); tsconfig-solução raiz com references; `tsc -b` e typecheck verdes |
 | T-005  | ✅ Concluída | 2026-06-11 | Next 15.5.19 + React 19; 11 rotas do PRD §7 + /api/health; env via instrumentation.ts (warn-only); `next build` exit 0 (12 rotas); next-env.d.ts gitignored |
-| T-006  | ⬜ Pendente | — | — |
+| T-006  | ✅ Concluída | 2026-06-11 | Node+tsx; entrypoint c/ env + 4 stubs de jobs + shutdown SIGTERM/SIGINT; smoke (WORKER_SMOKE=1) sobe/encerra limpo exit 0; esbuild allowlisted |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
