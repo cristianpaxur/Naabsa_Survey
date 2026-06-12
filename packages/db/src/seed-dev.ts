@@ -2,10 +2,11 @@
  * Seed de DESENVOLVIMENTO (decisão do usuário, 2026-06-12). Provisiona, de forma
  * idempotente, contra o projeto Supabase hosted:
  *  - um operador e um admin de teste (auth + profiles);
- *  - um report_specs v1 sintético para `draft_survey` (espelha o fixture do 003)
- *    e o ativa em `report_types.active_spec_id`.
+ *  - um report_specs v1 sintético para `draft_survey` (com variantes) e outro para
+ *    `rob` (sem variante), ativando ambos em `report_types.active_spec_id`.
  *
- * Faz o fluxo criar→upload→extracted funcionar antes da planilha real do cliente.
+ * Faz o fluxo criar→upload→extracted funcionar (com e sem variante) antes das
+ * planilhas reais do cliente.
  *   pnpm db:seed-dev
  */
 import { createClient } from '@supabase/supabase-js';
@@ -119,6 +120,45 @@ const draftSpec: ReportSpec = {
   ],
 };
 
+/** Spec sintético de ROB — tipo SEM variante (cobre o caminho sem-variante). */
+const robSpec: ReportSpec = {
+  report_type: 'rob',
+  version: 1,
+  variants: [],
+  source: {
+    sheet: 'DADOS',
+    fingerprint: { cell: 'A1', expect: 'NAABSA-ROB' },
+    common: {
+      fields: {
+        vessel_name: {
+          cell: 'B4',
+          type: 'string',
+          required: true,
+          label: 'Nome do navio',
+          section: 'Identificação',
+        },
+        rob_total: {
+          cell: 'B5',
+          type: 'number',
+          decimals: 2,
+          label: 'ROB total (t)',
+          section: 'Combustível',
+        },
+        survey_date: {
+          cell: 'B6',
+          type: 'date',
+          format: 'DD/MMM/YYYY',
+          required: true,
+          label: 'Data do survey',
+          section: 'Survey',
+        },
+      },
+    },
+  },
+  validations: [],
+  photo_slots: [],
+};
+
 async function findUserId(email: string): Promise<string | null> {
   const { data, error } = await admin.auth.admin.listUsers({ perPage: 200 });
   if (error) throw error;
@@ -152,16 +192,18 @@ async function ensureUser(
   if (pErr) throw pErr;
 }
 
-async function ensureActiveDraftSpec(): Promise<void> {
-  const check = validateSpec(draftSpec);
+async function ensureActiveSpec(slug: string, spec: ReportSpec): Promise<void> {
+  const check = validateSpec(spec);
   if (!check.valid) {
-    throw new Error(`Spec sintético inválido: ${check.errors.join('; ')}`);
+    throw new Error(
+      `Spec sintético (${slug}) inválido: ${check.errors.join('; ')}`,
+    );
   }
 
   const { data: type, error: tErr } = await admin
     .from('report_types')
     .select('id')
-    .eq('slug', 'draft_survey')
+    .eq('slug', slug)
     .single();
   if (tErr) throw tErr;
   const typeId = type.id as string;
@@ -171,12 +213,12 @@ async function ensureActiveDraftSpec(): Promise<void> {
     {
       report_type_id: typeId,
       version: 1,
-      spec: draftSpec as unknown as Record<string, unknown>,
+      spec: spec as unknown as Record<string, unknown>,
     },
     { onConflict: 'report_type_id,version', ignoreDuplicates: true },
   );
 
-  const { data: spec, error: sErr } = await admin
+  const { data: row, error: sErr } = await admin
     .from('report_specs')
     .select('id')
     .eq('report_type_id', typeId)
@@ -186,15 +228,16 @@ async function ensureActiveDraftSpec(): Promise<void> {
 
   const { error: uErr } = await admin
     .from('report_types')
-    .update({ active_spec_id: spec.id as string })
+    .update({ active_spec_id: row.id as string })
     .eq('id', typeId);
   if (uErr) throw uErr;
-  console.log('[seed] spec sintético de draft_survey v1 ativo.');
+  console.log(`[seed] spec sintético de ${slug} v1 ativo.`);
 }
 
 async function main(): Promise<void> {
   for (const u of DEV_USERS) await ensureUser(u.email, u.role, u.name);
-  await ensureActiveDraftSpec();
+  await ensureActiveSpec('draft_survey', draftSpec);
+  await ensureActiveSpec('rob', robSpec);
   console.log(
     `[seed] concluído. Login de teste: operador@naabsa.dev / admin@naabsa.dev (senha ${DEV_PASSWORD}).`,
   );

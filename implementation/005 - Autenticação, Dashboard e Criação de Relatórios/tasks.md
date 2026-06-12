@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 10/12 tarefas concluídas (83%)
+> **Progresso:** 11/12 tarefas concluídas (92%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -102,7 +102,7 @@
   - **Dependências:** T-003
   - **Estimativa:** Média
 
-- [ ] **T-011:** E2E de criação até `extracted`
+- [x] **T-011:** E2E de criação até `extracted`
   - **Descrição:** Playwright: criar relatório com variante e sem variante, upload de fixture, verificar status e trilha de auditoria (aceite do PRD T-12).
   - **Arquivos envolvidos:** `tests/e2e/create-report.spec.ts`
   - **Critério de conclusão:** CA-002 e CA-007 verdes.
@@ -134,7 +134,7 @@
 | T-008  | ✅ Concluída | 2026-06-12 | Wizard (stepper, cards dos 5 tipos, variante obrigatória, tipos sem spec ativo desabilitados); createReport congela spec ativo (RF-05) + audita. Refactor ServerClient unifica o tipo do cliente |
 | T-009  | ✅ Concluída | 2026-06-12 | Route handler /api/reports/[id]/spreadsheet: valida .xlsx/20MB, extrai (motor 003), erro de fingerprint mantém draft, sobe ao Storage (service), persiste extracted_data/issues/vessel_name, audita + draft→extracted; dropzone real → redireciona à revisão |
 | T-010  | ✅ Concluída | 2026-06-12 | Playwright configurado; 4 testes de login E2E verdes ao vivo (redirect, credencial inválida, campos vazios, login feliz). Login refatorado para Server Action (cookie confiável) — corrige o race do cliente |
-| T-011  | ⬜ Pendente | — | — |
+| T-011  | ✅ Concluída | 2026-06-12 | create-report.spec.ts: 2 testes verdes ao vivo — draft_survey (com variante=discharge) e ROB (sem variante) chegam a `extracted` com `vessel_name`/`variant` corretos e trilha completa (create/upload/extraction/transition). Seed ganhou spec sintético de `rob` (NAABSA-ROB) p/ o caminho sem-variante. Fixtures .xlsx geradas via ExcelJS; cleanup via service role (CA-002, CA-007) |
 | T-012  | ⬜ Pendente | — | — |
 
 ---
