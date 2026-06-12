@@ -169,12 +169,19 @@ describe.skipIf(!ENABLED)('RLS — matriz de acesso por papel (002)', () => {
     if (data) createdSpecIds.push(data.id as string);
   });
 
-  it('report_specs é imutável — admin não atualiza (trigger)', async () => {
-    const { error } = await adminClient
+  it('report_specs é imutável — admin não consegue alterar (RLS sem UPDATE)', async () => {
+    // Sem política de UPDATE, a RLS filtra a linha: 0 linhas afetadas, sem erro.
+    // O efetivo é o que importa — o spec NÃO pode mudar.
+    await adminClient
       .from('report_specs')
       .update({ spec: { hacked: true } })
       .eq('id', baseSpecId);
-    expect(error).not.toBeNull();
+    const { data } = await service
+      .from('report_specs')
+      .select('spec')
+      .eq('id', baseSpecId)
+      .single();
+    expect(data?.spec).toEqual({ report_type: 'draft_survey', version: 1 });
   });
 
   it('report_specs é imutável — nem o service role atualiza (trigger)', async () => {

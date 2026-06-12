@@ -1,7 +1,7 @@
 # Banco de Dados, RLS e Seed
 
 > **ID:** 002
-> **Status:** 🟡 Planejada
+> **Status:** 🟢 Concluída
 > **Prioridade:** 🔴 Crítica
 > **Criada em:** 2026-06-11
 > **Última atualização:** 2026-06-11
@@ -117,11 +117,11 @@ Derivados do PRD (tarefa T-02):
 
 ## 5. Critérios de Aceitação
 
-- [ ] **CA-001:** Migrations aplicam no projeto Supabase hosted via `supabase db push` sem erro (aceite do PRD T-02).
-- [ ] **CA-002:** Seed resulta em exatamente 5 `report_types` com slugs/variantes do PRD §3.1.
-- [ ] **CA-003:** Testes de RLS: operator não lê `profiles` de terceiros; não escreve em `report_specs`; admin escreve; anônimo não lê nada.
-- [ ] **CA-004:** `update` em `report_specs` falha mesmo como admin (imutabilidade RF-35).
-- [ ] **CA-005:** Tipos TS gerados compilam e são exportados por `packages/db`.
+- [x] **CA-001:** Migrations aplicam no projeto Supabase hosted via `supabase db push` sem erro (aceite do PRD T-02).
+- [x] **CA-002:** Seed resulta em exatamente 5 `report_types` com slugs/variantes do PRD §3.1.
+- [x] **CA-003:** Testes de RLS: operator não lê `profiles` de terceiros; não escreve em `report_specs`; admin escreve; anônimo não lê nada.
+- [x] **CA-004:** `update` em `report_specs` falha mesmo como admin (imutabilidade RF-35).
+- [x] **CA-005:** Tipos TS gerados compilam e são exportados por `packages/db`.
 
 ## 6. Plano de Testes
 
