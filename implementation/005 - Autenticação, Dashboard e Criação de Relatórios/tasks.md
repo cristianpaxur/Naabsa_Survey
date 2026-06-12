@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 5/12 tarefas concluídas (42%)
+> **Progresso:** 6/12 tarefas concluídas (50%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -63,7 +63,7 @@
 
 ### Fase 3: Dashboard (PRD T-12)
 
-- [ ] **T-006:** Badge de status e componentes de tabela
+- [x] **T-006:** Badge de status e componentes de tabela
   - **Descrição:** Badge dos 7 estados com as cores exatas do `statusMap` do protótipo; célula de ID/data em IBM Plex Mono.
   - **Arquivos envolvidos:** `apps/web/components/ui/status-badge.tsx`
   - **Critério de conclusão:** 7 badges visualmente conferidos com o board estático.
@@ -129,7 +129,7 @@
 | T-003  | ✅ Concluída | 2026-06-12 | middleware.ts: refresh de sessão + proteção de (app)/*; sem sessão→/login, sem papel→/acesso-negado; /login e /reports/*/print públicos; api/estáticos fora do matcher |
 | T-004  | ✅ Concluída | 2026-06-12 | (app)/layout server lê user+profile; Sidebar client (nav ativa por path, Specs só admin, logout); fiel ao protótipo. Nota: cast de resultados supabase-js (parser yields never com strict TS) |
 | T-005  | ✅ Concluída | 2026-06-12 | state-machine.ts (grafo §3.2, isValidTransition, transition c/ guarda otimista + audit) + audit.ts; vitest no web; 4 testes (7×7) verdes (CA-003) |
-| T-006  | ⬜ Pendente | — | — |
+| T-006  | ✅ Concluída | 2026-06-12 | StatusBadge + STATUS_MAP com as cores exatas dos 7 estados (statusMap do protótipo) |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
