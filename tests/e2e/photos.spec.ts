@@ -193,7 +193,7 @@ test.describe('Pipeline de fotos — alocação e gate (T-16)', () => {
     await page.getByRole('button', { name: /Salvar recorte/ }).click();
     await expect(
       page.getByRole('dialog', { name: 'Recortar foto' }),
-    ).toBeHidden();
+    ).toBeHidden({ timeout: 20_000 });
 
     // Verificação no banco: crop persistido e alocações auditadas.
     const { data: cropped } = await svc

@@ -35,7 +35,7 @@ async function loginAsOperator(page: Page) {
 
 /**
  * Cria um relatório sintético em estado `extracted` para uso nos testes.
- * Requer um spec ativo com campo "data_survey" required.
+ * Usa os nomes de campo do spec draft_survey: vessel_name (B4) e survey_date (B6).
  */
 async function createExtractedReport(
   svc: SupabaseClient,
@@ -54,7 +54,8 @@ async function createExtractedReport(
   const opUser = users?.users.find((u) => u.email === OPERATOR.email);
   if (!opUser) throw new Error('Operador não encontrado');
 
-  // Cria relatório em `extracted` com data_survey vazio (erro bloqueante)
+  // Cria relatório em `extracted` com survey_date vazio (erro bloqueante).
+  // Usa os nomes de campo exatos do spec: vessel_name (B4), survey_date (B6).
   const { data: report } = await svc
     .from('reports')
     .insert({
@@ -63,14 +64,14 @@ async function createExtractedReport(
       variant: null,
       status: 'extracted',
       created_by: opUser.id,
-      extracted_data: { navio: 'MV Teste E2E', data_survey: null },
+      extracted_data: { vessel_name: 'MV Teste E2E', survey_date: null },
       operator_overrides: {},
       extraction_issues: [
         {
-          field: 'data_survey',
-          cell: 'B7',
+          field: 'survey_date',
+          cell: 'B6',
           level: 'error',
-          message: "Campo 'Data do Survey' vazio na célula B7.",
+          message: "Campo 'Data do survey' vazio na célula B6.",
           origin: 'validation',
         },
       ],
@@ -172,7 +173,7 @@ test.describe('Revisão de Dados (T-14 / implementação 006)', () => {
         variant: null,
         status: 'extracted',
         created_by: opUser?.id,
-        extracted_data: { navio: 'MV Aviso', data_survey: '2025-06-01' },
+        extracted_data: { vessel_name: 'MV Aviso', survey_date: '2025-06-01' },
         operator_overrides: {},
         extraction_issues: [],
       } as never)

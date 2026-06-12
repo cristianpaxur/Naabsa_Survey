@@ -151,7 +151,7 @@ export function PhotosClient({
       setError(result.error);
       return;
     }
-    await refresh();
+    void refresh();
   }
 
   async function onAdvance() {

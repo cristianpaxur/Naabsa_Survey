@@ -250,6 +250,13 @@ function FieldInput({
           value={typeof value === 'string' ? value : ''}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value || null)}
+          onBlur={(e) => {
+            // Fallback: browser automation (Playwright fill+blur) may bypass
+            // React's onChange for date inputs; fire onChange if value drifted.
+            const newVal = e.target.value || null;
+            const currentVal = typeof value === 'string' ? value : null;
+            if (newVal !== currentVal) onChange(newVal);
+          }}
         />
       );
 

@@ -42,8 +42,8 @@ export function CropModal({
 }: CropModalProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [areaPixels, setAreaPixels] = useState<Crop | null>(
-    initialCrop ?? null,
+  const [areaPixels, setAreaPixels] = useState<Crop>(
+    initialCrop ?? { x: 0, y: 0, width: 1, height: 1 },
   );
   const [saving, setSaving] = useState(false);
 
@@ -72,14 +72,13 @@ export function CropModal({
     : undefined;
 
   async function handleSave() {
-    if (!areaPixels) {
-      onClose();
-      return;
-    }
     setSaving(true);
-    await onSave(areaPixels);
-    setSaving(false);
-    onClose();
+    try {
+      await onSave(areaPixels);
+    } finally {
+      setSaving(false);
+      onClose();
+    }
   }
 
   return (

@@ -87,14 +87,15 @@ test.describe('Criação de relatório (T-12)', () => {
     if (!id) return;
     createdIds.push(id);
 
-    // Verificação no banco: status extracted + vessel + trilha de auditoria.
+    // Verificação no banco: status in_review (006: review page transita extracted→in_review)
+    // + vessel + trilha de auditoria.
     const svc = service();
     const { data: report } = await svc
       .from('reports')
       .select('status, vessel_name, variant')
       .eq('id', id)
       .single();
-    expect(report?.status).toBe('extracted');
+    expect(report?.status).toBe('in_review');
     expect(report?.vessel_name).toBe(vessel);
     expect(report?.variant).toBe('discharge');
 
@@ -161,7 +162,7 @@ test.describe('Criação de relatório (T-12)', () => {
       .select('status, vessel_name, variant')
       .eq('id', id)
       .single();
-    expect(report?.status).toBe('extracted');
+    expect(report?.status).toBe('in_review');
     expect(report?.vessel_name).toBe(vessel);
     expect(report?.variant).toBeNull();
   });
