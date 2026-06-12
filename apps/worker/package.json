@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@naabsa/core": "workspace:*",
-    "@naabsa/db": "workspace:*"
+    "@naabsa/db": "workspace:*",
+    "@supabase/supabase-js": "^2.108.1",
+    "pg-boss": "^12.18.3",
+    "sharp": "^0.35.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",

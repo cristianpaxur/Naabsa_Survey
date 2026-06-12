@@ -96,6 +96,7 @@ export type Database = {
           confirmed_by: string | null
           created_at: string
           crop: Json | null
+          error_message: string | null
           id: string
           original_path: string
           position: number
@@ -103,6 +104,7 @@ export type Database = {
           quality_flags: string[]
           report_id: string
           slot_id: string | null
+          status: string
           thumb_path: string | null
         }
         Insert: {
@@ -110,6 +112,7 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           crop?: Json | null
+          error_message?: string | null
           id?: string
           original_path: string
           position?: number
@@ -117,6 +120,7 @@ export type Database = {
           quality_flags?: string[]
           report_id: string
           slot_id?: string | null
+          status?: string
           thumb_path?: string | null
         }
         Update: {
@@ -124,6 +128,7 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           crop?: Json | null
+          error_message?: string | null
           id?: string
           original_path?: string
           position?: number
@@ -131,6 +136,7 @@ export type Database = {
           quality_flags?: string[]
           report_id?: string
           slot_id?: string | null
+          status?: string
           thumb_path?: string | null
         }
         Relationships: [
