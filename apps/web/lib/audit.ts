@@ -1,5 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@naabsa/db';
+import type { ServerClient } from './supabase/server';
 
 export interface AuditEntry {
   reportId: string | null;
@@ -13,16 +12,14 @@ export interface AuditEntry {
  * (server action / route handler) já autenticado.
  */
 export async function audit(
-  supabase: SupabaseClient<Database>,
+  supabase: ServerClient,
   entry: AuditEntry,
 ): Promise<void> {
-  const row = {
+  const { error } = await supabase.from('audit_log').insert({
     report_id: entry.reportId,
     actor: entry.actor,
     action: entry.action,
-    payload: (entry.payload ??
-      null) as Database['public']['Tables']['audit_log']['Insert']['payload'],
-  };
-  const { error } = await supabase.from('audit_log').insert(row);
+    payload: entry.payload ?? null,
+  } as never);
   if (error) throw error;
 }

@@ -11,6 +11,9 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
  * Cliente Supabase para Server Components / Server Actions / Route Handlers,
  * com sessão lida/gravada nos cookies (App Router, Next 15 — `cookies()` async).
  */
+/** Tipo do cliente Supabase de servidor (usado por helpers como audit/transition). */
+export type ServerClient = Awaited<ReturnType<typeof createClient>>;
+
 export async function createClient() {
   const cookieStore = await cookies();
   return createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {

@@ -1,5 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@naabsa/db';
+import type { ServerClient } from './supabase/server';
 import { audit } from './audit';
 
 export type ReportStatus =
@@ -49,7 +48,7 @@ export function isValidTransition(
  * pt-BR e registra a tentativa rejeitada (RF-32).
  */
 export async function transition(
-  supabase: SupabaseClient<Database>,
+  supabase: ServerClient,
   reportId: string,
   from: ReportStatus,
   to: ReportStatus,
@@ -67,7 +66,7 @@ export async function transition(
 
   const { error, count } = await supabase
     .from('reports')
-    .update({ status: to }, { count: 'exact' })
+    .update({ status: to } as never, { count: 'exact' })
     .eq('id', reportId)
     .eq('status', from);
   if (error) throw error;

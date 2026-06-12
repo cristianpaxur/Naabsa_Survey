@@ -2,7 +2,7 @@
 
 > **Implementação:** 005 - Autenticação, Dashboard e Criação de Relatórios
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 7/12 tarefas concluídas (58%)
+> **Progresso:** 8/12 tarefas concluídas (67%)
 > **Última atualização:** 2026-06-12
 >
 > **Setup extra (decisão do usuário):** `pnpm db:seed-dev` provisiona operador+admin
@@ -79,7 +79,7 @@
 
 ### Fase 4: Wizard de criação (PRD T-12)
 
-- [ ] **T-008:** Tela 03 — Etapas tipo e variante
+- [x] **T-008:** Tela 03 — Etapas tipo e variante
   - **Descrição:** Stepper + cards dos 5 tipos (slug mono, contagem de variantes) + seleção de variante obrigatória quando houver; "Continuar" desabilitado até seleção válida; cria relatório `draft` com `spec_id` congelado (RF-05).
   - **Arquivos envolvidos:** `apps/web/app/(app)/reports/new/page.tsx`, Server Action `createReport`
   - **Critério de conclusão:** CA-005 e CA-006 atendidos.
@@ -131,7 +131,7 @@
 | T-005  | ✅ Concluída | 2026-06-12 | state-machine.ts (grafo §3.2, isValidTransition, transition c/ guarda otimista + audit) + audit.ts; vitest no web; 4 testes (7×7) verdes (CA-003) |
 | T-006  | ✅ Concluída | 2026-06-12 | StatusBadge + STATUS_MAP com as cores exatas dos 7 estados (statusMap do protótipo) |
 | T-007  | ✅ Concluída | 2026-06-12 | Dashboard server-side: tabela fiel ao protótipo, filtros tipo/status/período + busca por navio (query params), empty-state, roteamento por status, CTA. dotenv-cli carrega o .env da raiz no dev/start |
-| T-008  | ⬜ Pendente | — | — |
+| T-008  | ✅ Concluída | 2026-06-12 | Wizard (stepper, cards dos 5 tipos, variante obrigatória, tipos sem spec ativo desabilitados); createReport congela spec ativo (RF-05) + audita. Refactor ServerClient unifica o tipo do cliente |
 | T-009  | ⬜ Pendente | — | — |
 | T-010  | ⬜ Pendente | — | — |
 | T-011  | ⬜ Pendente | — | — |
