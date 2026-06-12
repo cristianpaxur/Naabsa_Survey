@@ -9,6 +9,9 @@ build/
 out/
 *.tsbuildinfo
 
+# Next.js — arquivo de tipos gerado (recriado por next dev/build)
+next-env.d.ts
+
 # Ambiente e segredos (PRD §13 — nunca commitar)
 .env
 .env.*

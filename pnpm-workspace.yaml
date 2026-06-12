@@ -1,3 +1,8 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Dependências nativas autorizadas a rodar scripts de build (pnpm 11+).
+# sharp: processamento de imagem do worker (impl 007).
+onlyBuiltDependencies:
+  - sharp

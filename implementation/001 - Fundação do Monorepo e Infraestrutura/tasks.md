@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 4/10 tarefas concluídas (40%)
+> **Progresso:** 5/10 tarefas concluídas (50%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -50,7 +50,7 @@
   - **Dependências:** T-002
   - **Estimativa:** Pequena
 
-- [ ] **T-005:** Criar esqueleto `apps/web` (Next.js 15+ App Router)
+- [x] **T-005:** Criar esqueleto `apps/web` (Next.js 15+ App Router)
   - **Descrição:** App Next.js com TS estrito, estrutura de rotas vazia do PRD §7 (`(auth)/login`, `(app)/dashboard`, `(app)/reports/[id]/{review,photos,edit,history}`, `(app)/admin/specs`, `reports/[id]/print`, `api/`), página raiz placeholder e validação de env no boot.
   - **Arquivos envolvidos:** `apps/web/**`
   - **Critério de conclusão:** `pnpm dev` no web sobe e renderiza placeholder; typecheck verde.
@@ -106,7 +106,7 @@
 | T-002  | ✅ Concluída | 2026-06-11 | tsconfig.base.json estrito (TS 5.9.3); tsconfig-solução raiz adiado p/ T-004 (precisa de references) |
 | T-003  | ✅ Concluída | 2026-06-11 | ESLint 9 flat + typescript-eslint 8 + Prettier 3; sonda confirmou bloqueio de next/@supabase/@naabsa/web no core |
 | T-004  | ✅ Concluída | 2026-06-11 | @naabsa/core (extractor/spec-schema/document-builder) e @naabsa/db (migrations/types); tsconfig-solução raiz com references; `tsc -b` e typecheck verdes |
-| T-005  | ⬜ Pendente | — | — |
+| T-005  | ✅ Concluída | 2026-06-11 | Next 15.5.19 + React 19; 11 rotas do PRD §7 + /api/health; env via instrumentation.ts (warn-only); `next build` exit 0 (12 rotas); next-env.d.ts gitignored |
 | T-006  | ⬜ Pendente | — | — |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |
