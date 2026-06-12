@@ -28,8 +28,16 @@ async function main(): Promise<void> {
   console.log('[worker] worker pronto');
 
   await new Promise<void>((resolve) => {
+    // Timer ativo mantém o event loop vivo até um sinal de término (um Promise
+    // pendente sozinho não impede o Node de encerrar). A impl 004 troca isto
+    // pelos handles do pg-boss/Chromium.
+    const keepAlive = setInterval(() => {
+      /* heartbeat — sem efeito além de manter o processo vivo */
+    }, 60_000);
+
     const stop = (signal: string): void => {
       console.log(`[worker] recebido ${signal}, encerrando…`);
+      clearInterval(keepAlive);
       // A impl 004+ fechará aqui pg-boss e o Chromium singleton.
       resolve();
     };

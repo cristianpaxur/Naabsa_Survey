@@ -1,0 +1,9 @@
+# Caddy — reverse proxy + TLS automático (PRD §2/§7).
+#
+# APP_DOMAIN é fornecido pelo docker-compose:
+#   ":80"      → escuta em HTTP (ideal para `docker compose up` local);
+#   um domínio → Caddy emite/renova TLS automaticamente (produção no VPS).
+{$APP_DOMAIN} {
+	encode gzip
+	reverse_proxy app:3000
+}

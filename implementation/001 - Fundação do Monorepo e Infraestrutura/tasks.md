@@ -2,7 +2,7 @@
 
 > **Implementação:** 001 - Fundação do Monorepo e Infraestrutura
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 8/10 tarefas concluídas (80%)
+> **Progresso:** 9/10 tarefas concluídas (90%)
 > **Última atualização:** 2026-06-11
 
 ---
@@ -81,7 +81,7 @@
   - **Dependências:** T-005, T-006
   - **Estimativa:** Média
 
-- [ ] **T-009:** docker-compose.yml + Caddyfile + .env.example
+- [x] **T-009:** docker-compose.yml + Caddyfile + .env.example
   - **Descrição:** Compose com serviços `app`, `worker`, `caddy`; Caddy como reverse proxy TLS; `.env.example` com TODAS as variáveis do PRD §13 sem valores.
   - **Arquivos envolvidos:** `docker-compose.yml`, `Caddyfile`, `.env.example`
   - **Critério de conclusão:** `docker compose up` sobe app e worker localmente (CA-003); app responde via caddy.
@@ -111,7 +111,7 @@
 | T-006  | ✅ Concluída | 2026-06-11 | Node+tsx; entrypoint c/ env + 4 stubs de jobs + shutdown SIGTERM/SIGINT; smoke (WORKER_SMOKE=1) sobe/encerra limpo exit 0; esbuild allowlisted |
 | T-007  | ✅ Concluída | 2026-06-11 | Vitest 2.1.9 no @naabsa/core; sentinela (2 testes) verde; tests/golden e tests/fixtures com README |
 | T-008  | ✅ Concluída | 2026-06-11 | web (Next standalone, 408MB) e worker (node-slim) multi-stage não-root; ambas buildam e rodam (web /api/health 200; worker smoke exit 0); base Playwright do worker diferida p/ impl 004 |
-| T-009  | ⬜ Pendente | — | — |
+| T-009  | ✅ Concluída | 2026-06-11 | compose app/worker/caddy; Caddy reverse-proxy (APP_DOMAIN→:80 local / TLS prod); `compose up` sobe os 3 e app responde via Caddy (HTTP 200). Fix: keepalive do worker (event loop) — sem ele saía 0 em loop |
 | T-010  | ⬜ Pendente | — | — |
 
 ---
