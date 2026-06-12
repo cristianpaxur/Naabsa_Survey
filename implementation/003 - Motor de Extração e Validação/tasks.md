@@ -2,7 +2,7 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 3/12 tarefas concluídas (25%)
+> **Progresso:** 4/12 tarefas concluídas (33%)
 > **Última atualização:** 2026-06-12
 
 ---
@@ -45,7 +45,7 @@
 
 ### Fase 3: Extractor (PRD T-05)
 
-- [ ] **T-004:** Coerção de tipos
+- [x] **T-004:** Coerção de tipos
   - **Descrição:** `coerce.ts` com os 5 tipos: string (trim), number (decimals, vírgula pt-BR, texto numérico), date (serial Excel, sistemas 1900/1904, `format`), enum (política de caixa), boolean.
   - **Arquivos envolvidos:** `packages/core/src/extractor/coerce.ts`
   - **Critério de conclusão:** Unit test por tipo com tabela de casos, incl. bordas (CA-002).
@@ -125,7 +125,7 @@
 | T-001  | ✅ Concluída | 2026-06-12 | types.ts: ReportSpec/FieldDef(união discriminada)/ValidationRule/PhotoSlot/Issue/ExtractionResult; exportados pelo barril |
 | T-002  | ✅ Concluída | 2026-06-12 | spec.schema.json (draft-07): exclusividade date→format/enum→options/number→decimals; additionalProperties false |
 | T-003  | ✅ Concluída | 2026-06-12 | validateSpec (ajv 8) com erros pt-BR; 21 testes (1 válido + 18 inválidos) verdes (CA-001) |
-| T-004  | ⬜ Pendente | — | — |
+| T-004  | ✅ Concluída | 2026-06-12 | coerce.ts (5 tipos): serial Excel 1900/1904, número pt-BR (.milhar ,decimal), enum case-insensitive, boolean pt-BR; 25 testes (CA-002) |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |
 | T-007  | ⬜ Pendente | — | — |
