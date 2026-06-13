@@ -22,7 +22,14 @@ import {
   markPhotoError,
   type ProcessPhotoPayload,
 } from './jobs/processPhoto';
-import { generatePdf } from './jobs/generatePdf';
+import {
+  generatePdf,
+  GENERATE_PDF_QUEUE,
+  GENERATE_PDF_CONCURRENCY,
+  GENERATE_PDF_RETRY_LIMIT,
+  type GeneratePdfPayload,
+} from './jobs/generatePdf';
+import { closeBrowser } from './lib/browser';
 import { retentionPurge } from './jobs/retentionPurge';
 import { aiReview } from './jobs/aiReview';
 
@@ -73,6 +80,30 @@ async function registerJobs(): Promise<void> {
   console.log(
     `[worker] consumindo '${PROCESS_PHOTO_QUEUE}' (localConcurrency ${PROCESS_PHOTO_CONCURRENCY})`,
   );
+
+  // generate_pdf — concorrência 1 (RNF-04)
+  await boss.createQueue(GENERATE_PDF_QUEUE, {
+    retryLimit: GENERATE_PDF_RETRY_LIMIT,
+    retryDelay: 5,
+    retryBackoff: true,
+  });
+  await boss.work<GeneratePdfPayload>(
+    GENERATE_PDF_QUEUE,
+    { localConcurrency: GENERATE_PDF_CONCURRENCY, includeMetadata: true },
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await generatePdf(job.data);
+        } catch (err) {
+          console.error(`[worker][generate_pdf] erro no job ${job.id}:`, err);
+          throw err; // pg-boss faz retry
+        }
+      }
+    },
+  );
+  console.log(
+    `[worker] consumindo '${GENERATE_PDF_QUEUE}' (localConcurrency ${GENERATE_PDF_CONCURRENCY})`,
+  );
 }
 
 async function main(): Promise<void> {
@@ -90,11 +121,10 @@ async function main(): Promise<void> {
   await new Promise<void>((resolve) => {
     const stop = (signal: string): void => {
       console.log(`[worker] recebido ${signal}, encerrando…`);
-      stopBoss()
-        .catch((err: unknown) =>
-          console.error('[worker] erro ao parar pg-boss:', err),
-        )
-        .finally(resolve);
+      Promise.all([
+        stopBoss().catch((err: unknown) => console.error('[worker] erro ao parar pg-boss:', err)),
+        closeBrowser().catch((err: unknown) => console.error('[worker] erro ao fechar browser:', err)),
+      ]).finally(resolve);
     };
     process.on('SIGTERM', () => stop('SIGTERM'));
     process.on('SIGINT', () => stop('SIGINT'));

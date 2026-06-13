@@ -1,0 +1,177 @@
+/*
+ * CSS de impressão A4 — implementação 004/T-005.
+ *
+ * Regras críticas:
+ *  - @page A4 com margens simétricas de 2 cm.
+ *  - break-inside: avoid em photoFrames, dataTables e headings.
+ *  - Rodapé paginado via CSS counters (NAABSA · PÁGINA n DE m).
+ *  - Fontes embarcadas via variáveis globais (Public Sans / IBM Plex Mono).
+ *  - Cores: navy #16294D em cabeçalhos de tabela, vermelho #BF2C30 no letreiro.
+ */
+
+/* ── Variáveis ───────────────────────────────────────────────────────────── */
+:root {
+  --print-navy: #16294d;
+  --print-vermelho: #bf2c30;
+  --print-rocha: #7d7468;
+  --print-tinta: #151515;
+  --print-papel: #ffffff;
+  --print-borda: #d0ccc6;
+  --font-sans: 'Public Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* ── Página ──────────────────────────────────────────────────────────────── */
+@page {
+  size: A4 portrait;
+  margin: 20mm 20mm 28mm 20mm; /* extra na base para o rodapé */
+
+  /* Rodapé: NAABSA · PÁGINA n DE m */
+  @bottom-center {
+    font-family: var(--font-sans);
+    font-size: 8pt;
+    color: var(--print-rocha);
+    content: 'NAABSA  ·  PÁGINA ' counter(page) ' DE ' counter(pages);
+    letter-spacing: 0.04em;
+  }
+}
+
+/* ── Reset de impressão ──────────────────────────────────────────────────── */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    color: var(--print-tinta);
+    font-family: var(--font-sans);
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+
+  /* Ocultar elementos de UI que não devem aparecer no PDF */
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ── Documento ───────────────────────────────────────────────────────────── */
+.print-document {
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  line-height: 1.5;
+  color: var(--print-tinta);
+  background: var(--print-papel);
+  max-width: 170mm; /* A4 210mm − 2×20mm margens */
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ── Headings ────────────────────────────────────────────────────────────── */
+.print-document h1 {
+  font-family: var(--font-sans);
+  font-size: 16pt;
+  font-weight: 800;
+  color: var(--print-vermelho);
+  letter-spacing: -0.02em;
+  margin: 0 0 4pt;
+  break-after: avoid;
+}
+
+.print-document h2 {
+  font-family: var(--font-sans);
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--print-navy);
+  margin: 0 0 10pt;
+  break-after: avoid;
+}
+
+.print-document h3 {
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--print-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 12pt 0 4pt;
+  border-bottom: 1.5pt solid var(--print-navy);
+  padding-bottom: 2pt;
+  break-after: avoid;
+}
+
+/* ── Parágrafos ──────────────────────────────────────────────────────────── */
+.print-document p {
+  margin: 0 0 4pt;
+}
+
+/* ── dataField mark (valor dinâmico) ─────────────────────────────────────── */
+.print-data-field {
+  font-family: var(--font-mono);
+  font-size: 9.5pt;
+  color: var(--print-navy);
+  font-weight: 600;
+}
+
+/* ── dataTable ───────────────────────────────────────────────────────────── */
+.print-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 9pt;
+  break-inside: avoid;
+  margin-bottom: 8pt;
+}
+
+.print-data-table th {
+  background: var(--print-navy);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 8.5pt;
+  text-align: left;
+  padding: 4pt 6pt;
+  border: 0.5pt solid var(--print-navy);
+}
+
+.print-data-table td {
+  padding: 3pt 6pt;
+  border: 0.5pt solid var(--print-borda);
+  vertical-align: top;
+  font-family: var(--font-mono);
+  font-size: 8.5pt;
+}
+
+.print-data-table tr:nth-child(even) td {
+  background: #f5f3f0;
+}
+
+/* ── photoFrame ──────────────────────────────────────────────────────────── */
+.print-photo-frame {
+  break-inside: avoid;
+  margin-bottom: 8pt;
+  display: block;
+}
+
+.print-photo-frame img {
+  display: block;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.print-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0ede8;
+  border: 1.5pt dashed var(--print-borda);
+  color: var(--print-rocha);
+  font-size: 8pt;
+  font-style: italic;
+}

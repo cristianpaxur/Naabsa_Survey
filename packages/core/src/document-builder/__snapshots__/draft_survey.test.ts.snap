@@ -1,0 +1,489 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
+{
+  "content": [
+    {
+      "attrs": {
+        "level": 1,
+      },
+      "content": [
+        {
+          "text": "NAABSA — RELATÓRIOS DE SURVEY",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "RELATÓRIO DE DRAFT SURVEY · DESCARGA",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Identificação",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Navio: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "vessel_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "MV Naabsa Test",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Data do survey: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "survey_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "2026-06-01",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Operação",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Porto de descarga: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "disch_port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Carga",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Campo",
+          "Valor",
+        ],
+        "rows": [
+          [
+            "Peso de carga (t)",
+            "42000",
+          ],
+          [
+            "Porões limpos",
+            "Sim",
+          ],
+        ],
+        "tableId": "carga_info",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Calados",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Leitura",
+          "Proa (m)",
+          "Meio (m)",
+          "Popa (m)",
+        ],
+        "rows": [
+          [
+            "Inicial",
+            "—",
+            "—",
+            "—",
+          ],
+          [
+            "Final",
+            "—",
+            "—",
+            "—",
+          ],
+        ],
+        "tableId": "draft_readings",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Fotos",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 112,
+        "photoId": "photo-1",
+        "slotId": "draft_fwd",
+        "src": "https://cdn.example.com/photo.jpg",
+        "widthMm": 150,
+      },
+      "type": "photoFrame",
+    },
+    {
+      "content": [
+        {
+          "text": "Calado de proa",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+  ],
+  "type": "doc",
+}
+`;
+
+exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
+{
+  "content": [
+    {
+      "attrs": {
+        "level": 1,
+      },
+      "content": [
+        {
+          "text": "NAABSA — RELATÓRIOS DE SURVEY",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "RELATÓRIO DE DRAFT SURVEY · CARREGAMENTO",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Identificação",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Navio: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "vessel_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "MV Naabsa Test",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Data do survey: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "survey_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "2026-06-01",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Operação",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Porto de carregamento: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "load_port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Paranaguá",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Carga",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Campo",
+          "Valor",
+        ],
+        "rows": [
+          [
+            "Peso de carga (t)",
+            "42000",
+          ],
+          [
+            "Porões limpos",
+            "Sim",
+          ],
+        ],
+        "tableId": "carga_info",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Calados",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Leitura",
+          "Proa (m)",
+          "Meio (m)",
+          "Popa (m)",
+        ],
+        "rows": [
+          [
+            "Inicial",
+            "—",
+            "—",
+            "—",
+          ],
+          [
+            "Final",
+            "—",
+            "—",
+            "—",
+          ],
+        ],
+        "tableId": "draft_readings",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Fotos",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 112,
+        "photoId": null,
+        "slotId": "draft_fwd",
+        "src": null,
+        "widthMm": 150,
+      },
+      "type": "photoFrame",
+    },
+    {
+      "content": [
+        {
+          "text": "Calado de proa",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+  ],
+  "type": "doc",
+}
+`;

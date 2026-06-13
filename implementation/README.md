@@ -13,7 +13,7 @@
 | [001](./001%20-%20Fundação%20do%20Monorepo%20e%20Infraestrutura/spec.md) | Fundação do Monorepo e Infraestrutura | T-01, T-03 | 🟢 Concluída | 10/10 |
 | [002](./002%20-%20Banco%20de%20Dados,%20RLS%20e%20Seed/spec.md) | Banco de Dados, RLS e Seed | T-02 | 🟢 Concluída | 9/9 |
 | [003](./003%20-%20Motor%20de%20Extração%20e%20Validação/spec.md) | Motor de Extração e Validação | T-04..T-07 | 🔵 Em Andamento | 10/12 |
-| [004](./004%20-%20Document-Builder%20e%20Geração%20de%20PDF/spec.md) | Document-Builder e Geração de PDF | T-08..T-10 | 🟡 Planejada | 0/11 |
+| [004](./004%20-%20Document-Builder%20e%20Geração%20de%20PDF/spec.md) | Document-Builder e Geração de PDF | T-08..T-10 | 🔵 Em Andamento | 10/11 |
 | [005](./005%20-%20Autenticação,%20Dashboard%20e%20Criação%20de%20Relatórios/spec.md) | Autenticação, Dashboard e Criação de Relatórios | T-11..T-13 | 🟢 Concluída | 12/12 |
 | [006](./006%20-%20Revisão%20de%20Dados/spec.md) | Revisão de Dados | T-14 | 🟢 Concluída | 8/8 |
 | [007](./007%20-%20Pipeline%20de%20Fotos/spec.md) | Pipeline de Fotos | T-15, T-16 | 🟢 Concluída | 11/11 |

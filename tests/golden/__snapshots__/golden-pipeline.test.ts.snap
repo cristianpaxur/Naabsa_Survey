@@ -1,0 +1,245 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap determinístico (snapshot — CA-001) > draft_survey.discharge.json 1`] = `
+{
+  "content": [
+    {
+      "attrs": {
+        "level": 1,
+      },
+      "content": [
+        {
+          "text": "NAABSA — RELATÓRIOS DE SURVEY",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "RELATÓRIO DE DRAFT SURVEY · DESCARGA",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Identificação",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Navio: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "vessel_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "MV Cabo Frio",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Data do survey: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "survey_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "2026-06-06",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Operação",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Porto de descarga: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "disch_port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Tubarão",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Carga",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Campo",
+          "Valor",
+        ],
+        "rows": [
+          [
+            "Peso de carga (t)",
+            "208450",
+          ],
+          [
+            "Porões limpos",
+            "Sim",
+          ],
+        ],
+        "tableId": "carga_info",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Calados",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Leitura",
+          "Proa (m)",
+          "Meio (m)",
+          "Popa (m)",
+        ],
+        "rows": [
+          [
+            "Inicial",
+            "—",
+            "—",
+            "—",
+          ],
+          [
+            "Final",
+            "—",
+            "—",
+            "—",
+          ],
+        ],
+        "tableId": "draft_readings",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Fotos",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 112,
+        "photoId": "golden-photo-1",
+        "slotId": "draft_fwd",
+        "src": "https://cdn.example.com/golden.jpg",
+        "widthMm": 150,
+      },
+      "type": "photoFrame",
+    },
+    {
+      "content": [
+        {
+          "text": "Calado de proa",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+  ],
+  "type": "doc",
+}
+`;

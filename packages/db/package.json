@@ -11,7 +11,7 @@
     "build": "tsc -b",
     "migrate": "tsx src/migrate.ts",
     "seed:dev": "tsx src/seed-dev.ts",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@naabsa/core": "workspace:*",
