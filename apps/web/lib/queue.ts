@@ -9,6 +9,7 @@ import { PgBoss } from 'pg-boss';
  * O nome da fila espelha o worker (apps/worker/src/lib/boss.ts).
  */
 export const PROCESS_PHOTO_QUEUE = 'process_photo';
+export const GENERATE_PDF_QUEUE = 'generate_pdf';
 
 let bossPromise: Promise<PgBoss> | null = null;
 
@@ -24,8 +25,11 @@ async function getBoss(): Promise<PgBoss> {
       console.error('[web][pg-boss] erro:', err);
     });
     await boss.start();
-    // Idempotente: garante a fila caso o worker ainda não a tenha criado.
+    // Idempotente: garante as filas caso o worker ainda não as tenha criado.
     await boss.createQueue(PROCESS_PHOTO_QUEUE).catch(() => {
+      /* já existe */
+    });
+    await boss.createQueue(GENERATE_PDF_QUEUE).catch(() => {
       /* já existe */
     });
     return boss;
@@ -44,4 +48,16 @@ export async function enqueueProcessPhoto(
 ): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(PROCESS_PHOTO_QUEUE, payload);
+}
+
+export interface GeneratePdfPayload {
+  reportId: string;
+}
+
+/** Enfileira a geração do PDF de um relatório (008/T-008). */
+export async function enqueueGeneratePdf(
+  payload: GeneratePdfPayload,
+): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(GENERATE_PDF_QUEUE, payload);
 }

@@ -1,17 +1,22 @@
 /**
- * GET /reports/[id]/print?token=… — rota de impressão (004/T-006).
+ * GET /reports/[id]/print — rota de impressão (004/T-006, ampliada na 008/T-007).
  *
- * Consumida EXCLUSIVAMENTE pelo worker pg-boss via Playwright.
- * Protegida por PRINT_SERVICE_TOKEN (CA-005): retorna 401 sem token válido.
- * Retorna 404 se o relatório não existir ou não tiver document_json.
+ * Dois consumidores:
+ *  - worker pg-boss (Playwright): autentica por PRINT_SERVICE_TOKEN (CA-005).
+ *  - operador (preview no editor): autentica por sessão; o RLS garante que só
+ *    vê o próprio relatório (RNF-02 — preview = PDF pela MESMA rota).
  *
- * Não herda o layout do grupo (app) — a rota fica fora do grupo.
+ * Sem token nem sessão → 401. Relatório inexistente/sem documento → 404.
+ * Os caminhos de foto no document_json são resolvidos para URLs assinadas
+ * frescas no render (lib/print-resolve).
  */
 
 import 'server-only';
 import { type NextRequest } from 'next/server';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { resolvePhotoUrls } from '@/lib/print-resolve';
 import { PrintDocument } from '@/components/print/PrintDocument';
 import type { TipTapDoc } from '@naabsa/core';
 
@@ -19,41 +24,62 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  // ── Autenticação por token de serviço (CA-005) ───────────────────────────
-  const serviceToken = process.env.PRINT_SERVICE_TOKEN ?? '';
-  if (!serviceToken) {
-    return new Response('Serviço de impressão não configurado.', { status: 503 });
-  }
+  const { id } = await params;
 
+  // ── Autenticação: token de serviço OU sessão do operador ──────────────────
+  const serviceToken = process.env.PRINT_SERVICE_TOKEN ?? '';
   const tokenParam =
     request.nextUrl.searchParams.get('token') ??
     request.headers.get('x-print-token') ??
     '';
+  const tokenOk = serviceToken !== '' && tokenParam === serviceToken;
 
-  if (tokenParam !== serviceToken) {
-    return new Response('Não autorizado.', { status: 401 });
+  type ReportLite = { vessel_name: string | null; document_json: unknown };
+  let report: ReportLite | null = null;
+
+  if (tokenOk) {
+    // Modo worker: service role (ignora RLS).
+    const svc = createServiceClient();
+    const { data } = await svc
+      .from('reports')
+      .select('vessel_name, document_json')
+      .eq('id', id)
+      .single();
+    report = data as ReportLite | null;
+  } else {
+    // Modo operador: exige sessão; RLS restringe ao dono.
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return new Response('Não autorizado.', { status: 401 });
+    }
+    const { data } = await supabase
+      .from('reports')
+      .select('vessel_name, document_json')
+      .eq('id', id)
+      .maybeSingle();
+    report = data as ReportLite | null;
   }
-
-  // ── Carregar documento ───────────────────────────────────────────────────
-  const { id } = await params;
-  const svc = createServiceClient();
-
-  const { data: report } = await svc
-    .from('reports')
-    .select('vessel_name, document_json')
-    .eq('id', id)
-    .single();
 
   if (!report?.document_json) {
-    return new Response('Relatório não encontrado ou sem documento gerado.', { status: 404 });
+    return new Response('Relatório não encontrado ou sem documento gerado.', {
+      status: 404,
+    });
   }
 
-  const documentJson = report.document_json as unknown as TipTapDoc;
+  // ── Resolver caminhos de foto → URLs assinadas (service role p/ assinar) ──
+  const rawDoc = report.document_json as unknown as TipTapDoc;
+  const documentJson = await resolvePhotoUrls(rawDoc, createServiceClient());
   const vesselName = report.vessel_name as string | null;
 
   // ── Render do componente React ───────────────────────────────────────────
   const body = renderToStaticMarkup(
-    PrintDocument({ document: documentJson, vesselName: vesselName ?? undefined }),
+    PrintDocument({
+      document: documentJson,
+      vesselName: vesselName ?? undefined,
+    }),
   );
 
   const html = `<!DOCTYPE html>

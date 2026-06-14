@@ -133,10 +133,11 @@ async function auditLog(
   action: string,
   details?: Record<string, unknown>,
 ): Promise<void> {
+  // Colunas reais do audit_log (migration 0001): actor + payload.
   await svc.from('audit_log').insert({
     report_id: reportId,
-    user_id: userId,
+    actor: userId,
     action,
-    details: details ?? null,
+    payload: details ?? null,
   } as never);
 }
