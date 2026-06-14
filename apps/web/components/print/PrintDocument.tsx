@@ -122,7 +122,12 @@ function applyMark(mark: TipTapMark, children: React.ReactNode): React.ReactNode
 // ── Nodes custom ────────────────────────────────────────────────────────────
 
 function PhotoFrame({ node }: { node: PhotoFrameNode }) {
-  const { src, widthMm, heightMm, slotId } = node.attrs;
+  const {
+    src = null,
+    widthMm = 150,
+    heightMm = 112,
+    slotId = '',
+  } = node.attrs ?? ({} as PhotoFrameNode['attrs']);
 
   const style: React.CSSProperties = {
     width: `${widthMm}mm`,
@@ -153,7 +158,7 @@ function PhotoFrame({ node }: { node: PhotoFrameNode }) {
 }
 
 function DataTable({ node }: { node: DataTableNode }) {
-  const { headers, rows } = node.attrs;
+  const { headers, rows = [] } = node.attrs ?? ({} as DataTableNode['attrs']);
   return (
     <table className="print-data-table">
       {headers && headers.length > 0 && (

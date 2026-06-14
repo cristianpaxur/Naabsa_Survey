@@ -101,14 +101,14 @@ export async function generatePdf(data: GeneratePdfPayload): Promise<void> {
   }
 
   // ── 5. Atualizar relatório e auditar ─────────────────────────────────────
-  const now = new Date().toISOString();
+  // Colunas reais de `reports` (migration 0001): status, document_hash,
+  // pdf_paths. NÃO existe `generated_at` — o carimbo de tempo fica no audit_log.
   const { error: updateErr } = await svc
     .from('reports')
     .update({
       status: 'generated',
       document_hash: docHash,
       pdf_paths: [storagePath],
-      generated_at: now,
     } as never)
     .eq('id', reportId)
     .eq('status', 'approved'); // guarda corrida

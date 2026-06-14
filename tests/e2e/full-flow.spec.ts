@@ -172,20 +172,23 @@ test.describe('Fluxo feliz completo (M2 / T-18)', () => {
     await expect(page.getByText('photoFrame')).toBeVisible();
     await expect(page.getByText('dataTable · travado').first()).toBeVisible();
 
-    // lockGuard (CA-001): select-all + delete NÃO remove os nós travados.
+    // Edita texto livre no fim (cursor limpo) e confirma autosave (CA-002).
+    const marker = `OBSERVACAO ${Date.now()}`;
     const canvas = page.locator('.ProseMirror');
+    await canvas.click();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.type(` ${marker}`);
+    await expect(page.getByText(/Salvo/)).toBeVisible({ timeout: 10_000 });
+
+    // lockGuard (CA-001): select-all + delete NÃO remove os nós travados
+    // (transação rejeitada inteira; o texto livre também sobrevive).
     await canvas.click();
     await page.keyboard.press('Control+a');
     await page.keyboard.press('Delete');
     await expect(page.getByText('photoFrame')).toBeVisible();
     await expect(page.getByText('dataTable · travado').first()).toBeVisible();
 
-    // Edita texto livre no fim e confirma autosave (CA-002).
-    const marker = `OBSERVACAO ${Date.now()}`;
-    await page.keyboard.press('Control+End');
-    await page.keyboard.type(` ${marker}`);
-    await expect(page.getByText(/Salvo/)).toBeVisible({ timeout: 10_000 });
-
+    // Recarrega: o texto livre persistiu (autosave anterior à seleção).
     await page.reload();
     await expect(page.locator('.ProseMirror')).toContainText(marker, {
       timeout: 20_000,

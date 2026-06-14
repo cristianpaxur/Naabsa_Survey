@@ -13,7 +13,6 @@
 
 import 'server-only';
 import { type NextRequest } from 'next/server';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { resolvePhotoUrls } from '@/lib/print-resolve';
@@ -75,6 +74,9 @@ export async function GET(
   const vesselName = report.vessel_name as string | null;
 
   // ── Render do componente React ───────────────────────────────────────────
+  // Import dinâmico de react-dom/server: evita o erro do App Router (Next 15)
+  // "importing a component that imports react-dom/server" na análise estática.
+  const { renderToStaticMarkup } = await import('react-dom/server');
   const body = renderToStaticMarkup(
     PrintDocument({
       document: documentJson,

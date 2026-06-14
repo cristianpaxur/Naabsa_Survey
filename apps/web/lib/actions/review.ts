@@ -5,12 +5,11 @@
  *
  * setOverride  — grava operator_overrides[field] (nunca extracted_data),
  *               audita before/after e revalida com validate() do core.
- * confirmData  — transiciona in_review → editing após defesa server-side
- *               (rejeita se houver issue de nível 'error').
+ * confirmData  — defesa server-side (rejeita se houver issue de nível 'error');
+ *               mantém in_review e segue para a etapa de fotos.
  */
 import { createClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
-import { transition } from '@/lib/state-machine';
 import {
   validate,
   resolveFieldValue,
@@ -179,9 +178,10 @@ export async function setOverride(
 // ── confirmData ─────────────────────────────────────────────────────────────
 
 /**
- * Confirma os dados e transiciona in_review → editing.
- * Defesa server-side: rejeita se houver qualquer issue de nível 'error'
- * (CA-004 — segurança além da UI).
+ * Confirma os dados da revisão (defesa server-side: rejeita se houver issue de
+ * nível 'error' — CA-004). NÃO transiciona o estado: a alocação de fotos faz
+ * parte da etapa in_review e a transição in_review → editing ocorre só ao avançar
+ * pela tela de fotos (advance, implementação 007). Segue para /photos.
  */
 export async function confirmData(
   reportId: string,
@@ -216,15 +216,13 @@ export async function confirmData(
     };
   }
 
-  // Transição in_review → editing (auditada pela máquina de estados)
-  try {
-    await transition(supabase, reportId, 'in_review', 'editing', user.id);
-  } catch (err) {
-    return {
-      error:
-        err instanceof Error ? err.message : 'Falha na transição de estado.',
-    };
-  }
+  // Mantém in_review (fotos fazem parte da revisão). Audita a confirmação.
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'data_confirmed',
+    payload: null,
+  });
 
   return { ok: true };
 }

@@ -2,7 +2,7 @@
 
 > **Implementação:** 008 - Editor TipTap e Aprovação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 11/12 tarefas concluídas (92%)
+> **Progresso:** 12/12 tarefas concluídas (100%) — **Milestone M2 concluído** 🎉
 > **Última atualização:** 2026-06-14
 
 ---
@@ -97,23 +97,23 @@
   - **Dependências:** T-003
   - **Estimativa:** Média
 
-- [ ] **T-011:** E2E — fluxo feliz completo (M2) — *escrito, execução ao vivo pendente*
+- [x] **T-011:** E2E — fluxo feliz completo (M2)
   - **Descrição:** Playwright: criar → upload → revisar (corrigir erro) → fotos (alocar) → editar (texto + lockGuard) → aprovar → polling → baixar PDF (aceite do PRD T-18).
   - **Arquivos envolvidos:** `tests/e2e/full-flow.spec.ts`
   - **Critério de conclusão:** CA-006 verde contra Supabase + worker.
   - **Dependências:** T-009
   - **Estimativa:** Grande
-  - **Observação:** 🟡 Teste escrito. A execução ao vivo aguarda `DATABASE_URL` válido (senha percent-encoded) + worker rodando — ver nota de ambiente abaixo.
+  - **Observação:** ✅ **Verde ao vivo** (15/15 E2E passando, worker real gerando PDF). Exigiu corrigir 3 bugs latentes (ver abaixo).
 
 ### Fase 5: Documentação e Finalização
 
-- [ ] **T-012:** Verificação final — *parcial*
+- [x] **T-012:** Verificação final
   - **Descrição:** Conferir CA-001..CA-007; conferência visual com telas 06–07; atualizar progresso e índice — fecha o milestone M2.
   - **Arquivos envolvidos:** `implementation/008*/`, `implementation/README.md`
   - **Critério de conclusão:** Todos os CA marcados; M2 concluído.
   - **Dependências:** T-010, T-011
   - **Estimativa:** Pequena
-  - **Observação:** 🟡 CA-001..004, CA-007 verdes (testes + verificação visual). CA-005/006 dependem da execução ao vivo do T-011.
+  - **Observação:** ✅ CA-001..CA-007 verdes (13 unit lockGuard + 15 E2E + verificação visual).
 
 ---
 
@@ -131,22 +131,35 @@
 | T-008  | ✅ Concluída | 2026-06-14 | approve() + enqueueGeneratePdf; transição auditada |
 | T-009  | ✅ Concluída | 2026-06-14 | polling getPdfStatus + getDownloadUrl (URL assinada) |
 | T-010  | ✅ Concluída | 2026-06-14 | lockGuard.test.ts — 13 testes adversariais (CA-001 + §6.4) |
-| T-011  | 🟡 Escrito | — | full-flow.spec.ts pronto; execução ao vivo aguarda DATABASE_URL + worker |
-| T-012  | 🟡 Parcial | — | CA-001..004,007 verdes; CA-005/006 dependem do T-011 ao vivo |
+| T-011  | ✅ Concluída | 2026-06-14 | full-flow.spec.ts verde ao vivo (15/15 E2E; worker gera PDF) |
+| T-012  | ✅ Concluída | 2026-06-14 | CA-001..007 verdes; M2 fechado |
 
 ---
 
-## ⚠️ Pré-requisitos de ambiente para o E2E ao vivo (T-011) e geração de PDF
+## 🐛 Bugs latentes corrigidos para fechar o M2 ao vivo
 
-O sistema de filas (pg-boss) exige duas variáveis corretas no `.env`:
+A execução ao vivo revelou 4 bugs (3 herdados da 004 + 1 da 006) que travavam o fluxo:
 
-1. **`DATABASE_URL`** — a senha precisa estar **percent-encoded** (ex.: `#`→`%23`,
-   `@`→`%40`, `$`→`%24`). Sem isso, `new URL()` do `pg-connection-string` falha com
-   `ERR_INVALID_URL` e NENHUM job conecta (nem `process_photo`, nem `generate_pdf`).
-2. **`APP_BASE_URL`** — deve apontar para o web acessível pelo worker
-   (ex.: `http://localhost:3000` em dev local). Estava vazio.
+1. **`confirmData` (006)** transicionava `in_review → editing`, pulando a tela de fotos
+   (a `/photos` só renderiza em `in_review` e redirecionava direto pro editor). Corrigido:
+   confirmData mantém `in_review`; a transição para `editing` vem do avanço pelas fotos (007).
+2. **worker `generatePdf` (004)** gravava `audit_log` com colunas inexistentes
+   (`user_id`/`details`) → corrigido para `actor`/`payload`.
+3. **worker `generatePdf` (004)** atualizava `reports.generated_at`, coluna que **não existe**
+   no schema → removido (carimbo fica no `audit_log`).
+4. **rota `/print` (004)** importava `react-dom/server` no topo → erro de build do Next 15
+   (App Router) que cobria o editor com overlay → trocado por import dinâmico. Guardas
+   defensivas em `PrintDocument` para `attrs` ausentes.
 
-Com isso ajustado, rodar o fluxo completo:
+## ⚠️ Pré-requisitos de ambiente (geração de PDF / jobs)
+
+O sistema de filas (pg-boss) exige duas variáveis corretas no `.env` (já ajustadas):
+
+1. **`DATABASE_URL`** — senha **percent-encoded** (`#`→`%23`, `@`→`%40`, `$`→`%24`). Sem isso,
+   `new URL()` do `pg-connection-string` falha com `ERR_INVALID_URL` e nenhum job conecta.
+2. **`APP_BASE_URL`** — aponta para o web acessível pelo worker (`http://localhost:3000`).
+
+Rodar o fluxo completo:
 
 ```
 # terminal 1 — web
