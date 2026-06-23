@@ -115,7 +115,7 @@ export async function GET(
 /**
  * CSS de impressão A4 inlinado no HTML para garantir que o worker Playwright
  * não precise carregar recursos externos ao gerar o PDF.
- * O arquivo fonte é apps/web/components/print/print.css.
+ * SINCRONIZADO com apps/web/components/print/print.css (T-013).
  */
 const printCssInline = `
 :root {
@@ -132,37 +132,58 @@ const printCssInline = `
 @page {
   size: A4 portrait;
   margin: 20mm 20mm 28mm 20mm;
+  @top-right {
+    font-family: var(--font-sans); font-size: 7.5pt; font-weight: 700;
+    color: var(--print-navy); content: 'NAABSA Marine Surveyors'; letter-spacing: 0.04em;
+  }
+  @bottom-center {
+    font-family: var(--font-sans); font-size: 8pt; color: var(--print-rocha);
+    content: 'NAABSA  ·  PÁGINA ' counter(page) ' DE ' counter(pages); letter-spacing: 0.04em;
+  }
 }
+@page :first { @top-right { content: ''; } }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
 html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta);
   font-family: var(--font-sans); font-size: 10pt; line-height: 1.5; }
 
-.print-document { font-family: var(--font-sans); font-size: 10pt; line-height: 1.5;
-  color: var(--print-tinta); background: var(--print-papel); max-width: 170mm; margin: 0 auto; padding: 16px; }
+.print-naabsa-header { display: flex; justify-content: space-between; align-items: flex-end;
+  max-width: 170mm; margin: 0 auto 16pt; padding-bottom: 8pt;
+  border-bottom: 2pt solid var(--print-navy); break-inside: avoid; break-after: avoid; }
+.print-naabsa-identity { display: flex; flex-direction: column; }
+.print-naabsa-name { font-family: var(--font-sans); font-size: 22pt; font-weight: 800;
+  color: var(--print-vermelho); letter-spacing: -0.02em; line-height: 1; }
+.print-naabsa-tagline { font-family: var(--font-sans); font-size: 9pt; font-weight: 600;
+  color: var(--print-navy); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2pt; }
+.print-naabsa-contact { font-family: var(--font-sans); font-size: 7.5pt;
+  color: var(--print-rocha); text-align: right; line-height: 1.6; }
 
-.print-document h1 { font-size: 16pt; font-weight: 800; color: var(--print-vermelho);
-  letter-spacing: -0.02em; margin: 0 0 4pt; break-after: avoid; }
-.print-document h2 { font-size: 12pt; font-weight: 700; color: var(--print-navy);
-  margin: 0 0 10pt; break-after: avoid; }
-.print-document h3 { font-size: 10pt; font-weight: 700; color: var(--print-navy);
-  text-transform: uppercase; letter-spacing: 0.06em; margin: 12pt 0 4pt;
-  border-bottom: 1.5pt solid var(--print-navy); padding-bottom: 2pt; break-after: avoid; }
-.print-document p { margin: 0 0 4pt; }
+.print-document { font-family: var(--font-sans); font-size: 10pt; line-height: 1.5;
+  color: var(--print-tinta); background: var(--print-papel); max-width: 170mm; margin: 0 auto; padding: 0 16px; }
+
+.print-document h1 { font-size: 18pt; font-weight: 800; color: var(--print-tinta);
+  letter-spacing: -0.02em; margin: 0 0 8pt; break-after: avoid; }
+.print-document h2 { font-size: 11pt; font-weight: 700; color: var(--print-navy);
+  text-transform: uppercase; letter-spacing: 0.06em; margin: 20pt 0 6pt;
+  padding-bottom: 3pt; border-bottom: 1.5pt solid var(--print-navy); break-after: avoid; }
+.print-document h3 { font-size: 9.5pt; font-weight: 700; color: var(--print-navy);
+  margin: 12pt 0 3pt; break-after: avoid; }
+.print-document p { margin: 0 0 5pt; text-align: justify; hyphens: auto; }
 
 .print-data-field { font-family: var(--font-mono); font-size: 9.5pt;
   color: var(--print-navy); font-weight: 600; }
 
-.print-data-table { width: 100%; border-collapse: collapse; font-size: 9pt;
-  break-inside: avoid; margin-bottom: 8pt; }
+.print-data-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans);
+  font-size: 9pt; break-inside: avoid; margin-bottom: 8pt; }
 .print-data-table th { background: var(--print-navy); color: #fff; font-weight: 700;
   font-size: 8.5pt; text-align: left; padding: 4pt 6pt; border: 0.5pt solid var(--print-navy); }
 .print-data-table td { padding: 3pt 6pt; border: 0.5pt solid var(--print-borda);
   vertical-align: top; font-family: var(--font-mono); font-size: 8.5pt; }
 .print-data-table tr:nth-child(even) td { background: #f5f3f0; }
+.print-data-table--label td:first-child { font-family: var(--font-sans); font-weight: 600;
+  color: var(--print-navy); background: #f0ede8; white-space: nowrap; }
 
-.print-photo-frame { break-inside: avoid; margin-bottom: 8pt; display: block; }
+.print-photo-frame { break-inside: avoid; margin-bottom: 10pt; display: block; }
 .print-photo-frame img { display: block; object-fit: cover; width: 100%; height: 100%; }
 .print-photo-placeholder { display: flex; align-items: center; justify-content: center;
   background: #f0ede8; border: 1.5pt dashed var(--print-borda);

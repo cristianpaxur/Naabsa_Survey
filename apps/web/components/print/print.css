@@ -1,11 +1,15 @@
 /*
- * CSS de impressão A4 — implementação 004/T-005.
+ * CSS de impressão A4 — 004/T-005, layout real em T-013.
+ *
+ * ATENÇÃO: Este arquivo e o `printCssInline` em route.ts devem ser mantidos
+ * em sincronia — route.ts inlina o CSS no HTML para o worker Playwright.
  *
  * Regras críticas:
- *  - @page A4 com margens simétricas de 2 cm.
+ *  - @page A4 com margens simétricas de 2 cm (base 28 mm para rodapé).
+ *  - Running header NAABSA em todas as páginas exceto a primeira.
  *  - break-inside: avoid em photoFrames, dataTables e headings.
  *  - Rodapé paginado via CSS counters (NAABSA · PÁGINA n DE m).
- *  - Fontes embarcadas via variáveis globais (Public Sans / IBM Plex Mono).
+ *  - Fontes embarcadas via Google Fonts (Public Sans / IBM Plex Mono).
  *  - Cores: navy #16294D em cabeçalhos de tabela, vermelho #BF2C30 no letreiro.
  */
 
@@ -26,6 +30,16 @@
   size: A4 portrait;
   margin: 20mm 20mm 28mm 20mm; /* extra na base para o rodapé */
 
+  /* Running header a partir da página 2 */
+  @top-right {
+    font-family: var(--font-sans);
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: var(--print-navy);
+    content: 'NAABSA Marine Surveyors';
+    letter-spacing: 0.04em;
+  }
+
   /* Rodapé: NAABSA · PÁGINA n DE m */
   @bottom-center {
     font-family: var(--font-sans);
@@ -33,6 +47,13 @@
     color: var(--print-rocha);
     content: 'NAABSA  ·  PÁGINA ' counter(page) ' DE ' counter(pages);
     letter-spacing: 0.04em;
+  }
+}
+
+/* Remove running header da primeira página (tem o cabeçalho completo) */
+@page :first {
+  @top-right {
+    content: '';
   }
 }
 
@@ -55,10 +76,54 @@
     line-height: 1.5;
   }
 
-  /* Ocultar elementos de UI que não devem aparecer no PDF */
   .no-print {
     display: none !important;
   }
+}
+
+/* ── Cabeçalho institucional NAABSA ──────────────────────────────────────── */
+.print-naabsa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  max-width: 170mm;
+  margin: 0 auto 16pt;
+  padding-bottom: 8pt;
+  border-bottom: 2pt solid var(--print-navy);
+  break-inside: avoid;
+  break-after: avoid;
+}
+
+.print-naabsa-identity {
+  display: flex;
+  flex-direction: column;
+}
+
+.print-naabsa-name {
+  font-family: var(--font-sans);
+  font-size: 22pt;
+  font-weight: 800;
+  color: var(--print-vermelho);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.print-naabsa-tagline {
+  font-family: var(--font-sans);
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--print-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2pt;
+}
+
+.print-naabsa-contact {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  color: var(--print-rocha);
+  text-align: right;
+  line-height: 1.6;
 }
 
 /* ── Documento ───────────────────────────────────────────────────────────── */
@@ -68,47 +133,49 @@
   line-height: 1.5;
   color: var(--print-tinta);
   background: var(--print-papel);
-  max-width: 170mm; /* A4 210mm − 2×20mm margens */
+  max-width: 170mm;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 16px;
 }
 
 /* ── Headings ────────────────────────────────────────────────────────────── */
 .print-document h1 {
   font-family: var(--font-sans);
-  font-size: 16pt;
+  font-size: 18pt;
   font-weight: 800;
-  color: var(--print-vermelho);
+  color: var(--print-tinta);
   letter-spacing: -0.02em;
-  margin: 0 0 4pt;
+  margin: 0 0 8pt;
   break-after: avoid;
 }
 
 .print-document h2 {
   font-family: var(--font-sans);
-  font-size: 12pt;
+  font-size: 11pt;
   font-weight: 700;
   color: var(--print-navy);
-  margin: 0 0 10pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 20pt 0 6pt;
+  padding-bottom: 3pt;
+  border-bottom: 1.5pt solid var(--print-navy);
   break-after: avoid;
 }
 
 .print-document h3 {
   font-family: var(--font-sans);
-  font-size: 10pt;
+  font-size: 9.5pt;
   font-weight: 700;
   color: var(--print-navy);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 12pt 0 4pt;
-  border-bottom: 1.5pt solid var(--print-navy);
-  padding-bottom: 2pt;
+  margin: 12pt 0 3pt;
   break-after: avoid;
 }
 
 /* ── Parágrafos ──────────────────────────────────────────────────────────── */
 .print-document p {
-  margin: 0 0 4pt;
+  margin: 0 0 5pt;
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* ── dataField mark (valor dinâmico) ─────────────────────────────────────── */
@@ -119,7 +186,7 @@
   font-weight: 600;
 }
 
-/* ── dataTable ───────────────────────────────────────────────────────────── */
+/* ── dataTable (tabela com cabeçalho navy) ───────────────────────────────── */
 .print-data-table {
   width: 100%;
   border-collapse: collapse;
@@ -151,10 +218,19 @@
   background: #f5f3f0;
 }
 
+/* Tabelas de label+valor (sem thead): primeira coluna em sans-serif navy */
+.print-data-table--label td:first-child {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--print-navy);
+  background: #f0ede8;
+  white-space: nowrap;
+}
+
 /* ── photoFrame ──────────────────────────────────────────────────────────── */
 .print-photo-frame {
   break-inside: avoid;
-  margin-bottom: 8pt;
+  margin-bottom: 10pt;
   display: block;
 }
 

@@ -2,7 +2,7 @@
 
 > **Implementação:** 004 - Document-Builder e Geração de PDF
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 12/14 tarefas concluídas (86%) — grades nativas implementadas (T-012).
+> **Progresso:** 13/14 tarefas concluídas (93%) — layout real PrintDocument (T-013).
 > **Última atualização:** 2026-06-23
 
 ---
@@ -120,7 +120,7 @@
   - **Dependências:** 003/T-015, T-011
   - **Estimativa:** Grande
 
-- [ ] **T-013:** Ajustar `PrintDocument` + `print.css` ao layout do modelo
+- [x] **T-013:** Ajustar `PrintDocument` + `print.css` ao layout do modelo
   - **Descrição:** Cabeçalho NAABSA (endereço/contato), Contents, seções tituladas, estilo das
     tabelas (header navy), Photographic Report (grids) e Attachment. Public Sans / IBM Plex Mono.
   - **Arquivos envolvidos:** `apps/web/components/print/PrintDocument.tsx`, `print.css`
@@ -168,7 +168,7 @@
 | T-010  | ✅ Concluída | 2026-06-13 | Todos CA marcados; implementação concluída |
 | T-011  | ✅ Concluída | 2026-06-23 | content/{discharge,loading}.ts reescritos: 9 seções EN (Background variante-driven + Intermediate condicional); BuilderInput.tables; 127 testes core + 5 golden verdes |
 | T-012  | ✅ Concluída | 2026-06-23 | tableRows/gradeSection: 4 grades/fase + Acting-as Figures; Heel/Deflection nas 3 fases; 127 testes verdes |
-| T-013  | ⬜ Pendente | — | PrintDocument/print.css no layout do modelo (CA-002 definitivo) |
+| T-013  | ✅ Concluída | 2026-06-23 | NaabsaHeader + preload de fotos + running header @page + .print-data-table--label + h2 uppercase bordado |
 | T-014  | ⬜ Pendente | — | Golden test contra o modelo real (CA-004 definitivo) |
 
 ---

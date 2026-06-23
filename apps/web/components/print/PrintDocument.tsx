@@ -1,5 +1,5 @@
 /**
- * PrintDocument — implementação 004/T-004.
+ * PrintDocument — 004/T-004, layout real em T-013.
  *
  * Render do document_json (TipTap) para impressão A4.
  * Compartilhado entre a rota /print (usada pelo worker) e o preview da
@@ -27,23 +27,61 @@ import type {
 interface PrintDocumentProps {
   /** JSON TipTap gerado pelo document-builder. */
   document: TipTapDoc;
-  /** Metadados exibidos no cabeçalho (para acessibilidade e impressão). */
+  /** Nome do navio — usado no aria-label e para acessibilidade. */
   vesselName?: string;
 }
 
 // ── Componente raiz ─────────────────────────────────────────────────────────
 
 export function PrintDocument({ document: tipDoc, vesselName }: PrintDocumentProps) {
+  const photoSrcs = collectPhotoSrcs(tipDoc);
   return (
-    <article
-      className="print-document"
-      aria-label={vesselName ? `Relatório — ${vesselName}` : 'Relatório'}
-    >
-      {tipDoc.content.map((node, i) => (
-        <BlockNode key={i} node={node} />
+    <>
+      {photoSrcs.map((src, i) => (
+        <link key={i} rel="preload" as="image" href={src} />
       ))}
-    </article>
+      <NaabsaHeader />
+      <article
+        className="print-document"
+        aria-label={vesselName ? `Relatório — ${vesselName}` : 'Relatório'}
+      >
+        {tipDoc.content.map((node, i) => (
+          <BlockNode key={i} node={node} />
+        ))}
+      </article>
+    </>
   );
+}
+
+// ── Cabeçalho institucional ─────────────────────────────────────────────────
+
+function NaabsaHeader() {
+  return (
+    <header className="print-naabsa-header">
+      <div className="print-naabsa-identity">
+        <div className="print-naabsa-name">NAABSA</div>
+        <div className="print-naabsa-tagline">Marine Surveyors</div>
+      </div>
+      <div className="print-naabsa-contact">
+        <div>Av. Conselheiro Rodrigues Alves, 26 — sala 12</div>
+        <div>Santos — SP — Brasil · CEP 11010-020</div>
+        <div>+55 (13) 3228-5420 · naabsa@naabsa.com.br</div>
+      </div>
+    </header>
+  );
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function collectPhotoSrcs(doc: TipTapDoc): string[] {
+  const srcs: string[] = [];
+  for (const node of doc.content) {
+    if (node.type === 'photoFrame') {
+      const src = (node as PhotoFrameNode).attrs?.src;
+      if (src) srcs.push(src);
+    }
+  }
+  return srcs;
 }
 
 // ── Render de block node ────────────────────────────────────────────────────
@@ -112,7 +150,6 @@ function applyMark(mark: TipTapMark, children: React.ReactNode): React.ReactNode
   if (mark.type === 'dataField') {
     return <span className="print-data-field">{children}</span>;
   }
-  // marks padrão que podemos encontrar num doc TipTap
   if (mark.type === 'bold') return <strong>{children}</strong>;
   if (mark.type === 'italic') return <em>{children}</em>;
   if (mark.type === 'underline') return <u>{children}</u>;
@@ -124,8 +161,8 @@ function applyMark(mark: TipTapMark, children: React.ReactNode): React.ReactNode
 function PhotoFrame({ node }: { node: PhotoFrameNode }) {
   const {
     src = null,
-    widthMm = 150,
-    heightMm = 112,
+    widthMm = 130,
+    heightMm = 97,
     slotId = '',
   } = node.attrs ?? ({} as PhotoFrameNode['attrs']);
 
@@ -159,9 +196,10 @@ function PhotoFrame({ node }: { node: PhotoFrameNode }) {
 
 function DataTable({ node }: { node: DataTableNode }) {
   const { headers, rows = [] } = node.attrs ?? ({} as DataTableNode['attrs']);
+  const hasHeaders = headers && headers.length > 0;
   return (
-    <table className="print-data-table">
-      {headers && headers.length > 0 && (
+    <table className={`print-data-table${hasHeaders ? '' : ' print-data-table--label'}`}>
+      {hasHeaders && (
         <thead>
           <tr>
             {headers.map((h, i) => <th key={i}>{h}</th>)}
