@@ -257,8 +257,12 @@ export function buildDraftSurveyContent(
       text(fmtVal(data['operator']), [dataField('operator')]),
     ]),
     paragraph([
+      // Nome do surveyor é editável e pode vir vazio. NUNCA emitir text('')
+      // (ProseMirror proíbe text nodes vazios → quebra o editor).
       text('Undersigned Surveyor: NAABSA Marine Surveyors — '),
-      text(fmtVal(data['surveyor_name'], ''), [dataField('surveyor_name')]),
+      ...(data['surveyor_name'] != null && String(data['surveyor_name']).trim() !== ''
+        ? [text(String(data['surveyor_name']), [dataField('surveyor_name')])]
+        : []),
     ]),
     paragraph([
       text("Vessel's Command (Master / Chief Officer): "),

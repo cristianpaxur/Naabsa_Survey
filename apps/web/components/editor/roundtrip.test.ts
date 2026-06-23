@@ -12,6 +12,8 @@ import { PhotoFrame } from './nodes/photoFrame';
 import { DataTable } from './nodes/dataTable';
 import { DataField } from './marks/dataField';
 import { LockGuard } from './lockGuard';
+import { buildDraftSurvey } from '@naabsa/core';
+import type { ReportSpec } from '@naabsa/core';
 
 /**
  * Reproduz o caminho carregar→getJSON do editor (008) ao nível do schema
@@ -86,6 +88,28 @@ describe('Editor round-trip preserva atributos dos nodes custom', () => {
     const frame = out.content[0]!;
     expect(frame.attrs?.slotId).toBe('photos_initial');
     expect(frame.attrs?.src).toBe('reports/1/photo.jpg');
+  });
+
+  it('documento real do builder é aceito pelo schema do editor (sem text nodes vazios)', () => {
+    // ProseMirror PROÍBE text nodes vazios — se o builder emitir text(''), o
+    // editor quebra e renderiza em branco. Carregar o doc pelo schema lança
+    // RangeError nesse caso. Cobre surveyor_name ausente (campo editável vazio).
+    const minimalSpec = {
+      report_type: 'draft_survey',
+      version: 1,
+      variants: ['loading', 'discharge'],
+      source: { sheet: 'Capa', fingerprint: { cell: 'B2', expect: 'DRAFT SURVEY', sheet: 'Capa' }, common: { fields: {} }, by_variant: {} },
+      validations: [],
+      photo_slots: [],
+    } as unknown as ReportSpec;
+
+    for (const variant of ['loading', 'discharge'] as const) {
+      const docJson = buildDraftSurvey({ spec: minimalSpec, variant, data: {}, tables: {}, photos: [] });
+      // não deve lançar (text nodes vazios → RangeError)
+      const node = PMNode.fromJSON(schema, docJson as unknown as Record<string, unknown>);
+      expect(node.type.name).toBe('doc');
+      expect(node.childCount).toBeGreaterThan(0);
+    }
   });
 
   it('dataField (mark) preserva field', () => {

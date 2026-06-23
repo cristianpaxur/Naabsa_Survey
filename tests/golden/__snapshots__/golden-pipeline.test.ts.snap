@@ -204,18 +204,6 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "text": "Undersigned Surveyor: NAABSA Marine Surveyors — ",
           "type": "text",
         },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "surveyor_name",
-              },
-              "type": "dataField",
-            },
-          ],
-          "text": "",
-          "type": "text",
-        },
       ],
       "type": "paragraph",
     },
