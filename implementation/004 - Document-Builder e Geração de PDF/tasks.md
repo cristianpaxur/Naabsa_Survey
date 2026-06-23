@@ -2,8 +2,9 @@
 
 > **Implementação:** 004 - Document-Builder e Geração de PDF
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 10/11 tarefas concluídas (91%)
-> **Última atualização:** 2026-06-13
+> **Progresso:** 10/14 tarefas concluídas (71%) — pipeline pronto; modelo Word recebido
+>   (2026-06-23). Conteúdo real (EN) destravado, mas depende do contrato v2 (003/T-013..T-016).
+> **Última atualização:** 2026-06-23
 
 ---
 
@@ -97,15 +98,44 @@
   - **Dependências:** T-009
   - **Estimativa:** Pequena
 
-### Fase 5: Conteúdo real — BLOQUEADA
+### Fase 5: Conteúdo real (EN) — INSUMO RECEBIDO 2026-06-23
 
-- [!] **T-011:** Substituir conteúdo provisório pelos modelos Word do cliente
-  - **Descrição:** Transcrever o texto real (todas as variantes) para `content/<slug>.<variant>.ts`, atualizar snapshots e o `expected.pdf` do golden test.
-  - **Arquivos envolvidos:** `packages/core/src/document-builder/content/*`, `tests/golden/**`
-  - **Critério de conclusão:** Render fiel ao modelo Word validado com o cliente (CA-002 definitivo).
-  - **Dependências:** T-009
+> Modelo: `tests/fixtures/reports/draft_survey/MV-PERSEUS-I.model.docx` · estrutura: `field-map.md`.
+> Depende do contrato v2 do spec (003/T-013..T-016) para variante/multi-aba/tables.
+
+- [ ] **T-011:** Conteúdo real do `draft_survey` em inglês
+  - **Descrição:** Reescrever `content/draft_survey.{loading,discharge}.ts` com o texto do modelo:
+    cabeçalho (Ref/vessel/flag/IMO/port/date), Person/Companies contacted, Background (com texto
+    por variante load/discharge e por berthing side `Capa!C31`), Ship's Particulars, e as 3 fases
+    (Initial/Intermediate/Final) com data-fields. **Intermediate condicional** (RF-007).
+  - **Arquivos envolvidos:** `packages/core/src/document-builder/content/*`, `draft_survey.ts`
+  - **Critério de conclusão:** Snapshot por variante; estrutura fiel ao modelo (CA-001).
+  - **Dependências:** 003/T-014
+  - **Estimativa:** Grande
+
+- [ ] **T-012:** Tabelas-resumo + grades nativas das fases
+  - **Descrição:** `dataTable` de draft readings (Fwd/Ms/Aft, Trim, Heel/List, Deflection) por fase +
+    as grades "…Draft details" a partir de `source.tables[]` (RF-008) + a tabela "Acting as / figures".
+  - **Arquivos envolvidos:** `packages/core/src/document-builder/content/*`, `nodes.ts` (se preciso)
+  - **Critério de conclusão:** Tabelas renderizam dos dados/tables reais.
+  - **Dependências:** 003/T-015, T-011
+  - **Estimativa:** Grande
+
+- [ ] **T-013:** Ajustar `PrintDocument` + `print.css` ao layout do modelo
+  - **Descrição:** Cabeçalho NAABSA (endereço/contato), Contents, seções tituladas, estilo das
+    tabelas (header navy), Photographic Report (grids) e Attachment. Public Sans / IBM Plex Mono.
+  - **Arquivos envolvidos:** `apps/web/components/print/PrintDocument.tsx`, `print.css`
+  - **Critério de conclusão:** Render de `/print` fiel ao modelo (CA-002 definitivo).
+  - **Dependências:** T-012
   - **Estimativa:** Média
-  - **Observações:** 🔴 Bloqueada por insumo do cliente (PRD §15: modelos Word + exemplos preenchidos).
+
+- [ ] **T-014:** Golden test contra o modelo real
+  - **Descrição:** Gerar `expected.pdf` a partir do modelo aprovado e fechar o pixel-diff ≤ 0,5%
+    (CA-004 definitivo); atualizar snapshots e a fixture golden.
+  - **Arquivos envolvidos:** `tests/golden/draft_survey.*/**`
+  - **Critério de conclusão:** Golden test verde com o conteúdo real.
+  - **Dependências:** T-013, 003/T-016
+  - **Estimativa:** Média
 
 ---
 
@@ -137,7 +167,10 @@
 | T-008  | ✅ Concluída | 2026-06-13 | generatePdf.ts — job completo com hash, Storage, transição |
 | T-009  | ✅ Concluída | 2026-06-13 | golden-pipeline.test.ts (5 testes verdes); CA-004 definitivo requer stack |
 | T-010  | ✅ Concluída | 2026-06-13 | Todos CA marcados; implementação concluída |
-| T-011  | 🔴 Bloqueada | — | Aguarda modelos Word (PRD §15) |
+| T-011  | ⬜ Pendente | — | Conteúdo real EN destravado (modelo recebido); depende de 003/T-014 |
+| T-012  | ⬜ Pendente | — | Tabelas-resumo + grades nativas (RF-008); depende de 003/T-015 |
+| T-013  | ⬜ Pendente | — | PrintDocument/print.css no layout do modelo (CA-002 definitivo) |
+| T-014  | ⬜ Pendente | — | Golden test contra o modelo real (CA-004 definitivo) |
 
 ---
 

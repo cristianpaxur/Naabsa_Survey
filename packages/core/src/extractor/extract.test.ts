@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { extract } from './extract';
+import { extract, resolveVariant } from './extract';
 import {
   sampleSpec,
   buildWorkbook,
   buildCompleteWorkbook,
+  sampleSpecV2,
+  buildV2Workbook,
 } from './synthFixtures';
 
 describe('extract — caminho feliz', () => {
@@ -72,5 +74,93 @@ describe('extract — issues de extração', () => {
     const { data, issues } = extract(wb, sampleSpec, 'discharge');
     expect(data.vessel_name).toBeNull();
     expect(issues).toHaveLength(0);
+  });
+});
+
+// ── Contrato v2 — multi-aba (CA-009) ────────────────────────────────────────
+
+describe('extract — contrato v2 multi-aba (CA-009)', () => {
+  it('lê campos de abas diferentes (Capa e Inicial)', () => {
+    const wb = buildV2Workbook();
+    const { data, issues } = extract(wb, sampleSpecV2, 'loading');
+    expect(issues).toHaveLength(0);
+    expect(data.vessel_name).toBe('HG ANTWERP');
+    expect(data.init_fwd_mean).toBe(4.78);
+  });
+
+  it('aba ausente gera __sheet__ e aborta a extração', () => {
+    const wb = buildV2Workbook({ omitInicial: true });
+    const { issues } = extract(wb, sampleSpecV2, 'loading');
+    expect(issues.length).toBeGreaterThanOrEqual(1);
+    expect(issues[0]?.field).toBe('__sheet__');
+    expect(issues[0]?.message).toContain("'Inicial'");
+  });
+
+  it('fingerprint errado na aba Capa retorna __fingerprint__', () => {
+    const wb = buildV2Workbook({ fingerprint: 'ERRADO' });
+    const { issues } = extract(wb, sampleSpecV2, null);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.field).toBe('__fingerprint__');
+    expect(issues[0]?.message).toContain('DRAFT SURVEY');
+    expect(issues[0]?.message).toContain('ERRADO');
+  });
+
+  it('variant null extrai só campos common das múltiplas abas', () => {
+    const wb = buildV2Workbook();
+    const { data, issues } = extract(wb, sampleSpecV2, null);
+    expect(issues).toHaveLength(0);
+    expect(data.vessel_name).toBe('HG ANTWERP');
+    expect(data.init_fwd_mean).toBe(4.78);
+  });
+});
+
+describe('resolveVariant — CA-009', () => {
+  it('Loading → "loading"', () => {
+    const wb = buildV2Workbook({ kind: 'Loading' });
+    const result = resolveVariant(wb, sampleSpecV2);
+    expect(result.variant).toBe('loading');
+    expect(result.issue).toBeUndefined();
+  });
+
+  it('Discharge → "discharge"', () => {
+    const wb = buildV2Workbook({ kind: 'Discharge' });
+    const result = resolveVariant(wb, sampleSpecV2);
+    expect(result.variant).toBe('discharge');
+    expect(result.issue).toBeUndefined();
+  });
+
+  it('valor desconhecido → __variant__ com mensagem pt-BR', () => {
+    const wb = buildV2Workbook({ kind: 'Ballast' });
+    const { variant, issue } = resolveVariant(wb, sampleSpecV2);
+    expect(variant).toBeNull();
+    expect(issue?.field).toBe('__variant__');
+    expect(issue?.level).toBe('error');
+    expect(issue?.message).toContain('Ballast');
+    expect(issue?.message).toContain('Loading');
+    expect(issue?.message).toContain('Discharge');
+  });
+
+  it('aba variant_source ausente → __sheet__ issue', () => {
+    const wbNoCapa = buildV2Workbook({ omitInicial: true });
+    // Capa existe mas testa spec apontando para aba inexistente
+    const specSemAba = {
+      ...sampleSpecV2,
+      source: {
+        ...sampleSpecV2.source,
+        variant_source: { sheet: 'INEXISTENTE', cell: 'L4', map: { Loading: 'loading' } },
+      },
+    } as typeof sampleSpecV2;
+    const { variant, issue } = resolveVariant(wbNoCapa, specSemAba);
+    expect(variant).toBeNull();
+    expect(issue?.field).toBe('__sheet__');
+    expect(issue?.message).toContain("'INEXISTENTE'");
+  });
+
+  it('spec sem variant_source retorna { variant: null }', () => {
+    const wb = buildV2Workbook();
+    const specSemVS = { ...sampleSpecV2, source: { ...sampleSpecV2.source, variant_source: undefined } };
+    const result = resolveVariant(wb, specSemVS);
+    expect(result.variant).toBeNull();
+    expect(result.issue).toBeUndefined();
   });
 });

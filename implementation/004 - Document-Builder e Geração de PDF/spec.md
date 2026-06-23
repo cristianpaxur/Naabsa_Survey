@@ -1,10 +1,10 @@
 # Document-Builder e Geração de PDF
 
 > **ID:** 004
-> **Status:** 🟡 Planejada
+> **Status:** 🔵 Em Andamento (pipeline pronto; conteúdo provisório → real)
 > **Prioridade:** 🔴 Crítica
 > **Criada em:** 2026-06-11
-> **Última atualização:** 2026-06-11
+> **Última atualização:** 2026-06-23
 > **Autor:** Agente AI
 
 ---
@@ -109,10 +109,14 @@ mark `dataField` atrs `{field}`. Campos persistidos usados: `reports.document_js
 ### 4.1 Requisitos Funcionais
 Derivados do PRD (tarefas T-08..T-10):
 
-- **RF-001 (PRD RF-20/T-08):** Builder por tipo em `packages/core/src/document-builder/{slug}.ts` montando o JSON TipTap a partir de spec/variante/dados/fotos. Texto estático em `content/{slug}.{variant}.ts`. **[Texto real BLOQUEADO por modelos Word — PRD §15]**
+- **RF-001 (PRD RF-20/T-08):** Builder por tipo em `packages/core/src/document-builder/{slug}.ts` montando o JSON TipTap a partir de spec/variante/dados/fotos. Texto estático em `content/{slug}.{variant}.ts`. **[INSUMO RECEBIDO 2026-06-23 — modelo real `tests/fixtures/reports/draft_survey/MV-PERSEUS-I.model.docx`]**
 - **RF-002 (PRD §9):** Construtores dos nodes `photoFrame` e `dataTable` e da mark `dataField` em JSON puro.
 - **RF-003 (PRD RF-27/T-09):** Rota `/print` protegida por token renderizando `document_json` com `@page` A4, margens 2 cm, `break-inside: avoid` em photoFrames/dataTables, rodapé numerado.
 - **RF-004 (PRD RF-28/T-10):** Worker pg-boss com `generate_pdf`: Playwright, `page.pdf()`, Storage `reports/{id}/final.pdf`, hash sha256, transição para `generated`.
+- **RF-005 (conteúdo real, EN):** O conteúdo do relatório `draft_survey` segue o modelo do cliente **em inglês** (Background, Ship's Particulars, Draft Survey, Photographic Report, Attachment). A UI/issues do app permanecem pt-BR (CLAUDE.md). Estrutura do modelo em `field-map.md`.
+- **RF-006 (texto por variante e por dado):** Trechos alternam por variante (`Capa!L4` loading/discharge: "load/discharge", "bound to/loaded in {discharging_port}") e por dado (`Capa!C31` berthing side: "Starboard/Port side from shore ... from boat"). Sempre presentes: "undersigned surveyor (NAABSA)" e "vessel"; demais partes condicionais.
+- **RF-007 (seções condicionais):** A seção **Intermediate** (texto + tabela-resumo + grade + figures + fotos) só é renderizada quando há dados intermediários (tabelas `optional` não vazias). Initial e Final sempre presentes.
+- **RF-008 (grades como tabelas nativas):** As grades "…Draft details" (Inicial/Intermediario/final) são recriadas como `dataTable` a partir das `source.tables[]` do spec — **sem render de Excel** (decisão 2026-06-23). Mantém preview = PDF e edição.
 
 ### 4.2 Requisitos Não-Funcionais
 - **RNF-001 (PRD RNF-02):** Golden test: render rasterizado do PDF vs `expected.pdf` com diff ≤ 0,5% de pixels.
@@ -124,7 +128,9 @@ Derivados do PRD (tarefas T-08..T-10):
 ### 4.3 Restrições e Limitações
 - Builder vive em `packages/core` (TS puro — sem React); o render React vive em `apps/web`.
 - Fotos têm dimensão fixa no frame, `object-fit: cover` — a imagem se adapta ao frame, nunca o contrário (princípio nº 4).
-- O conteúdo textual definitivo depende dos modelos Word do cliente; até lá usa-se conteúdo provisório derivado do protótipo (tela 07) claramente marcado como placeholder.
+- O conteúdo textual definitivo segue o modelo Word do cliente (recebido 2026-06-23); o conteúdo provisório pt-BR (derivado da tela 07) será **substituído pelo texto real em inglês**.
+- **Idioma:** o PDF do relatório sai em **inglês** (conforme o modelo); UI, telas e mensagens de validação permanecem pt-BR (CLAUDE.md vale para a UI, não para o conteúdo do PDF).
+- O builder depende do **contrato v2** do spec (003 §3.4.1): variante de `Capa!L4`, campos multi-aba e `tables[]` range-based. A 004 (conteúdo real) só fecha após 003/T-013..T-016.
 
 ## 5. Critérios de Aceitação
 

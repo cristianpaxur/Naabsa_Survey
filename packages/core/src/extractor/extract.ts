@@ -28,21 +28,21 @@ export function extract(
   const issues: Issue[] = [];
   const data: Record<string, FieldValue> = {};
 
-  const sheet = workbook.getWorksheet(spec.source.sheet);
-  if (!sheet) {
-    issues.push({
-      field: '__sheet__',
-      cell: null,
-      level: 'error',
-      origin: 'extraction',
-      message: `Aba '${spec.source.sheet}' não encontrada na planilha.`,
-    });
+  // Aba do fingerprint: própria (v2) ou a aba única (v1).
+  const fp = spec.source.fingerprint;
+  const fpSheetName = sheetOf(fp.sheet, spec);
+  if (!fpSheetName) {
+    issues.push(sheetIssue('Spec sem aba para o fingerprint (defina sheet).'));
+    return { data, issues };
+  }
+  const fpSheet = workbook.getWorksheet(fpSheetName);
+  if (!fpSheet) {
+    issues.push(sheetIssue(`Aba '${fpSheetName}' não encontrada na planilha.`));
     return { data, issues };
   }
 
   // Fingerprint (RF-09): confere o tipo da planilha.
-  const fp = spec.source.fingerprint;
-  const fpRaw = normalizeCell(sheet.getCell(fp.cell).value);
+  const fpRaw = normalizeCell(fpSheet.getCell(fp.cell).value);
   const fpStr = fpRaw === null ? '' : String(fpRaw).trim();
   if (fpStr !== fp.expect) {
     issues.push({
@@ -55,10 +55,33 @@ export function extract(
     return { data, issues };
   }
 
+  const fields = collectFields(spec, variant);
+
+  // Todas as abas necessárias devem existir (RF-08 multi-aba). Uma aba ausente
+  // é bloqueante: emite um __sheet__ por aba faltante e aborta a extração.
+  const needed = new Set<string>();
+  for (const [name, field] of fields) {
+    const s = sheetOf(field.sheet, spec);
+    if (!s) {
+      issues.push(sheetIssue(`Campo '${name}' sem aba (defina sheet).`));
+    } else {
+      needed.add(s);
+    }
+  }
+  if (issues.length > 0) return { data, issues };
+  const missing = [...needed].filter((s) => !workbook.getWorksheet(s));
+  if (missing.length > 0) {
+    for (const s of missing) {
+      issues.push(sheetIssue(`Aba '${s}' não encontrada na planilha.`));
+    }
+    return { data, issues };
+  }
+
   const date1904 = Boolean(workbook.properties?.date1904);
 
-  for (const [name, field] of collectFields(spec, variant)) {
-    const raw = normalizeCell(sheet.getCell(field.cell).value);
+  for (const [name, field] of fields) {
+    const ws = workbook.getWorksheet(sheetOf(field.sheet, spec) as string);
+    const raw = normalizeCell(ws!.getCell(field.cell).value);
     const res = coerceField(raw, field, { date1904 });
     data[name] = res.value;
     if (res.error !== undefined) {
@@ -73,6 +96,52 @@ export function extract(
   }
 
   return { data, issues };
+}
+
+/** Aba efetiva de um item: a própria (v2) ou a aba única do spec (v1). */
+function sheetOf(own: string | undefined, spec: ReportSpec): string | undefined {
+  return own ?? spec.source.sheet;
+}
+
+function sheetIssue(message: string): Issue {
+  return { field: '__sheet__', cell: null, level: 'error', origin: 'extraction', message };
+}
+
+/**
+ * Resolve a variante a partir da planilha quando o spec define
+ * `source.variant_source` (v2). Lê a célula, mapeia o texto e devolve a variante;
+ * valor fora do `map` vira um `Issue` de erro e variante `null` (RF-09 análogo).
+ */
+export function resolveVariant(
+  workbook: ExcelJS.Workbook,
+  spec: ReportSpec,
+): { variant: string | null; issue?: Issue } {
+  const vs = spec.source.variant_source;
+  if (!vs) return { variant: null };
+
+  const ws = workbook.getWorksheet(vs.sheet);
+  if (!ws) {
+    return {
+      variant: null,
+      issue: sheetIssue(`Aba '${vs.sheet}' (variant_source) não encontrada.`),
+    };
+  }
+  const raw = normalizeCell(ws.getCell(vs.cell).value);
+  const key = raw === null ? '' : String(raw).trim();
+  const mapped = vs.map[key];
+  if (mapped === undefined) {
+    return {
+      variant: null,
+      issue: {
+        field: '__variant__',
+        cell: vs.cell,
+        level: 'error',
+        origin: 'extraction',
+        message: `Tipo de atendimento '${key || '(vazio)'}' na célula ${vs.cell} não reconhecido (esperado: ${Object.keys(vs.map).join(', ')}).`,
+      },
+    };
+  }
+  return { variant: mapped };
 }
 
 /** Campos efetivos = common + by_variant[variant] (PRD §8). */

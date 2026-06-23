@@ -2,8 +2,9 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 10/12 tarefas concluídas (83%) — T-011/T-012 bloqueadas (planilha real do cliente)
-> **Última atualização:** 2026-06-12
+> **Progresso:** 13/16 tarefas concluídas (81%) — T-013/T-014 concluídas (CA-008/CA-009);
+>   falta T-015 (tables range-based) e T-016 (extração limpa real).
+> **Última atualização:** 2026-06-23
 
 ---
 
@@ -98,23 +99,59 @@
   - **Dependências:** T-009
   - **Estimativa:** Pequena
 
-### Fase 6: Spec real do cliente (PRD T-07) — BLOQUEADA
+### Fase 6: Spec real do cliente (PRD T-07) — INSUMO RECEBIDO 2026-06-23
 
-- [!] **T-011:** Escrever o spec real do primeiro tipo do cliente
-  - **Descrição:** Com o tipo prioritário definido e a planilha pré-moldada real em mãos, escrever o spec v1 completo (campos, células, validações, photo_slots).
-  - **Arquivos envolvidos:** `tests/fixtures/specs/<slug>.v1.json`
-  - **Critério de conclusão:** `validateSpec` passa; revisão com o cliente.
-  - **Dependências:** T-003, T-007
-  - **Estimativa:** Média
-  - **Observações:** 🔴 Bloqueada por insumo do cliente (PRD §15: tipo prioritário + planilha real).
+- [x] **T-011:** Escrever o spec real do primeiro tipo do cliente
+  - **Descrição:** Tipo prioritário = `draft_survey`. Spec real autorado a partir da planilha real
+    e do docx anotado: 83 campos (6 abas), 14 tabelas range-based, `variant_source` em `Capa!L4`,
+    fingerprint `Capa!B2`. **Usa o contrato v2** (multi-aba — §3.4.1 do spec).
+  - **Arquivos envolvidos:** `tests/fixtures/specs/draft_survey.v1.json`,
+    `tests/fixtures/reports/draft_survey/{cliente-instrucoes,field-map}.md`
+  - **Critério de conclusão:** JSON sintaticamente válido + revisão com o cliente.
+  - **Observações:** ✅ Autorado. `validateSpec` ainda **não** o aceita (precisa de T-013).
 
-- [!] **T-012:** Fixture da planilha real + extração limpa
-  - **Descrição:** Versionar a planilha real como fixture e garantir extração sem issues inesperadas (aceite do PRD T-07).
-  - **Arquivos envolvidos:** `tests/fixtures/planilhas/<slug>-real.xlsx`, testes
-  - **Critério de conclusão:** CA-007 verde.
+- [x] **T-012:** Fixture da planilha real (versionada)
+  - **Descrição:** Planilha real versionada como fixture; docx-modelo versionado como referência.
+  - **Arquivos envolvidos:** `tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx`,
+    `tests/fixtures/reports/draft_survey/MV-PERSEUS-I.model.docx`
+  - **Critério de conclusão:** Arquivos versionados (CA-007a). **Extração limpa → T-016 (CA-007b).**
+
+### Fase 7: Contrato v2 — multi-aba (implementação do motor) — PENDENTE
+
+- [x] **T-013:** Estender schema + types + `validateSpec` para o contrato v2
+  - **Descrição:** `sheet` por campo/table/fingerprint, `variant_source`, `ignore_sheets`,
+    `tables[]`, `field.unit`. Retrocompatível (sem `contract` ⇒ v1). Atualizar `spec.schema.json`,
+    `types.ts`, `validateSpec.ts`.
+  - **Critério de conclusão:** CA-008 — `draft_survey.v1.json` valida; 21 testes v1 seguem verdes.
   - **Dependências:** T-011
+  - **Estimativa:** Grande
+  - **Observações:** ✅ Schema com `contract` 1/2 + checagens semânticas em `validateSpec`
+    (v1 exige `source.sheet`; v2 exige `sheet` em fingerprint/campos + `variant_source.map ⊆ variants`).
+    98 testes do core verdes (validateSpec 21→28); typecheck/lint ok.
+
+- [x] **T-014:** Extractor multi-aba + variante por célula
+  - **Descrição:** `extract` lê `sheet` por campo; resolve variante de `source.variant_source`
+    (valor fora do `map` ⇒ `error`); respeita `ignore_sheets`. Fingerprint passa a usar `sheet`.
+  - **Arquivos envolvidos:** `packages/core/src/extractor/extract.ts`, `pipeline.ts`
+  - **Critério de conclusão:** CA-009.
+  - **Dependências:** T-013
+  - **Estimativa:** Grande
+
+- [ ] **T-015:** Extração de `tables[]` (range-based) + coerção time-of-day
+  - **Descrição:** Ler `source.tables[]` (`sheet`+`range`) em matrizes determinísticas;
+    `optional` vazia não gera `error`. Coerção de horário (`Capa!M7`...) → `string` "HH:MM" (RF-011).
+  - **Arquivos envolvidos:** `packages/core/src/extractor/extract.ts`, `coerce.ts`
+  - **Critério de conclusão:** CA-010 + coerção testada.
+  - **Dependências:** T-014
   - **Estimativa:** Média
-  - **Observações:** 🔴 Bloqueada pelo mesmo insumo da T-011.
+
+- [ ] **T-016:** Extração limpa da planilha real (CA-007b) + confirmar ranges
+  - **Descrição:** Rodar a extração real ponta-a-ponta; eliminar issues inesperadas; confirmar os
+    limites `provisional` das `tables` contra o conteúdo real e remover o flag.
+  - **Arquivos envolvidos:** `tests/fixtures/specs/draft_survey.v1.json`, testes de extração real.
+  - **Critério de conclusão:** CA-007b verde.
+  - **Dependências:** T-015
+  - **Estimativa:** Média
 
 ---
 
@@ -132,8 +169,12 @@
 | T-008  | ✅ Concluída | 2026-06-12 | resolveFieldValue (RF-13): override ?? extraído, mantém falsy (0/''/false); 6 testes (CA-006) |
 | T-009  | ✅ Concluída | 2026-06-12 | determinism.test: runExtraction 3× → igualdade profunda + JSON idêntico (CA-003) |
 | T-010  | ✅ Concluída | 2026-06-12 | perf.test: 300 campos < 1s (RNF-03; load do .xlsx fica no app). Núcleo: 72 testes verdes |
-| T-011  | 🔴 Bloqueada | — | Aguarda tipo prioritário + planilha real (PRD §15) |
-| T-012  | 🔴 Bloqueada | — | Aguarda T-011 |
+| T-011  | ✅ Concluída | 2026-06-23 | Spec real `draft_survey.v1.json` (83 campos/6 abas, 14 tabelas, variante Capa!L4) — contrato v2 |
+| T-012  | ✅ Concluída | 2026-06-23 | Planilha real + docx-modelo versionados em tests/fixtures (CA-007a) |
+| T-013  | ✅ Concluída | 2026-06-23 | spec.schema.json + types.ts + validateSpec: contrato v2 com checagens semânticas; 98→28 testes verdes (CA-008) |
+| T-014  | ✅ Concluída | 2026-06-23 | extract.ts multi-aba + resolveVariant(); pipeline.ts integrado; 9 testes v2 (CA-009); 107 testes verdes |
+| T-015  | ⬜ Pendente | — | Tables range-based + coerção time-of-day (CA-010/RF-011) |
+| T-016  | ⬜ Pendente | — | Extração limpa real + confirmar ranges (CA-007b) |
 
 ---
 

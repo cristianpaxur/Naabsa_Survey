@@ -5,21 +5,36 @@
  * "todos os campos vazios").
  */
 import type ExcelJS from 'exceljs';
-import type { ReportSpec, ExtractionResult } from '../types';
-import { extract } from './extract';
+import type { ReportSpec, ExtractionResult, Issue } from '../types';
+import { extract, resolveVariant } from './extract';
 import { validate } from './validate';
 
 const BLOCKING_FIELDS = new Set(['__sheet__', '__fingerprint__']);
 
+/**
+ * Ponto de entrada da extração (impl 005). Resolve a variante da própria planilha
+ * quando o spec define `source.variant_source` (v2, ex.: Draft Survey `Capa!L4`);
+ * caso contrário usa a `variant` informada (v1). Em erro de aba/fingerprint pula a
+ * validação (evita ruído de "todos os campos vazios").
+ */
 export function runExtraction(
   workbook: ExcelJS.Workbook,
   spec: ReportSpec,
-  variant: string | null,
+  variant: string | null = null,
 ): ExtractionResult {
-  const ext = extract(workbook, spec, variant);
-  const blocked = ext.issues.some((i) => BLOCKING_FIELDS.has(i.field));
-  if (blocked) return ext;
+  const variantIssues: Issue[] = [];
+  let effectiveVariant = variant;
+  if (spec.source.variant_source) {
+    const r = resolveVariant(workbook, spec);
+    effectiveVariant = r.variant;
+    if (r.issue) variantIssues.push(r.issue);
+  }
 
-  const validationIssues = validate(ext.data, spec, variant);
-  return { data: ext.data, issues: [...ext.issues, ...validationIssues] };
+  const ext = extract(workbook, spec, effectiveVariant);
+  const issues = [...variantIssues, ...ext.issues];
+  const blocked = issues.some((i) => BLOCKING_FIELDS.has(i.field));
+  if (blocked) return { data: ext.data, issues };
+
+  const validationIssues = validate(ext.data, spec, effectiveVariant);
+  return { data: ext.data, issues: [...issues, ...validationIssues] };
 }

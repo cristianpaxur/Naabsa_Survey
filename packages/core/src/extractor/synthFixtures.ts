@@ -123,3 +123,86 @@ export function buildCompleteWorkbook(): ExcelJS.Workbook {
     },
   });
 }
+
+// ── Contrato v2 (multi-aba) ──────────────────────────────────────────────────
+
+/** Spec v2 mínimo (multi-aba) espelhando o desenho do Draft Survey real. */
+export const sampleSpecV2: ReportSpec = {
+  contract: 2,
+  report_type: 'draft_survey',
+  version: 1,
+  variants: ['loading', 'discharge'],
+  source: {
+    fingerprint: { sheet: 'Capa', cell: 'B2', expect: 'DRAFT SURVEY' },
+    variant_source: {
+      sheet: 'Capa',
+      cell: 'L4',
+      map: { Loading: 'loading', Discharge: 'discharge' },
+    },
+    ignore_sheets: ['LOD-LOP'],
+    common: {
+      fields: {
+        vessel_name: {
+          sheet: 'Capa',
+          cell: 'C13',
+          type: 'string',
+          required: true,
+          label: 'Nome do navio',
+          section: 'Particulars do navio',
+        },
+        init_fwd_mean: {
+          sheet: 'Inicial',
+          cell: 'D10',
+          type: 'number',
+          decimals: 3,
+          unit: 'm',
+          label: 'AV (Fwd) médio',
+          section: 'Calados — Inicial',
+        },
+      },
+    },
+    tables: [
+      {
+        id: 'init_draft_marks',
+        label: 'Initial — Draft marks',
+        sheet: 'Inicial',
+        range: 'B8:H12',
+        phase: 'initial',
+        provisional: true,
+      },
+    ],
+  },
+};
+
+export interface BuildV2Opts {
+  /** Valor da célula de tipo de atendimento (Capa!L4). */
+  kind?: string;
+  /** Valor do fingerprint (Capa!B2). */
+  fingerprint?: string;
+  /** Células da aba Capa. */
+  capa?: Record<string, ExcelJS.CellValue>;
+  /** Células da aba Inicial. */
+  inicial?: Record<string, ExcelJS.CellValue>;
+  /** Omite a aba Inicial (testa aba ausente). */
+  omitInicial?: boolean;
+}
+
+/** Workbook v2 com abas Capa + Inicial. */
+export function buildV2Workbook(opts: BuildV2Opts = {}): ExcelJS.Workbook {
+  const wb = new ExcelJS.Workbook();
+  const capa = wb.addWorksheet('Capa');
+  capa.getCell('B2').value = opts.fingerprint ?? 'DRAFT SURVEY';
+  capa.getCell('L4').value = opts.kind ?? 'Loading';
+  capa.getCell('C13').value = 'HG ANTWERP';
+  for (const [addr, val] of Object.entries(opts.capa ?? {})) {
+    capa.getCell(addr).value = val;
+  }
+  if (!opts.omitInicial) {
+    const ini = wb.addWorksheet('Inicial');
+    ini.getCell('D10').value = 4.78;
+    for (const [addr, val] of Object.entries(opts.inicial ?? {})) {
+      ini.getCell(addr).value = val;
+    }
+  }
+  return wb;
+}
