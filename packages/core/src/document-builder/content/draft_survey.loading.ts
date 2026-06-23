@@ -30,10 +30,33 @@ function fmtNum(v: FieldValue | undefined, dec: number, fallback = '—'): strin
   return String(v);
 }
 
+/** Formata célula de grade: numéricos sem trailing zeros até 4 casas. */
+function fmtCell(v: FieldValue | undefined): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number') {
+    if (Number.isInteger(v)) return String(v);
+    return v.toFixed(4).replace(/\.?0+$/, '');
+  }
+  return String(v);
+}
+
+/** Converte matriz FieldValue[][] → string[][] para dataTable.rows. */
+function tableRows(matrix: FieldValue[][] | undefined): string[][] {
+  if (!matrix || matrix.length === 0) return [];
+  return matrix.map((row) => row.map(fmtCell));
+}
+
+/** Heading + dataTable de grade; omitido se a matriz estiver vazia. */
+function gradeSection(title: string, tableId: string, matrix: FieldValue[][] | undefined): TipTapNode[] {
+  const rows = tableRows(matrix);
+  if (rows.length === 0) return [];
+  return [heading(3, [text(title)]), dataTable({ tableId, rows })];
+}
+
 export function buildDraftLoadingContent(
-  input: Pick<BuilderInput, 'data' | 'photos'>,
+  input: Pick<BuilderInput, 'data' | 'photos' | 'tables'>,
 ): TipTapNode[] {
-  const { data, photos } = input;
+  const { data, photos, tables } = input;
   const photoBySlot = new Map<string, (typeof photos)[number]>();
   for (const p of photos) {
     if (!photoBySlot.has(p.slotId)) photoBySlot.set(p.slotId, p);
@@ -97,9 +120,7 @@ export function buildDraftLoadingContent(
     paragraph([
       text('At the request and appointment of Messrs. '),
       text(fmtVal(data['client']), [dataField('client')]),
-      text(
-        ', the undersigned surveyor of NAABSA Marine Surveyors proceeded to ',
-      ),
+      text(', the undersigned surveyor of NAABSA Marine Surveyors proceeded to '),
       text(fmtVal(data['port']), [dataField('port')]),
       text(' Port, at '),
       text(fmtVal(data['terminal']), [dataField('terminal')]),
@@ -169,11 +190,25 @@ export function buildDraftLoadingContent(
     }),
     dataTable({
       tableId: 'init_trim_heel',
-      headers: ['Item', 'Observed', 'Corrected'],
+      headers: ['Item', 'Observed', 'Corrected / Type'],
       rows: [
-        ['Trim', fmtNum(data['init_trim_obs'], 4), fmtNum(data['init_trim_corr'], 4)],
+        ['Trim (m)', fmtNum(data['init_trim_obs'], 4), fmtNum(data['init_trim_corr'], 4)],
+        [
+          'Heel/List (°)',
+          fmtNum(data['init_heel'], 2),
+          fmtVal(data['init_heel_side']),
+        ],
+        [
+          'Deflection',
+          `${fmtNum(data['init_deflection'], 1)} cm`,
+          fmtVal(data['init_deflection_type']),
+        ],
       ],
     }),
+    ...gradeSection('Draft Details', 'init_draft_marks', tables['init_draft_marks']),
+    ...gradeSection('Displacement Corrections', 'init_displacement', tables['init_displacement']),
+    ...gradeSection('Ballast Water', 'init_ballast', tables['init_ballast']),
+    ...gradeSection('Fresh Water & Bunkers', 'init_freshwater', tables['init_freshwater']),
     paragraph([]),
   ];
 
@@ -201,11 +236,25 @@ export function buildDraftLoadingContent(
         }),
         dataTable({
           tableId: 'int_trim_heel',
-          headers: ['Item', 'Observed', 'Corrected'],
+          headers: ['Item', 'Observed', 'Corrected / Type'],
           rows: [
-            ['Trim', fmtNum(data['int_trim_obs'], 4), fmtNum(data['int_trim_corr'], 4)],
+            ['Trim (m)', fmtNum(data['int_trim_obs'], 4), fmtNum(data['int_trim_corr'], 4)],
+            [
+              'Heel/List (°)',
+              fmtNum(data['int_list'], 2),
+              fmtVal(data['int_list_side']),
+            ],
+            [
+              'Deflection',
+              `${fmtNum(data['int_deflection'], 1)} cm`,
+              fmtVal(data['int_deflection_type']),
+            ],
           ],
         }),
+        ...gradeSection('Draft Details', 'int_draft_marks', tables['int_draft_marks']),
+        ...gradeSection('Displacement Corrections', 'int_displacement', tables['int_displacement']),
+        ...gradeSection('Ballast Water', 'int_ballast', tables['int_ballast']),
+        ...gradeSection('Fresh Water & Bunkers', 'int_freshwater', tables['int_freshwater']),
         heading(3, [text('Figures — Intermediate')]),
         dataTable({
           tableId: 'int_figures',
@@ -215,10 +264,18 @@ export function buildDraftLoadingContent(
             ["NAABSA Surveyor's Figures", fmtNum(data['int_fig_naabsa'], 3)],
             ["Vessel's Figures", fmtNum(data['int_fig_vessel'], 3)],
             ['Difference (MT)', fmtNum(data['int_fig_diff_mt'], 3)],
-            ['Difference (%)', fmtNum(data['int_fig_diff_pct'] != null && typeof data['int_fig_diff_pct'] === 'number'
-              ? data['int_fig_diff_pct'] * 100 : null, 3)],
+            [
+              'Difference (%)',
+              fmtNum(
+                data['int_fig_diff_pct'] != null && typeof data['int_fig_diff_pct'] === 'number'
+                  ? data['int_fig_diff_pct'] * 100
+                  : null,
+                3,
+              ),
+            ],
           ],
         }),
+        ...gradeSection('Acting as', 'int_figures_acting_as', tables['int_figures_acting_as']),
         paragraph([]),
       ]
     : [];
@@ -246,11 +303,25 @@ export function buildDraftLoadingContent(
     }),
     dataTable({
       tableId: 'fin_trim_heel',
-      headers: ['Item', 'Observed', 'Corrected'],
+      headers: ['Item', 'Observed', 'Corrected / Type'],
       rows: [
-        ['Trim', fmtNum(data['fin_trim_obs'], 4), fmtNum(data['fin_trim_corr'], 4)],
+        ['Trim (m)', fmtNum(data['fin_trim_obs'], 4), fmtNum(data['fin_trim_corr'], 4)],
+        [
+          'Heel/List (°)',
+          fmtNum(data['fin_list'], 2),
+          fmtVal(data['fin_list_side']),
+        ],
+        [
+          'Deflection',
+          `${fmtNum(data['fin_deflection'], 1)} cm`,
+          fmtVal(data['fin_deflection_type']),
+        ],
       ],
     }),
+    ...gradeSection('Draft Details', 'fin_draft_marks', tables['fin_draft_marks']),
+    ...gradeSection('Displacement Corrections', 'fin_displacement', tables['fin_displacement']),
+    ...gradeSection('Ballast Water', 'fin_ballast', tables['fin_ballast']),
+    ...gradeSection('Fresh Water & Bunkers', 'fin_freshwater', tables['fin_freshwater']),
     heading(3, [text('Figures — Final')]),
     dataTable({
       tableId: 'fin_figures',
@@ -260,10 +331,18 @@ export function buildDraftLoadingContent(
         ["NAABSA Surveyor's Figures", fmtNum(data['fin_fig_naabsa'], 3)],
         ["Vessel's Figures", fmtNum(data['fin_fig_vessel'], 3)],
         ['Difference (MT)', fmtNum(data['fin_fig_diff_mt'], 3)],
-        ['Difference (%)', fmtNum(data['fin_fig_diff_pct'] != null && typeof data['fin_fig_diff_pct'] === 'number'
-          ? data['fin_fig_diff_pct'] * 100 : null, 3)],
+        [
+          'Difference (%)',
+          fmtNum(
+            data['fin_fig_diff_pct'] != null && typeof data['fin_fig_diff_pct'] === 'number'
+              ? data['fin_fig_diff_pct'] * 100
+              : null,
+            3,
+          ),
+        ],
       ],
     }),
+    ...gradeSection('Acting as', 'fin_figures_acting_as', tables['fin_figures_acting_as']),
     paragraph([]),
   ];
 
@@ -298,7 +377,7 @@ export function buildDraftLoadingContent(
     heading(2, [text('Attachment')]),
     paragraph([
       text(
-        'Draft Survey Certificates issued by undersigned surveyor / by vessel / by Terminal\'s surveyor.',
+        "Draft Survey Certificates issued by undersigned surveyor / by vessel / by Terminal's surveyor.",
       ),
     ]),
   ];

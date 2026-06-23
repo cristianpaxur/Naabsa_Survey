@@ -567,12 +567,22 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
         "headers": [
           "Item",
           "Observed",
-          "Corrected",
+          "Corrected / Type",
         ],
         "rows": [
           [
-            "Trim",
+            "Trim (m)",
             "—",
+            "—",
+          ],
+          [
+            "Heel/List (°)",
+            "—",
+            "—",
+          ],
+          [
+            "Deflection",
+            "— cm",
             "—",
           ],
         ],
@@ -682,12 +692,22 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
         "headers": [
           "Item",
           "Observed",
-          "Corrected",
+          "Corrected / Type",
         ],
         "rows": [
           [
-            "Trim",
+            "Trim (m)",
             "—",
+            "—",
+          ],
+          [
+            "Heel/List (°)",
+            "—",
+            "—",
+          ],
+          [
+            "Deflection",
+            "— cm",
             "—",
           ],
         ],

@@ -567,13 +567,23 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
         "headers": [
           "Item",
           "Observed",
-          "Corrected",
+          "Corrected / Type",
         ],
         "rows": [
           [
-            "Trim",
+            "Trim (m)",
             "-0.6600",
             "-0.6599",
+          ],
+          [
+            "Heel/List (°)",
+            "—",
+            "—",
+          ],
+          [
+            "Deflection",
+            "— cm",
+            "—",
           ],
         ],
         "tableId": "init_trim_heel",
@@ -682,13 +692,23 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
         "headers": [
           "Item",
           "Observed",
-          "Corrected",
+          "Corrected / Type",
         ],
         "rows": [
           [
-            "Trim",
+            "Trim (m)",
             "-0.8300",
             "-0.8300",
+          ],
+          [
+            "Heel/List (°)",
+            "—",
+            "—",
+          ],
+          [
+            "Deflection",
+            "— cm",
+            "—",
           ],
         ],
         "tableId": "fin_trim_heel",
@@ -1396,13 +1416,23 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
         "headers": [
           "Item",
           "Observed",
-          "Corrected",
+          "Corrected / Type",
         ],
         "rows": [
           [
-            "Trim",
+            "Trim (m)",
             "-0.6600",
             "-0.6599",
+          ],
+          [
+            "Heel/List (°)",
+            "—",
+            "—",
+          ],
+          [
+            "Deflection",
+            "— cm",
+            "—",
           ],
         ],
         "tableId": "init_trim_heel",
@@ -1511,13 +1541,23 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
         "headers": [
           "Item",
           "Observed",
-          "Corrected",
+          "Corrected / Type",
         ],
         "rows": [
           [
-            "Trim",
+            "Trim (m)",
             "-0.8300",
             "-0.8300",
+          ],
+          [
+            "Heel/List (°)",
+            "—",
+            "—",
+          ],
+          [
+            "Deflection",
+            "— cm",
+            "—",
           ],
         ],
         "tableId": "fin_trim_heel",
