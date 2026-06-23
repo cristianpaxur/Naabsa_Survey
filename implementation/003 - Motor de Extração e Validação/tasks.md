@@ -2,8 +2,8 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 13/16 tarefas concluídas (81%) — T-013/T-014 concluídas (CA-008/CA-009);
->   falta T-015 (tables range-based) e T-016 (extração limpa real).
+> **Progresso:** 15/16 tarefas concluídas (94%) — T-013/T-014/T-015 concluídas;
+>   falta apenas T-016 (extração limpa contra planilha real + confirmar ranges).
 > **Última atualização:** 2026-06-23
 
 ---
@@ -137,7 +137,7 @@
   - **Dependências:** T-013
   - **Estimativa:** Grande
 
-- [ ] **T-015:** Extração de `tables[]` (range-based) + coerção time-of-day
+- [x] **T-015:** Extração de `tables[]` (range-based) + coerção time-of-day
   - **Descrição:** Ler `source.tables[]` (`sheet`+`range`) em matrizes determinísticas;
     `optional` vazia não gera `error`. Coerção de horário (`Capa!M7`...) → `string` "HH:MM" (RF-011).
   - **Arquivos envolvidos:** `packages/core/src/extractor/extract.ts`, `coerce.ts`
@@ -173,7 +173,7 @@
 | T-012  | ✅ Concluída | 2026-06-23 | Planilha real + docx-modelo versionados em tests/fixtures (CA-007a) |
 | T-013  | ✅ Concluída | 2026-06-23 | spec.schema.json + types.ts + validateSpec: contrato v2 com checagens semânticas; 98→28 testes verdes (CA-008) |
 | T-014  | ✅ Concluída | 2026-06-23 | extract.ts multi-aba + resolveVariant(); pipeline.ts integrado; 9 testes v2 (CA-009); 107 testes verdes |
-| T-015  | ⬜ Pendente | — | Tables range-based + coerção time-of-day (CA-010/RF-011) |
+| T-015  | ✅ Concluída | 2026-06-23 | types/schema/coerce: TimeFieldDef + coerceTime(); extract.ts: extractTables(); ExtractionResult.tables; 8 testes time + 5 testes tables; 120 verdes (CA-010/RF-011) |
 | T-016  | ⬜ Pendente | — | Extração limpa real + confirmar ranges (CA-007b) |
 
 ---

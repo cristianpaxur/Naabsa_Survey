@@ -44,6 +44,8 @@ export function coerceField(
       return coerceEnum(raw, field.options);
     case 'boolean':
       return coerceBoolean(raw);
+    case 'time':
+      return coerceTime(raw);
   }
 }
 
@@ -175,6 +177,36 @@ function isValidYMD(y: number, m: number, d: number): boolean {
     dt.getUTCMonth() === m - 1 &&
     dt.getUTCDate() === d
   );
+}
+
+/**
+ * Coerção de horário (RF-011). Converte serial de tempo do Excel (fração de dia),
+ * objeto Date (usa horas/minutos UTC) ou string "HH:MM" → "HH:MM".
+ * Datetime serials (parte inteira > 0) → usa só a fração.
+ */
+function coerceTime(raw: RawCellValue): CoerceResult {
+  if (raw instanceof Date) {
+    const h = String(raw.getUTCHours()).padStart(2, '0');
+    const m = String(raw.getUTCMinutes()).padStart(2, '0');
+    return { value: `${h}:${m}` };
+  }
+  if (typeof raw === 'number') {
+    const frac = raw - Math.floor(raw); // descarta parte de data se vier junto
+    const totalMinutes = Math.round(frac * 24 * 60);
+    const h = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0');
+    const m = String(totalMinutes % 60).padStart(2, '0');
+    return { value: `${h}:${m}` };
+  }
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    const match = /(\d{1,2}):(\d{2})/.exec(s);
+    if (match) {
+      const [, hh, mm] = match;
+      return { value: `${hh!.padStart(2, '0')}:${mm}` };
+    }
+    return { value: null, error: `Hora inválida: '${s}'.` };
+  }
+  return { value: null, error: 'Hora inválida.' };
 }
 
 function describe(raw: RawCellValue): string {

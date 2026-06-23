@@ -8,7 +8,7 @@
 
 // ── Campos ──
 
-export type FieldType = 'string' | 'number' | 'date' | 'enum' | 'boolean';
+export type FieldType = 'string' | 'number' | 'date' | 'enum' | 'boolean' | 'time';
 
 /** Atributos comuns a todos os tipos de campo. */
 export interface BaseFieldDef {
@@ -53,13 +53,17 @@ export interface EnumFieldDef extends BaseFieldDef {
 export interface BooleanFieldDef extends BaseFieldDef {
   type: 'boolean';
 }
+export interface TimeFieldDef extends BaseFieldDef {
+  type: 'time';
+}
 
 export type FieldDef =
   | StringFieldDef
   | NumberFieldDef
   | DateFieldDef
   | EnumFieldDef
-  | BooleanFieldDef;
+  | BooleanFieldDef
+  | TimeFieldDef;
 
 export interface FieldsBlock {
   fields: Record<string, FieldDef>;
@@ -188,5 +192,7 @@ export type FieldValue = string | number | boolean | null;
 
 export interface ExtractionResult {
   data: Record<string, FieldValue>;
+  /** Matrizes das tabelas range-based (v2). Chave = `TableDef.id`. */
+  tables: Record<string, FieldValue[][]>;
   issues: Issue[];
 }

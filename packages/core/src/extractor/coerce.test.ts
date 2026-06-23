@@ -6,6 +6,7 @@ import type {
   DateFieldDef,
   EnumFieldDef,
   BooleanFieldDef,
+  TimeFieldDef,
 } from '../types';
 
 const base = { label: 'L', section: 'S', cell: 'B1' } as const;
@@ -122,5 +123,44 @@ describe('coerceField — boolean', () => {
   });
   it('inválido → erro', () => {
     expect(coerceField('talvez', boolField).error).toBeDefined();
+  });
+});
+
+describe('coerceField — time (RF-011)', () => {
+  const timeField: TimeFieldDef = { ...base, type: 'time' };
+
+  it('fração de dia → HH:MM (09:00 = 0.375)', () => {
+    expect(coerceField(0.375, timeField).value).toBe('09:00');
+  });
+
+  it('fração de dia → HH:MM (13:30 = 0.5625)', () => {
+    expect(coerceField(0.5625, timeField).value).toBe('13:30');
+  });
+
+  it('serial datetime (parte inteira = data) usa só fração', () => {
+    // 45123.375 = alguma data de 2023 + 09:00
+    expect(coerceField(45123.375, timeField).value).toBe('09:00');
+  });
+
+  it('objeto Date → HH:MM via UTC', () => {
+    const d = new Date(Date.UTC(2024, 5, 6, 9, 30, 0));
+    expect(coerceField(d, timeField).value).toBe('09:30');
+  });
+
+  it('string "09:00" → passa direto', () => {
+    expect(coerceField('09:00', timeField).value).toBe('09:00');
+  });
+
+  it('string com datetime "06/Jun/2024 14:15" → extrai HH:MM', () => {
+    expect(coerceField('06/Jun/2024 14:15', timeField).value).toBe('14:15');
+  });
+
+  it('string sem hora válida → erro', () => {
+    expect(coerceField('manhã', timeField).error).toBeDefined();
+    expect(coerceField('manhã', timeField).value).toBeNull();
+  });
+
+  it('null → null (célula vazia)', () => {
+    expect(coerceField(null, timeField).value).toBeNull();
   });
 });

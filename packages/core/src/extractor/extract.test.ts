@@ -164,3 +164,68 @@ describe('resolveVariant — CA-009', () => {
     expect(result.issue).toBeUndefined();
   });
 });
+
+// ── Tabelas range-based (CA-010) ────────────────────────────────────────────
+
+describe('extract — tables range-based (CA-010)', () => {
+  it('v1 spec sem tables → tables vazio', () => {
+    const wb = buildCompleteWorkbook();
+    const { tables } = extract(wb, sampleSpec, 'discharge');
+    expect(tables).toEqual({});
+  });
+
+  it('tabela com dados → matriz extraída corretamente', () => {
+    // Adiciona dados na faixa B8:H12 da aba Inicial
+    const wb = buildV2Workbook({
+      inicial: {
+        B8: 'PORT',  C8: 4.5,  D8: 4.6,
+        B9: 'STB',   C9: 4.4,  D9: 4.5,
+      },
+    });
+    const { tables, issues } = extract(wb, sampleSpecV2, 'loading');
+    expect(issues.filter((i) => i.field === '__table__')).toHaveLength(0);
+    const mat = tables['init_draft_marks'];
+    expect(mat).toBeDefined();
+    // range B8:H12 = 5 rows × 7 cols
+    expect(mat).toHaveLength(5);
+    expect(mat![0]).toHaveLength(7);
+    expect(mat![0]![0]).toBe('PORT');
+    expect(mat![0]![1]).toBe(4.5);
+    expect(mat![1]![0]).toBe('STB');
+  });
+
+  it('tabela em aba ausente (não optional) → __table__ issue', () => {
+    const wb = buildV2Workbook({ omitInicial: true });
+    // spec com tabela non-optional apontando para aba Inicial ausente
+    const { issues } = extract(wb, sampleSpecV2, 'loading');
+    // A aba Inicial ausente causa __sheet__ (campo) e/ou __table__ (tabela).
+    expect(issues.some((i) => i.message.includes('Inicial'))).toBe(true);
+  });
+
+  it('tabela optional com range vazio → omitida do resultado', () => {
+    // B14:H18 não tem células populadas no workbook padrão (D10 = init_fwd_mean
+    // fica fora deste range, evitando falso positivo de não-vazia).
+    const specOpt = {
+      ...sampleSpecV2,
+      source: {
+        ...sampleSpecV2.source,
+        tables: [{ id: 'empty_table', label: 'Vazia', sheet: 'Inicial', range: 'B14:H18', optional: true }],
+      },
+    } as typeof sampleSpecV2;
+    const wb = buildV2Workbook();
+    const { tables, issues } = extract(wb, specOpt, 'loading');
+    expect(issues.filter((i) => i.field === '__table__')).toHaveLength(0);
+    expect(tables['empty_table']).toBeUndefined();
+  });
+
+  it('spec sem tables → tables: {} sem erros', () => {
+    const specSemTables = {
+      ...sampleSpecV2,
+      source: { ...sampleSpecV2.source, tables: undefined },
+    } as typeof sampleSpecV2;
+    const wb = buildV2Workbook();
+    const { tables, issues } = extract(wb, specSemTables, 'loading');
+    expect(tables).toEqual({});
+    expect(issues).toHaveLength(0);
+  });
+});

@@ -33,12 +33,12 @@ export function extract(
   const fpSheetName = sheetOf(fp.sheet, spec);
   if (!fpSheetName) {
     issues.push(sheetIssue('Spec sem aba para o fingerprint (defina sheet).'));
-    return { data, issues };
+    return { data, tables: {}, issues };
   }
   const fpSheet = workbook.getWorksheet(fpSheetName);
   if (!fpSheet) {
     issues.push(sheetIssue(`Aba '${fpSheetName}' não encontrada na planilha.`));
-    return { data, issues };
+    return { data, tables: {}, issues };
   }
 
   // Fingerprint (RF-09): confere o tipo da planilha.
@@ -52,7 +52,7 @@ export function extract(
       origin: 'extraction',
       message: `Planilha incompatível: esperado '${fp.expect}' na célula ${fp.cell}, encontrado '${fpStr || '(vazio)'}'.`,
     });
-    return { data, issues };
+    return { data, tables: {}, issues };
   }
 
   const fields = collectFields(spec, variant);
@@ -68,13 +68,13 @@ export function extract(
       needed.add(s);
     }
   }
-  if (issues.length > 0) return { data, issues };
+  if (issues.length > 0) return { data, tables: {}, issues };
   const missing = [...needed].filter((s) => !workbook.getWorksheet(s));
   if (missing.length > 0) {
     for (const s of missing) {
       issues.push(sheetIssue(`Aba '${s}' não encontrada na planilha.`));
     }
-    return { data, issues };
+    return { data, tables: {}, issues };
   }
 
   const date1904 = Boolean(workbook.properties?.date1904);
@@ -95,7 +95,9 @@ export function extract(
     }
   }
 
-  return { data, issues };
+  // Tabelas range-based (v2) — erros não bloqueiam os campos já extraídos.
+  const { tables, issues: tableIssues } = extractTables(workbook, spec);
+  return { data, tables, issues: [...issues, ...tableIssues] };
 }
 
 /** Aba efetiva de um item: a própria (v2) ou a aba única do spec (v1). */
@@ -157,6 +159,119 @@ export function collectFields(
     if (block) entries.push(...Object.entries(block.fields));
   }
   return entries;
+}
+
+// ── Extração de tabelas range-based (v2, CA-010) ───────────────────────────
+
+/**
+ * Lê `source.tables[]` do spec e devolve um mapa id → matriz de FieldValue.
+ * Tabelas `optional` com todas as células nulas são omitidas silenciosamente.
+ * Erros de aba/range usam field `__table__` (não bloqueante no pipeline).
+ */
+function extractTables(
+  workbook: ExcelJS.Workbook,
+  spec: ReportSpec,
+): { tables: Record<string, FieldValue[][]>; issues: Issue[] } {
+  const tables: Record<string, FieldValue[][]> = {};
+  const issues: Issue[] = [];
+
+  for (const tableDef of spec.source.tables ?? []) {
+    const ws = workbook.getWorksheet(tableDef.sheet);
+    if (!ws) {
+      if (!tableDef.optional) {
+        issues.push({
+          field: '__table__',
+          cell: null,
+          level: 'error',
+          origin: 'extraction',
+          message: `Tabela '${tableDef.id}': aba '${tableDef.sheet}' não encontrada.`,
+        });
+      }
+      continue;
+    }
+
+    let bounds: ReturnType<typeof parseRange>;
+    try {
+      bounds = parseRange(tableDef.range);
+    } catch {
+      issues.push({
+        field: '__table__',
+        cell: null,
+        level: 'error',
+        origin: 'extraction',
+        message: `Tabela '${tableDef.id}': intervalo inválido '${tableDef.range}'.`,
+      });
+      continue;
+    }
+
+    const { startCol, startRow, endCol, endRow } = bounds;
+    const matrix: FieldValue[][] = [];
+
+    for (let r = startRow; r <= endRow; r++) {
+      const row: FieldValue[] = [];
+      for (let c = startCol; c <= endCol; c++) {
+        const raw = normalizeCell(ws.getCell(r, c).value);
+        row.push(rawToFieldValue(raw));
+      }
+      matrix.push(row);
+    }
+
+    const isEmpty = matrix.every((row) => row.every((cell) => cell === null));
+    if (isEmpty && tableDef.optional) continue;
+
+    tables[tableDef.id] = matrix;
+  }
+
+  return { tables, issues };
+}
+
+/** Converte o valor cru de uma célula de tabela para FieldValue serializável. */
+function rawToFieldValue(raw: RawCellValue): FieldValue {
+  if (raw === null) return null;
+  if (typeof raw === 'string') return raw.trim() || null;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'boolean') return raw;
+  if (raw instanceof Date) {
+    const y = raw.getUTCFullYear();
+    const m = String(raw.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(raw.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
+// ── Helpers de range A1 ──────────────────────────────────────────────────────
+
+function colLetterToNum(col: string): number {
+  let n = 0;
+  for (const ch of col.toUpperCase()) {
+    n = n * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return n;
+}
+
+function parseAddress(addr: string): { row: number; col: number } {
+  const m = /^([A-Z]+)(\d+)$/i.exec(addr);
+  if (!m) throw new Error(`Referência de célula inválida: ${addr}`);
+  return { col: colLetterToNum(m[1]!), row: parseInt(m[2]!, 10) };
+}
+
+function parseRange(range: string): {
+  startCol: number;
+  startRow: number;
+  endCol: number;
+  endRow: number;
+} {
+  const parts = range.split(':');
+  if (parts.length !== 2) throw new Error(`Intervalo inválido: ${range}`);
+  const start = parseAddress(parts[0]!);
+  const end = parseAddress(parts[1]!);
+  return {
+    startCol: start.col,
+    startRow: start.row,
+    endCol: end.col,
+    endRow: end.row,
+  };
 }
 
 /** Resolve o valor de uma célula do ExcelJS a um primitivo. */

@@ -121,7 +121,7 @@
       "properties": {
         "sheet": { "$ref": "#/definitions/sheetName" },
         "cell": { "$ref": "#/definitions/cell" },
-        "type": { "enum": ["string", "number", "date", "enum", "boolean"] },
+        "type": { "enum": ["string", "number", "date", "enum", "boolean", "time"] },
         "label": { "type": "string", "minLength": 1 },
         "section": { "type": "string", "minLength": 1 },
         "unit": { "type": "string" },
