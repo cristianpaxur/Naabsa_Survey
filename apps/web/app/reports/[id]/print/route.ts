@@ -146,8 +146,8 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
   border-bottom: 1pt solid var(--naabsa-navy); break-inside: avoid; }
 .print-naabsa-logo { height: 11mm; width: auto; display: block; }
 .print-naabsa-tag { text-align: right; font-family: var(--font-slab); color: var(--naabsa-navy); }
-.print-naabsa-tag-main { font-size: 14pt; font-weight: 600; letter-spacing: 0.01em; line-height: 1.1; }
-.print-naabsa-tag-sub { font-size: 9pt; font-weight: 500; }
+.print-naabsa-tag-main { font-size: 18pt; font-weight: 600; letter-spacing: 0.01em; line-height: 1.05; }
+.print-naabsa-tag-sub { font-size: 10pt; font-weight: 500; }
 
 .print-cover-address { display: flex; justify-content: space-around; gap: 24pt;
   max-width: 174mm; margin: 8pt auto 16pt; font-family: var(--font-sans); font-size: 9.5pt;
@@ -156,17 +156,17 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
 .print-document { font-family: var(--font-sans); font-size: 11pt; line-height: 1.4;
   color: var(--print-tinta); background: var(--print-papel); max-width: 174mm; margin: 0 auto; padding: 0; }
 
-.print-document h1 { font-size: 28pt; font-weight: 800; color: var(--print-tinta);
-  text-align: center; margin: 10pt 0; letter-spacing: -0.01em; break-after: avoid; }
-.print-document h2 { font-size: 12pt; font-weight: 700; color: var(--naabsa-navy);
-  text-transform: uppercase; letter-spacing: 0.04em; margin: 16pt 0 6pt;
-  padding-bottom: 2pt; border-bottom: 1pt solid var(--naabsa-navy); break-after: avoid; }
-.print-document h3 { font-size: 10.5pt; font-weight: 700; color: var(--naabsa-navy);
+.print-document h1 { font-size: 34pt; font-weight: 800; color: var(--print-tinta);
+  text-align: center; margin: 14pt 0 10pt; letter-spacing: -0.01em; break-after: avoid; }
+.print-document h2 { font-size: 13pt; font-weight: 700; color: var(--print-tinta);
+  margin: 16pt 0 6pt; break-after: avoid; }
+.print-document h3 { font-size: 11pt; font-weight: 700; color: var(--print-tinta);
   margin: 10pt 0 3pt; break-after: avoid; }
-.print-document h2[style*='center'] { font-size: 24pt; font-weight: 800; color: var(--print-tinta); text-transform: none;
-  letter-spacing: normal; border-bottom: none; padding: 0; margin: 6pt 0; }
-.print-document h3[style*='center'] { font-size: 17pt; font-weight: 700; color: var(--print-tinta); margin: 4pt 0 0; }
+.print-document h2[style*='center'] { font-size: 26pt; font-weight: 800; color: var(--print-tinta);
+  letter-spacing: normal; margin: 6pt 0; }
+.print-document h3[style*='center'] { font-size: 20pt; font-weight: 800; color: var(--print-tinta); margin: 6pt 0 0; }
 .print-document p { margin: 0 0 5pt; }
+.print-document p[style*='center'] { margin: 1pt 0; }
 
 .print-data-field { font-family: inherit; font-size: inherit; color: inherit; font-weight: inherit; }
 
@@ -177,7 +177,8 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
 .print-data-table td { padding: 2.5pt 6pt; border: 0.5pt solid var(--print-borda);
   vertical-align: top; font-family: var(--font-mono); font-size: 9pt; }
 .print-data-table tr:nth-child(even) td { background: #f5f5f7; }
-.print-data-table--label td:first-child { font-family: var(--font-sans); font-weight: 600;
+.print-data-table--label td { font-family: var(--font-sans); font-size: 10pt; }
+.print-data-table--label td:first-child { font-weight: 600;
   color: var(--naabsa-navy); background: #eef1f6; white-space: nowrap; width: 38%; }
 .print-data-table--grid { font-size: 7.5pt; table-layout: fixed; }
 .print-data-table--grid td { border: 0.4pt solid #bfbfbf; padding: 1pt 3pt; font-family: var(--font-mono);

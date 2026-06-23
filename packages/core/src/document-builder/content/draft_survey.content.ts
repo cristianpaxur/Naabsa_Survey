@@ -248,34 +248,29 @@ export function buildDraftSurveyContent(
       ],
       'center',
     ),
-    makePhotoFrame('cover', 150, 95),
+    makePhotoFrame('cover', 158, 108),
   ];
 
-  // ── Persons / Companies Contacted ──────────────────────────────────────────
-  // Parágrafos (não dataTable) para manter o nome do surveyor EDITÁVEL no editor
-  // (células de dataTable são atoms travados). RF: campo do surveyor em branco.
+  // ── Persons / Companies Contacted (tabela, como o Word) ─────────────────────
+  const joinVals = (vals: (FieldValue | undefined)[], sep = ' — '): string => {
+    const parts = vals
+      .filter((v) => v != null && String(v).trim() !== '')
+      .map((v) => String(v).trim());
+    return parts.length ? parts.join(sep) : '—';
+  };
   const persons: TipTapNode[] = [
-    heading(2, [text('Person / Companies Contacted')]),
-    paragraph([
-      text('Client: '),
-      text(fmtVal(data['client']), [dataField('client')]),
-      text(' — '),
-      text(fmtVal(data['operator']), [dataField('operator')]),
-    ]),
-    paragraph([
-      // Nome do surveyor é editável e pode vir vazio. NUNCA emitir text('')
-      // (ProseMirror proíbe text nodes vazios → quebra o editor).
-      text('Undersigned Surveyor: NAABSA Marine Surveyors — '),
-      ...(data['surveyor_name'] != null && String(data['surveyor_name']).trim() !== ''
-        ? [text(String(data['surveyor_name']), [dataField('surveyor_name')])]
-        : []),
-    ]),
-    paragraph([
-      text("Vessel's Command (Master / Chief Officer): "),
-      text(fmtVal(data['captain']), [dataField('captain')]),
-      text(' / '),
-      text(fmtVal(data['chief_officer']), [dataField('chief_officer')]),
-    ]),
+    heading(2, [text('PERSON / COMPANIES CONTACTED')]),
+    dataTable({
+      tableId: 'persons_contacted',
+      rows: [
+        ['Client', joinVals([data['client'], data['operator']])],
+        ['Undersigned Surveyor', joinVals(['NAABSA Marine Surveyors', data['surveyor_name']])],
+        [
+          "Vessel's Command (Master / Chief Officer)",
+          joinVals([data['captain'], data['chief_officer']], ' / '),
+        ],
+      ],
+    }),
   ];
 
   // ── Contents ────────────────────────────────────────────────────────────────

@@ -156,11 +156,11 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "heightMm": 95,
+        "heightMm": 108,
         "photoId": null,
         "slotId": "cover",
         "src": null,
-        "widthMm": 150,
+        "widthMm": 158,
       },
       "type": "photoFrame",
     },
@@ -170,94 +170,31 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Person / Companies Contacted",
+          "text": "PERSON / COMPANIES CONTACTED",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
-      "content": [
-        {
-          "text": "Client: ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "client",
-              },
-              "type": "dataField",
-            },
+      "attrs": {
+        "rows": [
+          [
+            "Client",
+            "—",
           ],
-          "text": "—",
-          "type": "text",
-        },
-        {
-          "text": " — ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "operator",
-              },
-              "type": "dataField",
-            },
+          [
+            "Undersigned Surveyor",
+            "NAABSA Marine Surveyors",
           ],
-          "text": "—",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "Undersigned Surveyor: NAABSA Marine Surveyors — ",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "Vessel's Command (Master / Chief Officer): ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "captain",
-              },
-              "type": "dataField",
-            },
+          [
+            "Vessel's Command (Master / Chief Officer)",
+            "—",
           ],
-          "text": "—",
-          "type": "text",
-        },
-        {
-          "text": " / ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "chief_officer",
-              },
-              "type": "dataField",
-            },
-          ],
-          "text": "—",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
+        ],
+        "tableId": "persons_contacted",
+      },
+      "type": "dataTable",
     },
     {
       "attrs": {

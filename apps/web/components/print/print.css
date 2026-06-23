@@ -61,13 +61,13 @@
   color: var(--naabsa-navy);
 }
 .print-naabsa-tag-main {
-  font-size: 14pt;
+  font-size: 18pt;
   font-weight: 600;
   letter-spacing: 0.01em;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 .print-naabsa-tag-sub {
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 500;
 }
 
@@ -101,59 +101,56 @@
 /* ── Headings: capa (centralizada) vs seções (esquerda) ──────────────────── */
 .print-document h1 {
   font-family: var(--font-sans);
-  font-size: 28pt;
+  font-size: 34pt;
   font-weight: 800;
   color: var(--print-tinta);
   text-align: center;
-  margin: 10pt 0;
+  margin: 14pt 0 10pt;
   letter-spacing: -0.01em;
   break-after: avoid;
 }
 
-/* Seções: caixa-alta, navy, com régua inferior. */
+/* Seções: preto, negrito, sem caixa-alta forçada (segue o texto), como o Word. */
 .print-document h2 {
   font-family: var(--font-sans);
-  font-size: 12pt;
+  font-size: 13pt;
   font-weight: 700;
-  color: var(--naabsa-navy);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--print-tinta);
   margin: 16pt 0 6pt;
-  padding-bottom: 2pt;
-  border-bottom: 1pt solid var(--naabsa-navy);
   break-after: avoid;
 }
 
 .print-document h3 {
   font-family: var(--font-sans);
-  font-size: 10.5pt;
+  font-size: 11pt;
   font-weight: 700;
-  color: var(--naabsa-navy);
+  color: var(--print-tinta);
   margin: 10pt 0 3pt;
   break-after: avoid;
 }
 
-/* Capa: headings centralizados não recebem a decoração de seção. */
+/* Capa: headings centralizados. */
 .print-document h2[style*='center'] {
-  font-size: 24pt;
+  font-size: 26pt;
   font-weight: 800;
   color: var(--print-tinta);
-  text-transform: none;
   letter-spacing: normal;
-  border-bottom: none;
-  padding: 0;
   margin: 6pt 0;
 }
 .print-document h3[style*='center'] {
-  font-size: 17pt;
-  font-weight: 700;
+  font-size: 20pt;
+  font-weight: 800;
   color: var(--print-tinta);
-  margin: 4pt 0 0;
+  margin: 6pt 0 0;
 }
 
 /* ── Parágrafos ──────────────────────────────────────────────────────────── */
 .print-document p {
   margin: 0 0 5pt;
+}
+/* Capa: linhas centralizadas tight (Ref logo abaixo do título, etc.). */
+.print-document p[style*='center'] {
+  margin: 1pt 0;
 }
 
 /* ── dataField (valor dinâmico) ──────────────────────────────────────────── */
@@ -193,9 +190,12 @@
 }
 .print-data-table tr:nth-child(even) td { background: #f5f5f7; }
 
-/* Tabelas label : valor (sem thead): 1ª coluna em sans navy. */
-.print-data-table--label td:first-child {
+/* Tabelas label : valor (sem thead): valores em sans (não mono), como o Word. */
+.print-data-table--label td {
   font-family: var(--font-sans);
+  font-size: 10pt;
+}
+.print-data-table--label td:first-child {
   font-weight: 600;
   color: var(--naabsa-navy);
   background: #eef1f6;
