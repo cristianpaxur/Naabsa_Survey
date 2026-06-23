@@ -11,6 +11,7 @@
     "build": "tsc -b",
     "migrate": "tsx src/migrate.ts",
     "seed:dev": "tsx src/seed-dev.ts",
+    "seed:real-spec": "tsx src/seed-real-spec.ts",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {

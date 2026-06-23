@@ -1,8 +1,10 @@
 import 'server-only';
+import ExcelJS from 'exceljs';
 import {
   buildDraftSurvey,
   collectFields,
   resolveFieldValue,
+  runExtraction,
   type ReportSpec,
   type FieldValue,
   type TipTapDoc,
@@ -10,6 +12,7 @@ import {
   type BuilderInput,
 } from '@naabsa/core';
 import type { ServerClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 /**
  * Montagem do documento (008/T-006, RF-20).
@@ -79,6 +82,41 @@ export interface AssembleInput {
 }
 
 /**
+ * Re-extrai as tabelas range-based (grades, figures acting-as) a partir da
+ * planilha guardada no Storage. As tabelas não são persistidas em `reports`
+ * (só `extracted_data`), então as recalculamos aqui na montagem do documento.
+ * Falha (planilha ausente/ilegível) degrada para `{}` — o builder omite as
+ * grades vazias sem quebrar o documento.
+ */
+async function loadTables(
+  supabase: ServerClient,
+  reportId: string,
+  spec: ReportSpec,
+  variant: string | null,
+): Promise<Record<string, FieldValue[][]>> {
+  try {
+    const { data: row } = await supabase
+      .from('reports')
+      .select('spreadsheet_path')
+      .eq('id', reportId)
+      .maybeSingle();
+    const path = (row as { spreadsheet_path: string | null } | null)?.spreadsheet_path;
+    if (!path) return {};
+
+    const svc = createServiceClient();
+    const { data: blob, error } = await svc.storage.from('reports').download(path);
+    if (error || !blob) return {};
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await blob.arrayBuffer());
+    const { tables } = runExtraction(wb, spec, variant);
+    return tables;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Monta o `document_json` de um relatório. Lança erro pt-BR se não houver
  * builder para o tipo.
  */
@@ -101,6 +139,7 @@ export async function assembleDocument(
     input.overrides,
   );
   const photos = await loadAllocatedPhotos(supabase, reportId);
+  const tables = await loadTables(supabase, reportId, input.spec, input.variant);
 
-  return builder({ spec: input.spec, variant: input.variant, data, tables: {}, photos });
+  return builder({ spec: input.spec, variant: input.variant, data, tables, photos });
 }
