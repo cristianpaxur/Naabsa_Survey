@@ -127,23 +127,23 @@
     },
 
     "tables": [
-      { "id": "init_draft_marks", "label": "Initial — Draft marks & corrections", "sheet": "Inicial", "range": "B8:H18", "phase": "initial", "provisional": true },
-      { "id": "init_displacement", "label": "Initial — Displacement corrections", "sheet": "Inicial", "range": "K2:O28", "phase": "initial", "provisional": true },
-      { "id": "init_ballast", "label": "Initial — Ballast water", "sheet": "Inicial", "range": "Q2:V31", "phase": "initial", "provisional": true },
-      { "id": "init_freshwater", "label": "Initial — Fresh water & bunkers", "sheet": "Inicial", "range": "X2:AB21", "phase": "initial", "provisional": true },
+      { "id": "init_draft_marks", "label": "Initial — Draft marks & corrections", "sheet": "Inicial", "range": "B8:H18", "phase": "initial" },
+      { "id": "init_displacement", "label": "Initial — Displacement corrections", "sheet": "Inicial", "range": "K2:O28", "phase": "initial" },
+      { "id": "init_ballast", "label": "Initial — Ballast water", "sheet": "Inicial", "range": "Q2:V31", "phase": "initial" },
+      { "id": "init_freshwater", "label": "Initial — Fresh water & bunkers", "sheet": "Inicial", "range": "X2:AB21", "phase": "initial" },
 
-      { "id": "int_draft_marks", "label": "Intermediate — Draft marks & corrections", "sheet": "Intermediario", "range": "B7:H17", "phase": "intermediate", "optional": true, "provisional": true },
-      { "id": "int_displacement", "label": "Intermediate — Displacement corrections", "sheet": "Intermediario", "range": "K2:O30", "phase": "intermediate", "optional": true, "provisional": true },
-      { "id": "int_ballast", "label": "Intermediate — Ballast water", "sheet": "Intermediario", "range": "S2:W30", "phase": "intermediate", "optional": true, "provisional": true },
-      { "id": "int_freshwater", "label": "Intermediate — Fresh water & bunkers", "sheet": "Intermediario", "range": "Y2:AC21", "phase": "intermediate", "optional": true, "provisional": true },
+      { "id": "int_draft_marks", "label": "Intermediate — Draft marks & corrections", "sheet": "Intermediario", "range": "B7:H17", "phase": "intermediate", "optional": true },
+      { "id": "int_displacement", "label": "Intermediate — Displacement corrections", "sheet": "Intermediario", "range": "K2:O30", "phase": "intermediate", "optional": true },
+      { "id": "int_ballast", "label": "Intermediate — Ballast water", "sheet": "Intermediario", "range": "S2:W30", "phase": "intermediate", "optional": true },
+      { "id": "int_freshwater", "label": "Intermediate — Fresh water & bunkers", "sheet": "Intermediario", "range": "Y2:AC21", "phase": "intermediate", "optional": true },
 
-      { "id": "fin_draft_marks", "label": "Final — Draft marks & corrections", "sheet": "final", "range": "B7:H17", "phase": "final", "provisional": true },
-      { "id": "fin_displacement", "label": "Final — Displacement corrections", "sheet": "final", "range": "K2:O30", "phase": "final", "provisional": true },
-      { "id": "fin_ballast", "label": "Final — Ballast water", "sheet": "final", "range": "Q2:V30", "phase": "final", "provisional": true },
-      { "id": "fin_freshwater", "label": "Final — Fresh water & bunkers", "sheet": "final", "range": "X2:AB21", "phase": "final", "provisional": true },
+      { "id": "fin_draft_marks", "label": "Final — Draft marks & corrections", "sheet": "final", "range": "B7:H17", "phase": "final" },
+      { "id": "fin_displacement", "label": "Final — Displacement corrections", "sheet": "final", "range": "K2:O30", "phase": "final" },
+      { "id": "fin_ballast", "label": "Final — Ballast water", "sheet": "final", "range": "Q2:V30", "phase": "final" },
+      { "id": "fin_freshwater", "label": "Final — Fresh water & bunkers", "sheet": "final", "range": "X2:AB21", "phase": "final" },
 
-      { "id": "int_figures_acting_as", "label": "Intermediate — Acting as / figures", "sheet": "DS INTERMEDIATE", "range": "B50:K52", "phase": "intermediate", "optional": true, "provisional": true },
-      { "id": "fin_figures_acting_as", "label": "Final — Acting as / figures", "sheet": "DS FINAL", "range": "B48:K50", "phase": "final", "provisional": true }
+      { "id": "int_figures_acting_as", "label": "Intermediate — Acting as / figures", "sheet": "DS INTERMEDIATE", "range": "B50:K52", "phase": "intermediate", "optional": true },
+      { "id": "fin_figures_acting_as", "label": "Final — Acting as / figures", "sheet": "DS FINAL", "range": "B48:K50", "phase": "final" }
     ]
   },
 

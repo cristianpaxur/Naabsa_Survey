@@ -2,8 +2,8 @@
 
 > **Implementação:** 003 - Motor de Extração e Validação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 15/16 tarefas concluídas (94%) — T-013/T-014/T-015 concluídas;
->   falta apenas T-016 (extração limpa contra planilha real + confirmar ranges).
+> **Progresso:** 16/16 tarefas concluídas (100%) ✅ — implementação 003 concluída.
+> **Última atualização:** 2026-06-23
 > **Última atualização:** 2026-06-23
 
 ---
@@ -145,7 +145,7 @@
   - **Dependências:** T-014
   - **Estimativa:** Média
 
-- [ ] **T-016:** Extração limpa da planilha real (CA-007b) + confirmar ranges
+- [x] **T-016:** Extração limpa da planilha real (CA-007b) + confirmar ranges
   - **Descrição:** Rodar a extração real ponta-a-ponta; eliminar issues inesperadas; confirmar os
     limites `provisional` das `tables` contra o conteúdo real e remover o flag.
   - **Arquivos envolvidos:** `tests/fixtures/specs/draft_survey.v1.json`, testes de extração real.
@@ -174,7 +174,7 @@
 | T-013  | ✅ Concluída | 2026-06-23 | spec.schema.json + types.ts + validateSpec: contrato v2 com checagens semânticas; 98→28 testes verdes (CA-008) |
 | T-014  | ✅ Concluída | 2026-06-23 | extract.ts multi-aba + resolveVariant(); pipeline.ts integrado; 9 testes v2 (CA-009); 107 testes verdes |
 | T-015  | ✅ Concluída | 2026-06-23 | types/schema/coerce: TimeFieldDef + coerceTime(); extract.ts: extractTables(); ExtractionResult.tables; 8 testes time + 5 testes tables; 120 verdes (CA-010/RF-011) |
-| T-016  | ⬜ Pendente | — | Extração limpa real + confirmar ranges (CA-007b) |
+| T-016  | ✅ Concluída | 2026-06-23 | extract-real.test.ts: 5 testes; 0 erros de extração; 14/14 tabelas com dados; provisional removido de draft_survey.v1.json (CA-007b) |
 
 ---
 
