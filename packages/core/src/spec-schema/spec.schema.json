@@ -2,11 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://naabsa.com.br/schemas/report-spec.json",
   "title": "Naabsa Report Spec",
-  "description": "Contrato JSONB do spec de relatório (PRD §8).",
+  "description": "Contrato JSONB do spec de relatório (PRD §8). Contrato v1 (aba única) e v2 (multi-aba) — ver implementation/003 §3.4.1. A requiredness específica do contrato é checada semanticamente em validateSpec.ts.",
   "type": "object",
   "additionalProperties": false,
   "required": ["report_type", "version", "variants", "source"],
   "properties": {
+    "_meta": { "type": "object" },
+    "contract": { "type": "integer", "enum": [1, 2] },
     "report_type": { "type": "string", "minLength": 1 },
     "version": { "type": "integer", "minimum": 1 },
     "variants": {
@@ -29,17 +31,36 @@
       "pattern": "^[A-Z]+[0-9]+$",
       "description": "Referência de célula A1 (ex.: B7, AA12)."
     },
+    "range": {
+      "type": "string",
+      "pattern": "^[A-Z]+[0-9]+:[A-Z]+[0-9]+$",
+      "description": "Intervalo A1 (ex.: B8:H18)."
+    },
+    "sheetName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Nome de aba (pode conter espaços, ex.: 'DS INTERMEDIATE')."
+    },
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sheet", "fingerprint", "common"],
+      "required": ["fingerprint", "common"],
       "properties": {
-        "sheet": { "type": "string", "minLength": 1 },
+        "sheet": { "$ref": "#/definitions/sheetName" },
         "fingerprint": { "$ref": "#/definitions/fingerprint" },
+        "variant_source": { "$ref": "#/definitions/variantSource" },
+        "ignore_sheets": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/sheetName" }
+        },
         "common": { "$ref": "#/definitions/fieldsBlock" },
         "by_variant": {
           "type": "object",
           "additionalProperties": { "$ref": "#/definitions/fieldsBlock" }
+        },
+        "tables": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/tableDef" }
         }
       }
     },
@@ -48,8 +69,37 @@
       "additionalProperties": false,
       "required": ["cell", "expect"],
       "properties": {
+        "sheet": { "$ref": "#/definitions/sheetName" },
         "cell": { "$ref": "#/definitions/cell" },
         "expect": { "type": "string", "minLength": 1 }
+      }
+    },
+    "variantSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheet", "cell", "map"],
+      "properties": {
+        "sheet": { "$ref": "#/definitions/sheetName" },
+        "cell": { "$ref": "#/definitions/cell" },
+        "map": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "tableDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "sheet", "range"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "sheet": { "$ref": "#/definitions/sheetName" },
+        "range": { "$ref": "#/definitions/range" },
+        "phase": { "type": "string", "minLength": 1 },
+        "optional": { "type": "boolean" },
+        "provisional": { "type": "boolean" }
       }
     },
     "fieldsBlock": {
@@ -69,10 +119,12 @@
       "additionalProperties": false,
       "required": ["cell", "type", "label", "section"],
       "properties": {
+        "sheet": { "$ref": "#/definitions/sheetName" },
         "cell": { "$ref": "#/definitions/cell" },
         "type": { "enum": ["string", "number", "date", "enum", "boolean"] },
         "label": { "type": "string", "minLength": 1 },
         "section": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string" },
         "required": { "type": "boolean" },
         "min": { "type": "number" },
         "max": { "type": "number" },

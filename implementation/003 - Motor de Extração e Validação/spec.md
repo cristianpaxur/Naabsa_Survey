@@ -4,7 +4,7 @@
 > **Status:** 🔵 Em Andamento
 > **Prioridade:** 🔴 Crítica
 > **Criada em:** 2026-06-11
-> **Última atualização:** 2026-06-11
+> **Última atualização:** 2026-06-23
 > **Autor:** Agente AI
 
 ---
@@ -85,6 +85,25 @@ Contrato do spec (PRD §8): `report_type`, `version`, `variants[]`,
 (id, label, aspect, required, min, max). Tipos de campo: `string | number | date | enum |
 boolean`; `number` aceita `decimals`; `date` exige `format`; `enum` exige `options[]`.
 
+#### 3.4.1 Contrato v2 — multi-aba (exigido pelo 1º tipo real, Draft Survey)
+
+O insumo real do cliente (2026-06-23) provou que o **modelo v1 de aba única é insuficiente**: o
+relatório `draft_survey` lê **6 abas** (`Capa`, `Inicial`, `Intermediario`, `final`,
+`DS INTERMEDIATE`, `DS FINAL`) e ignora `LOD-LOP`. O contrato evolui para **v2** (campo
+`contract: 2` no spec), retrocompatível com v1 (sem `contract` ⇒ v1, aba única):
+
+| Mudança | v1 | v2 |
+|---|---|---|
+| Aba | `source.sheet` (única) | **`sheet` por campo** (e por `table`/`fingerprint`) |
+| Fingerprint | `{cell, expect}` na aba única | `{sheet, cell, expect}` |
+| Variante | parâmetro externo de `extract(...)` | **`source.variant_source {sheet, cell, map}`** — lida da planilha (Draft Survey: `Capa!L4`, `Loading`→`loading`/`Discharge`→`discharge`) |
+| Tabelas/grades | inexistente | **`source.tables[]`** range-based (`{id, label, sheet, range, phase?, optional?}`) p/ recriar as grades de cálculo como tabelas nativas |
+| Abas ignoradas | — | `source.ignore_sheets[]` (ex.: `["LOD-LOP"]`) |
+| Hints de exibição | — | `field.unit` (sufixo) opcional; `table.optional` (seção condicional) |
+
+Spec real de referência: `tests/fixtures/specs/draft_survey.v1.json` (83 campos, 14 tabelas).
+Mapa célula→relatório: `tests/fixtures/reports/draft_survey/field-map.md`.
+
 ### 3.5 Fluxo de Execução
 1. Localizar a aba `source.sheet`; ausente → issue `error`.
 2. Conferir `fingerprint.cell === expect`; divergente → `error` específico identificando o tipo detectado (RF-09).
@@ -110,7 +129,11 @@ Derivados do PRD (tarefas T-04..T-07):
 - **RF-004 (PRD RF-08):** Saída `{ data, issues }` com mensagens pt-BR apontando célula.
 - **RF-005 (PRD RF-09):** Fingerprint incompatível gera `error` identificando o tipo detectado.
 - **RF-006 (PRD RF-13):** `resolveFieldValue(field, overrides, extracted)` única em todo o sistema.
-- **RF-007 (PRD T-07/RF-05):** Spec real do primeiro tipo do cliente + fixture de planilha real extraindo sem issues inesperadas. **[BLOQUEADO por insumo — PRD §15]**
+- **RF-007 (PRD T-07/RF-05):** Spec real do primeiro tipo do cliente + fixture de planilha real extraindo sem issues inesperadas. **[INSUMO RECEBIDO 2026-06-23]** — spec autorado (`tests/fixtures/specs/draft_survey.v1.json`) e planilha versionada; extração limpa depende do contrato v2 (RF-008..RF-010).
+- **RF-008 (contrato v2 — multi-aba):** Extractor lê `sheet` por campo / por `table`, fingerprint com `sheet`, e `ignore_sheets`. `validateSpec` aceita specs v2 e continua aceitando v1.
+- **RF-009 (contrato v2 — variante por célula):** Quando o spec define `source.variant_source {sheet, cell, map}`, a variante é resolvida lendo a célula da planilha (ex.: `Capa!L4`), não por parâmetro externo. Valor fora do `map` ⇒ `error`.
+- **RF-010 (contrato v2 — tabelas range-based):** Extractor lê `source.tables[]` (`sheet` + `range`) devolvendo matrizes determinísticas p/ as grades nativas; `table.optional` ausente/vazia não gera `error` (seção condicional).
+- **RF-011 (coerção time-of-day):** Coação de células de horário (ex.: `Capa!M7`/`N7`) — novo caso além dos 5 tipos atuais (decidir: `string` "HH:MM" determinístico).
 
 ### 4.2 Requisitos Não-Funcionais
 - **RNF-001 (PRD RNF-01):** Determinismo: mesma planilha + spec ⇒ saída profundamente igual em execuções repetidas (testado 3×).
@@ -131,7 +154,11 @@ Derivados do PRD (tarefas T-04..T-07):
 - [x] **CA-004:** Fixtures com erros conhecidos produzem `Issue[]` exatas, em pt-BR, com célula (aceite do PRD T-06).
 - [x] **CA-005:** Planilha de tipo errado produz o `error` de fingerprint do RF-09.
 - [x] **CA-006:** `resolveFieldValue` coberta por testes (override presente, ausente, valor falsy legítimo).
-- [ ] **CA-007:** Extração da planilha real do cliente sem issues inesperadas (aceite do PRD T-07 — **bloqueado por insumo**: aguarda tipo prioritário + planilha real).
+- [x] **CA-007a:** Spec real do `draft_survey` autorado e versionado (`tests/fixtures/specs/draft_survey.v1.json`) + planilha real como fixture (`tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx`).
+- [ ] **CA-007b:** Extração da planilha real sem issues inesperadas (aceite do PRD T-07) — **depende do contrato v2** (CA-008..CA-010).
+- [ ] **CA-008:** `validateSpec` aceita `draft_survey.v1.json` (v2) e mantém os 21 testes v1 verdes.
+- [ ] **CA-009:** Extractor resolve a variante de `Capa!L4` e lê campos das 6 abas; `LOD-LOP` ignorada.
+- [ ] **CA-010:** `source.tables[]` extraídas como matrizes; tabelas `optional` vazias não geram `error`.
 
 ## 6. Plano de Testes
 
@@ -181,6 +208,17 @@ prioritário + planilha pré-moldada real — bloqueiam apenas RF-007/CA-007.
   a proveniência (como visto no protótipo: chips monoespaçados `B7`).
 - `validateSpec` também será usado pela tela Admin de Specs (009) — manter mensagens
   amigáveis para exibição direta na UI.
+
+### 9.1 Achados dos insumos reais (2026-06-23)
+- **Multi-aba** é estrutural, não exceção: o contrato v2 (§3.4.1) é pré-requisito da extração real.
+- **Anotações do docx são hints, não verdade**: a seção *Final* do modelo cita `Final F28/G28…`
+  (template antigo); a aba `final` viva espelha o layout de `Intermediario` (linhas 9–11). O spec
+  segue a **planilha viva**. Outras imprecisões menores: porto de destino é `Capa!C9` (docx diz C7);
+  data inicial é `Capa!L7` (docx diz L3). Tudo registrado em `field-map.md`.
+- **`extracted_data` continua imutável**; a variante agora é um dado extraído (de `Capa!L4`), não
+  um parâmetro — alinhado ao princípio de que todo conhecimento vive no spec/dados.
+- **Ranges das `tables` são provisórios** (`provisional: true`): confirmar limites contra o render
+  nativo da 004 antes de fechar o golden test.
 
 ---
 

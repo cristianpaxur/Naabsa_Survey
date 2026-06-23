@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { validateSpec } from './validateSpec';
 import type { ReportSpec } from '../types';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const REAL_SPEC_PATH = join(
+  here,
+  '../../../../tests/fixtures/specs/draft_survey.v1.json',
+);
 
 const validSpec = {
   report_type: 'on_off_hire',
@@ -205,5 +214,116 @@ describe('validateSpec — specs inválidos (CA-001)', () => {
 
   it('tem 10+ casos inválidos cobertos (aceite do PRD T-04)', () => {
     expect(cases.length).toBeGreaterThanOrEqual(10);
+  });
+});
+
+describe('validateSpec — contrato v2 multi-aba (CA-008)', () => {
+  /** Spec v2 mínimo válido (multi-aba). */
+  function v2Spec(): any {
+    return {
+      contract: 2,
+      report_type: 'draft_survey',
+      version: 1,
+      variants: ['loading', 'discharge'],
+      source: {
+        fingerprint: { sheet: 'Capa', cell: 'B2', expect: 'DRAFT SURVEY' },
+        variant_source: {
+          sheet: 'Capa',
+          cell: 'L4',
+          map: { Loading: 'loading', Discharge: 'discharge' },
+        },
+        ignore_sheets: ['LOD-LOP'],
+        common: {
+          fields: {
+            vessel_name: {
+              sheet: 'Capa',
+              cell: 'C13',
+              type: 'string',
+              required: true,
+              label: 'Nome do navio',
+              section: 'Particulars do navio',
+            },
+            init_fwd_mean: {
+              sheet: 'Inicial',
+              cell: 'D10',
+              type: 'number',
+              decimals: 3,
+              unit: 'm',
+              label: 'AV (Fwd) médio',
+              section: 'Calados — Inicial',
+            },
+          },
+        },
+        tables: [
+          {
+            id: 'init_draft_marks',
+            label: 'Initial — Draft marks',
+            sheet: 'Inicial',
+            range: 'B8:H18',
+            phase: 'initial',
+            provisional: true,
+          },
+        ],
+      },
+    };
+  }
+
+  it('aceita o spec real do cliente (draft_survey.v1.json)', () => {
+    const real = JSON.parse(readFileSync(REAL_SPEC_PATH, 'utf8'));
+    const r = validateSpec(real);
+    if (!r.valid) {
+      // Falha → expõe os erros para diagnóstico rápido.
+      expect(r.errors).toEqual([]);
+    }
+    expect(r.valid).toBe(true);
+    if (r.valid) {
+      expect(r.spec.contract).toBe(2);
+      expect(r.spec.report_type).toBe('draft_survey');
+    }
+  });
+
+  it('aceita um spec v2 mínimo (sheet por campo + variant_source + tables)', () => {
+    expect(validateSpec(v2Spec()).valid).toBe(true);
+  });
+
+  it('rejeita v2 com campo sem sheet', () => {
+    const s = v2Spec();
+    delete s.source.common.fields.init_fwd_mean.sheet;
+    const r = validateSpec(s);
+    expect(r.valid).toBe(false);
+    if (!r.valid) expect(r.errors.some((e) => e.includes("precisa de 'sheet'"))).toBe(true);
+  });
+
+  it('rejeita v2 com fingerprint sem sheet', () => {
+    const s = v2Spec();
+    delete s.source.fingerprint.sheet;
+    const r = validateSpec(s);
+    expect(r.valid).toBe(false);
+    if (!r.valid) expect(r.errors.some((e) => e.includes('fingerprint.sheet'))).toBe(true);
+  });
+
+  it('rejeita variant_source apontando para variante ausente em variants', () => {
+    const s = v2Spec();
+    s.source.variant_source.map = { Loading: 'loading', Descarga: 'descarga' };
+    const r = validateSpec(s);
+    expect(r.valid).toBe(false);
+    if (!r.valid) expect(r.errors.some((e) => e.includes("'descarga'"))).toBe(true);
+  });
+
+  it('rejeita contract fora de [1,2]', () => {
+    const s = v2Spec();
+    s.contract = 3;
+    expect(validateSpec(s).valid).toBe(false);
+  });
+
+  it('contrato v1 (sem contract) ainda exige source.sheet', () => {
+    const s = v2Spec();
+    delete s.contract;
+    delete s.source.variant_source;
+    delete s.source.tables;
+    // sem source.sheet e sem contract → v1 inválido
+    const r = validateSpec(s);
+    expect(r.valid).toBe(false);
+    if (!r.valid) expect(r.errors.some((e) => e.includes("'source.sheet'"))).toBe(true);
   });
 });

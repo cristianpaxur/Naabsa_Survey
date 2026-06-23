@@ -23,13 +23,74 @@ export function validateSpec(input: unknown): SpecValidationResult {
   // `ok` em variável (não inline) para `input` permanecer `unknown` — evita o
   // estreitamento ao tipo inferido do schema pelo type-guard do ajv.
   const ok = validateFn(input);
-  if (ok) {
-    return { valid: true, spec: input as unknown as ReportSpec };
+  if (!ok) {
+    const raw = validateFn.errors ?? [];
+    // Dedup mantendo ordem (oneOf/allOf podem repetir mensagens).
+    const errors = [...new Set(raw.map(formatError))];
+    return { valid: false, errors };
   }
-  const raw = validateFn.errors ?? [];
-  // Dedup mantendo ordem (oneOf/allOf podem repetir mensagens).
-  const errors = [...new Set(raw.map(formatError))];
-  return { valid: false, errors };
+
+  // Estrutura válida pelo schema → checagens semânticas do contrato (v1/v2),
+  // que o JSON Schema sozinho não expressa (requiredness condicional por aba).
+  const semantic = semanticChecks(input as unknown as ReportSpec);
+  if (semantic.length > 0) return { valid: false, errors: semantic };
+
+  return { valid: true, spec: input as unknown as ReportSpec };
+}
+
+/**
+ * Regras dependentes do contrato (§3.4.1 da impl 003):
+ *  - v1 (contract ausente/1): `source.sheet` é obrigatório (aba única).
+ *  - v2 (contract 2): `sheet` é obrigatório no fingerprint e em cada campo;
+ *    valores de `variant_source.map` devem existir em `variants`.
+ */
+function semanticChecks(spec: ReportSpec): string[] {
+  const errors: string[] = [];
+  const contract = spec.contract ?? 1;
+  const src = spec.source;
+
+  if (contract === 1) {
+    if (!src.sheet) {
+      errors.push(
+        "Contrato v1: 'source.sheet' é obrigatório (ou defina 'contract: 2' para multi-aba).",
+      );
+    }
+    return errors;
+  }
+
+  // contract === 2 (multi-aba)
+  if (!src.fingerprint.sheet) {
+    errors.push("Contrato v2: 'source.fingerprint.sheet' é obrigatório.");
+  }
+
+  const blocks: [string, Record<string, { sheet?: string }>][] = [
+    ['common', src.common.fields],
+  ];
+  for (const [variant, block] of Object.entries(src.by_variant ?? {})) {
+    blocks.push([`by_variant › ${variant}`, block.fields]);
+  }
+  for (const [where, fields] of blocks) {
+    for (const [name, field] of Object.entries(fields)) {
+      if (!field.sheet) {
+        errors.push(
+          `Contrato v2: campo '${name}' (em ${where}) precisa de 'sheet'.`,
+        );
+      }
+    }
+  }
+
+  if (src.variant_source) {
+    const variants = new Set(spec.variants);
+    for (const target of Object.values(src.variant_source.map)) {
+      if (!variants.has(target)) {
+        errors.push(
+          `'variant_source.map' aponta para a variante '${target}', ausente em 'variants'.`,
+        );
+      }
+    }
+  }
+
+  return errors;
 }
 
 function pathLabel(instancePath: string): string {
