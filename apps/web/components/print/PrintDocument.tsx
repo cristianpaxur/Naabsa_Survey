@@ -29,18 +29,28 @@ interface PrintDocumentProps {
   document: TipTapDoc;
   /** Nome do navio — usado no aria-label e para acessibilidade. */
   vesselName?: string;
+  /**
+   * Renderiza o cabeçalho NAABSA no fluxo do documento. `true` no preview do
+   * operador (navegador, sem chrome por página). `false` no worker, onde o
+   * Playwright injeta o cabeçalho/rodapé em TODAS as páginas (headerTemplate).
+   */
+  showInFlowHeader?: boolean;
 }
 
 // ── Componente raiz ─────────────────────────────────────────────────────────
 
-export function PrintDocument({ document: tipDoc, vesselName }: PrintDocumentProps) {
+export function PrintDocument({
+  document: tipDoc,
+  vesselName,
+  showInFlowHeader = true,
+}: PrintDocumentProps) {
   const photoSrcs = collectPhotoSrcs(tipDoc);
   return (
     <>
       {photoSrcs.map((src, i) => (
         <link key={i} rel="preload" as="image" href={src} />
       ))}
-      <NaabsaHeader />
+      {showInFlowHeader && <NaabsaHeader />}
       <CoverAddress />
       <article
         className="print-document"
@@ -222,8 +232,15 @@ function PhotoFrame({ node }: { node: PhotoFrameNode }) {
 function DataTable({ node }: { node: DataTableNode }) {
   const { headers, rows = [] } = node.attrs ?? ({} as DataTableNode['attrs']);
   const hasHeaders = headers && headers.length > 0;
+  // Sem cabeçalho: 2 colunas → tabela "label : valor"; senão → grade (grid Excel).
+  const isLabel = !hasHeaders && rows.length > 0 && rows.every((r) => r.length === 2);
+  const modifier = hasHeaders
+    ? ''
+    : isLabel
+      ? ' print-data-table--label'
+      : ' print-data-table--grid';
   return (
-    <table className={`print-data-table${hasHeaders ? '' : ' print-data-table--label'}`}>
+    <table className={`print-data-table${modifier}`}>
       {hasHeaders && (
         <thead>
           <tr>

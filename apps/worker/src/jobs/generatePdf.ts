@@ -21,6 +21,49 @@ export interface GeneratePdfPayload {
   reportId: string;
 }
 
+/** Cache do logo NAABSA em data-uri (buscado uma vez do app). */
+let logoDataUriCache: string | null = null;
+
+async function getLogoDataUri(appBaseUrl: string): Promise<string> {
+  if (logoDataUriCache !== null) return logoDataUriCache;
+  try {
+    const res = await fetch(`${appBaseUrl}/naabsa-logo.jpg`);
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      logoDataUriCache = `data:image/jpeg;base64,${buf.toString('base64')}`;
+      return logoDataUriCache;
+    }
+  } catch {
+    /* segue sem logo */
+  }
+  logoDataUriCache = '';
+  return logoDataUriCache;
+}
+
+/** Cabeçalho por página (logo + tagline), espelha o modelo Word. */
+function headerTemplate(logoDataUri: string): string {
+  const logo = logoDataUri
+    ? `<img src="${logoDataUri}" style="height:9mm;width:auto;" />`
+    : '<span style="font-weight:800;font-size:16pt;color:#bf2c30;">NAABSA</span>';
+  return `<div style="width:100%;font-family:'Calibri','Carlito',sans-serif;color:#002060;
+      padding:5mm 18mm 0 18mm;box-sizing:border-box;-webkit-print-color-adjust:exact;">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;
+        border-bottom:0.75pt solid #002060;padding-bottom:2pt;">
+      ${logo}
+      <div style="text-align:right;font-family:Georgia,'Times New Roman',serif;">
+        <div style="font-size:12pt;font-weight:700;line-height:1.1;">MARINE SURVEYORS &amp; CONSULTANTS</div>
+        <div style="font-size:8pt;">Main Brazilian Ports</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/** Rodapé por página (e-mail | url + número de página). */
+const FOOTER_TEMPLATE = `<div style="width:100%;font-family:'Calibri','Carlito',sans-serif;
+    color:#7f7f7f;font-size:8pt;padding:0 18mm;box-sizing:border-box;text-align:right;">
+  surveyors@naabsa.com.br &nbsp;|&nbsp; www.naabsa.com &nbsp;&nbsp;&nbsp;&nbsp; <span class="pageNumber"></span>
+</div>`;
+
 /** Nome da fila (espelhado no web e no index.ts). */
 export const GENERATE_PDF_QUEUE = 'generate_pdf';
 export const GENERATE_PDF_CONCURRENCY = 1;
@@ -78,10 +121,15 @@ export async function generatePdf(data: GeneratePdfPayload): Promise<void> {
       throw new Error(`[generate_pdf] rota /print retornou erro: ${bodyText.slice(0, 120)}`);
     }
 
+    // Cabeçalho/rodapé repetidos em TODAS as páginas (como o modelo Word).
+    const logoDataUri = await getLogoDataUri(appBaseUrl);
     pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '20mm', right: '20mm', bottom: '28mm', left: '20mm' },
+      displayHeaderFooter: true,
+      headerTemplate: headerTemplate(logoDataUri),
+      footerTemplate: FOOTER_TEMPLATE,
+      margin: { top: '30mm', right: '18mm', bottom: '18mm', left: '18mm' },
     });
   } finally {
     await page.close();

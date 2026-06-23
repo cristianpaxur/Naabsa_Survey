@@ -81,6 +81,9 @@ export async function GET(
     PrintDocument({
       document: documentJson,
       vesselName: vesselName ?? undefined,
+      // Worker (token) recebe cabeçalho/rodapé por página via Playwright; o
+      // preview do operador (sessão) renderiza o cabeçalho no fluxo.
+      showInFlowHeader: !tokenOk,
     }),
   );
 
@@ -132,14 +135,7 @@ const printCssInline = `
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
-@page {
-  size: A4 portrait;
-  margin: 18mm 18mm 24mm 18mm;
-  @bottom-right {
-    font-family: var(--font-sans); font-size: 8pt; color: var(--print-cinza);
-    content: 'surveyors@naabsa.com.br  |  www.naabsa.com        ' counter(page);
-  }
-}
+@page { size: A4 portrait; margin: 18mm 18mm 24mm 18mm; }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta);
@@ -183,6 +179,12 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
 .print-data-table tr:nth-child(even) td { background: #f5f5f7; }
 .print-data-table--label td:first-child { font-family: var(--font-sans); font-weight: 600;
   color: var(--naabsa-navy); background: #eef1f6; white-space: nowrap; width: 38%; }
+.print-data-table--grid { font-size: 7.5pt; table-layout: fixed; }
+.print-data-table--grid td { border: 0.4pt solid #bfbfbf; padding: 1pt 3pt; font-family: var(--font-mono);
+  font-size: 7.5pt; text-align: right; color: var(--print-tinta); background: #fff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.print-data-table--grid tr:first-child td { background: #dce6f1; font-family: var(--font-sans);
+  font-weight: 700; text-align: center; color: var(--naabsa-navy); }
 
 .print-photo-frame { break-inside: avoid; margin: 6pt auto 10pt; display: block; }
 .print-photo-frame img { display: block; object-fit: cover; width: 100%; height: 100%; }
