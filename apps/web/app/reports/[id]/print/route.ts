@@ -179,7 +179,8 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
 .print-data-table tr:nth-child(even) td { background: #f5f5f7; }
 .print-data-table--label td { font-family: var(--font-sans); font-size: 10pt; }
 .print-data-table--label td:first-child { font-weight: 600;
-  color: var(--naabsa-navy); background: #eef1f6; white-space: nowrap; width: 38%; }
+  color: var(--print-tinta); background: transparent; white-space: nowrap; width: 38%; }
+.print-data-table--label tr:nth-child(even) td { background: transparent; }
 .print-data-table--grid { font-size: 7.5pt; table-layout: fixed; }
 .print-data-table--grid td { border: 0.4pt solid #bfbfbf; padding: 1pt 3pt; font-family: var(--font-mono);
   font-size: 7.5pt; text-align: right; color: var(--print-tinta); background: #fff;

@@ -197,11 +197,12 @@
 }
 .print-data-table--label td:first-child {
   font-weight: 600;
-  color: var(--naabsa-navy);
-  background: #eef1f6;
+  color: var(--print-tinta);
+  background: transparent;
   white-space: nowrap;
   width: 38%;
 }
+.print-data-table--label tr:nth-child(even) td { background: transparent; }
 
 /* Grades "Draft details": imitam o grid do Excel (print da aba). */
 .print-data-table--grid {

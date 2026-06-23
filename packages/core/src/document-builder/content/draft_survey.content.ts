@@ -288,7 +288,7 @@ export function buildDraftSurveyContent(
 
   // ── Background ───────────────────────────────────────────────────────────────
   const background: TipTapNode[] = [
-    heading(2, [text('Background')]),
+    heading(2, [text('1. Background')]),
     paragraph([
       text('In compliance with the appointment survey from Messrs. '),
       text(fmtVal(data['client']), [dataField('client')]),
@@ -310,7 +310,7 @@ export function buildDraftSurveyContent(
 
   // ── Ship's Particulars ───────────────────────────────────────────────────────
   const particulars: TipTapNode[] = [
-    heading(2, [text("Ship's Particulars")]),
+    heading(2, [text("2. Ship's Particulars")]),
     dataTable({
       tableId: 'ships_particulars',
       rows: [
@@ -429,7 +429,7 @@ export function buildDraftSurveyContent(
   function buildPhase(p: PhaseCfg): TipTapNode[] {
     const x = p.prefix;
     return [
-      heading(2, [text(p.title)]),
+      heading(2, [text(`${p.num}. ${p.title}`)]),
       phaseNarrative(p),
       ...figuresBlock(p),
       paragraph([text(draftReadingsLine)]),
@@ -455,7 +455,7 @@ export function buildDraftSurveyContent(
 
   // ── Photographic Report ─────────────────────────────────────────────────────
   const photoReport: TipTapNode[] = [
-    heading(2, [text('Photographic Report')]),
+    heading(2, [text('7. Photographic Report')]),
     heading(3, [text('7.1. Initial')]),
     makePhotoFrame('photos_initial'),
     ...(hasIntermediate
@@ -467,7 +467,7 @@ export function buildDraftSurveyContent(
 
   // ── Attachment ──────────────────────────────────────────────────────────────
   const attachment: TipTapNode[] = [
-    heading(2, [text('Attachment')]),
+    heading(2, [text('8. Attachment')]),
     paragraph([text('Draft Survey Certificates issued by undersigned surveyor.')]),
     paragraph([text('Draft Survey Certificate issued by vessel.')]),
     paragraph([text("Draft Survey Certificate issued by Terminal's surveyor.")]),
@@ -479,7 +479,7 @@ export function buildDraftSurveyContent(
     ...contents,
     ...background,
     ...particulars,
-    heading(2, [text('Draft Survey')]),
+    heading(2, [text('3. Draft Survey')]),
     ...initial,
     ...intermediate,
     ...final_,

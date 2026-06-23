@@ -277,7 +277,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Background",
+          "text": "1. Background",
           "type": "text",
         },
       ],
@@ -371,7 +371,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Ship's Particulars",
+          "text": "2. Ship's Particulars",
           "type": "text",
         },
       ],
@@ -443,7 +443,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Draft Survey",
+          "text": "3. Draft Survey",
           "type": "text",
         },
       ],
@@ -455,7 +455,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Initial",
+          "text": "4. Initial",
           "type": "text",
         },
       ],
@@ -700,7 +700,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Final",
+          "text": "6. Final",
           "type": "text",
         },
       ],
@@ -949,7 +949,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Photographic Report",
+          "text": "7. Photographic Report",
           "type": "text",
         },
       ],
@@ -1005,7 +1005,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Attachment",
+          "text": "8. Attachment",
           "type": "text",
         },
       ],

@@ -277,7 +277,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Background",
+          "text": "1. Background",
           "type": "text",
         },
       ],
@@ -371,7 +371,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Ship's Particulars",
+          "text": "2. Ship's Particulars",
           "type": "text",
         },
       ],
@@ -443,7 +443,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Draft Survey",
+          "text": "3. Draft Survey",
           "type": "text",
         },
       ],
@@ -455,7 +455,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Initial",
+          "text": "4. Initial",
           "type": "text",
         },
       ],
@@ -700,7 +700,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Final",
+          "text": "6. Final",
           "type": "text",
         },
       ],
@@ -949,7 +949,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Photographic Report",
+          "text": "7. Photographic Report",
           "type": "text",
         },
       ],
@@ -1005,7 +1005,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Attachment",
+          "text": "8. Attachment",
           "type": "text",
         },
       ],
@@ -1320,7 +1320,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Background",
+          "text": "1. Background",
           "type": "text",
         },
       ],
@@ -1414,7 +1414,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Ship's Particulars",
+          "text": "2. Ship's Particulars",
           "type": "text",
         },
       ],
@@ -1486,7 +1486,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Draft Survey",
+          "text": "3. Draft Survey",
           "type": "text",
         },
       ],
@@ -1498,7 +1498,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Initial",
+          "text": "4. Initial",
           "type": "text",
         },
       ],
@@ -1743,7 +1743,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Final",
+          "text": "6. Final",
           "type": "text",
         },
       ],
@@ -1992,7 +1992,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Photographic Report",
+          "text": "7. Photographic Report",
           "type": "text",
         },
       ],
@@ -2048,7 +2048,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Attachment",
+          "text": "8. Attachment",
           "type": "text",
         },
       ],
