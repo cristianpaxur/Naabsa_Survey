@@ -168,6 +168,11 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
 .print-document p { margin: 0 0 5pt; }
 .print-document p[style*='center'] { margin: 1pt 0; }
 
+.print-leader { display: flex; align-items: baseline; font-size: 10pt; margin: 1.5pt 0; line-height: 1.3; break-inside: avoid; }
+.print-leader__label { white-space: nowrap; }
+.print-leader__dots { flex: 1 1 auto; border-bottom: 1px dotted #8a8a8a; margin: 0 4px; transform: translateY(-3px); min-width: 12pt; }
+.print-leader__value { white-space: nowrap; font-variant-numeric: tabular-nums; padding-left: 2pt; }
+
 .print-data-field { font-family: inherit; font-size: inherit; color: inherit; font-weight: inherit; }
 
 .print-data-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans);

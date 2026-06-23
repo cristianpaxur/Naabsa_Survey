@@ -140,7 +140,7 @@ function BlockNode({ node }: { node: TipTapNode }) {
         | 'h5'
         | 'h6';
       return (
-        <Tag style={alignStyle}>
+        <Tag style={alignStyle} data-anchor={(node.attrs?.anchor as string | undefined) || undefined}>
           {node.content?.map((child, i) => <InlineNode key={i} node={child} />) ?? null}
         </Tag>
       );
@@ -155,9 +155,27 @@ function BlockNode({ node }: { node: TipTapNode }) {
     case 'dataTable':
       return <DataTable node={node as DataTableNode} />;
 
+    case 'leaderLine':
+      return <LeaderLine node={node} />;
+
     default:
       return null;
   }
+}
+
+// ── leaderLine (Rótulo …… Valor) ────────────────────────────────────────────
+
+function LeaderLine({ node }: { node: TipTapNode }) {
+  const label = (node.attrs?.label as string) ?? '';
+  const value = (node.attrs?.value as string) ?? '';
+  const tocTarget = (node.attrs?.tocTarget as string | null) ?? null;
+  return (
+    <div className="print-leader" data-toc={tocTarget || undefined}>
+      <span className="print-leader__label">{label}</span>
+      <span className="print-leader__dots" aria-hidden="true" />
+      <span className="print-leader__value">{value}</span>
+    </div>
+  );
 }
 
 // ── Render de inline node ───────────────────────────────────────────────────
@@ -230,15 +248,12 @@ function PhotoFrame({ node }: { node: PhotoFrameNode }) {
 }
 
 function DataTable({ node }: { node: DataTableNode }) {
-  const { headers, rows = [] } = node.attrs ?? ({} as DataTableNode['attrs']);
+  const { headers, rows = [], kind } = node.attrs ?? ({} as DataTableNode['attrs']);
   const hasHeaders = headers && headers.length > 0;
-  // Sem cabeçalho: 2 colunas → tabela "label : valor"; senão → grade (grid Excel).
-  const isLabel = !hasHeaders && rows.length > 0 && rows.every((r) => r.length === 2);
-  const modifier = hasHeaders
-    ? ''
-    : isLabel
-      ? ' print-data-table--label'
-      : ' print-data-table--grid';
+  // `kind` explícito do builder; fallback por heurística (compat. docs antigos).
+  const isLabel = kind === 'label' || (!kind && !hasHeaders && rows.length > 0 && rows.every((r) => r.length === 2));
+  const isGrid = kind === 'grid' || (!kind && !hasHeaders && !isLabel);
+  const modifier = isLabel ? ' print-data-table--label' : isGrid ? ' print-data-table--grid' : '';
   return (
     <table className={`print-data-table${modifier}`}>
       {hasHeaders && (

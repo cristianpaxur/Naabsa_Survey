@@ -121,6 +121,39 @@ export async function generatePdf(data: GeneratePdfPayload): Promise<void> {
       throw new Error(`[generate_pdf] rota /print retornou erro: ${bodyText.slice(0, 120)}`);
     }
 
+    // Preenche os números de página do Contents (líderes pontilhados) medindo a
+    // posição de cada seção e dividindo pela altura útil da página A4. Best-effort
+    // (quebras break-inside podem deslocar ±1); não bloqueia o PDF.
+    try {
+      await page.evaluate(() => {
+        // Executa no browser; usa globalThis p/ evitar libs DOM no tsconfig do worker.
+        const g = globalThis as unknown as {
+          document: {
+            querySelectorAll: (s: string) => Array<Record<string, unknown>>;
+            querySelector: (s: string) => Record<string, unknown> | null;
+          };
+          scrollY: number;
+        };
+        const mm = 96 / 25.4;
+        const pageContentPx = (297 - 30 - 18) * mm; // A4 menos margens top/bottom do page.pdf
+        const leaders = Array.from(g.document.querySelectorAll('.print-leader[data-toc]'));
+        for (const el of leaders) {
+          const getAttr = el.getAttribute as (n: string) => string | null;
+          const id = getAttr.call(el, 'data-toc');
+          const target = id ? g.document.querySelector(`[data-anchor="${id}"]`) : null;
+          const qs = el.querySelector as (s: string) => Record<string, unknown> | null;
+          const valEl = qs.call(el, '.print-leader__value');
+          if (target && valEl) {
+            const rect = (target.getBoundingClientRect as () => { top: number }).call(target);
+            const top = rect.top + g.scrollY;
+            valEl.textContent = String(Math.max(1, Math.floor(top / pageContentPx) + 1));
+          }
+        }
+      });
+    } catch {
+      /* sem numeração de Contents — segue */
+    }
+
     // Cabeçalho/rodapé repetidos em TODAS as páginas (como o modelo Word).
     const logoDataUri = await getLogoDataUri(appBaseUrl);
     pdfBuffer = await page.pdf({

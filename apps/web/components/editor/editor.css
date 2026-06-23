@@ -356,3 +356,20 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── leaderLine (Contents/Figures) ─────────────────────────────────────────── */
+.ed-leader {
+  display: flex;
+  align-items: baseline;
+  margin: 2px 0;
+  font-size: 14px;
+}
+.ed-leader__label { white-space: nowrap; }
+.ed-leader__dots {
+  flex: 1 1 auto;
+  border-bottom: 1px dotted #8a8a8a;
+  margin: 0 6px;
+  transform: translateY(-4px);
+  min-width: 16px;
+}
+.ed-leader__value { white-space: nowrap; }

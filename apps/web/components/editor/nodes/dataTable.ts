@@ -21,6 +21,7 @@ export const DataTable = Node.create({
       tableId: { default: '' },
       headers: { default: undefined },
       rows: { default: [] },
+      kind: { default: undefined },
     };
   },
 

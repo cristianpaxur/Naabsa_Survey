@@ -153,6 +153,29 @@
   margin: 1pt 0;
 }
 
+/* ── leaderLine: "Rótulo ……… Valor" (Contents e Figures, como o Word) ────── */
+.print-leader {
+  display: flex;
+  align-items: baseline;
+  font-size: 10pt;
+  margin: 1.5pt 0;
+  line-height: 1.3;
+  break-inside: avoid;
+}
+.print-leader__label { white-space: nowrap; }
+.print-leader__dots {
+  flex: 1 1 auto;
+  border-bottom: 1px dotted #8a8a8a;
+  margin: 0 4px;
+  transform: translateY(-3px);
+  min-width: 12pt;
+}
+.print-leader__value {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  padding-left: 2pt;
+}
+
 /* ── dataField (valor dinâmico) ──────────────────────────────────────────── */
 /* Herda a fonte/tamanho do contexto (como no Word) — apenas realça em navy.
  * NUNCA forçar mono/size fixo, senão encolhe os títulos da capa. */

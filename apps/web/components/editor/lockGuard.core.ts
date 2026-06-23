@@ -12,7 +12,7 @@ import type { Transaction, EditorState } from '@tiptap/pm/state';
  * adições (montagem inicial — RF-20) são permitidas.
  */
 
-export const LOCKED_NODE_TYPES = ['photoFrame', 'dataTable'] as const;
+export const LOCKED_NODE_TYPES = ['photoFrame', 'dataTable', 'leaderLine'] as const;
 
 /** Meta para permitir explicitamente uma transação (ex.: montagem programática). */
 export const BYPASS_LOCK_GUARD = 'naabsaBypassLockGuard';

@@ -58,7 +58,19 @@ export interface DataTableNode extends TipTapNode {
     /** Cabeçalhos opcionais; se presentes, são a primeira linha visual. */
     headers?: string[];
     rows: TableRow[];
+    /** Estilo de render: tabela com cabeçalho (data), label:valor (label) ou grade Excel (grid). */
+    kind?: 'data' | 'label' | 'grid';
   };
+}
+
+/**
+ * Linha com líder pontilhado "Rótulo ......... Valor" (atom), como o sumário e
+ * o bloco de Figures do Word. `tocTarget` liga a entrada do Contents à âncora da
+ * seção (o worker preenche o número da página no PDF).
+ */
+export interface LeaderLineNode extends TipTapNode {
+  type: 'leaderLine';
+  attrs: { label: string; value: string; tocTarget: string | null };
 }
 
 // ── Construtores ─────────────────────────────────────────────────────────────
@@ -76,6 +88,18 @@ export function photoFrame(attrs: PhotoFrameNode['attrs']): PhotoFrameNode {
 /** Constrói um node `dataTable`. */
 export function dataTable(attrs: DataTableNode['attrs']): DataTableNode {
   return { type: 'dataTable', attrs };
+}
+
+/** Constrói uma `leaderLine` (rótulo … valor). */
+export function leaderLine(attrs: {
+  label: string;
+  value?: string;
+  tocTarget?: string | null;
+}): LeaderLineNode {
+  return {
+    type: 'leaderLine',
+    attrs: { label: attrs.label, value: attrs.value ?? '', tocTarget: attrs.tocTarget ?? null },
+  };
 }
 
 // ── Helpers de texto ─────────────────────────────────────────────────────────
@@ -100,14 +124,16 @@ export function paragraph(content: TipTapNode[] = [], align?: TextAlign): TipTap
   return node;
 }
 
-/** Heading (nível 1–6), com alinhamento opcional. */
+/** Heading (nível 1–6), com alinhamento e âncora (alvo do Contents) opcionais. */
 export function heading(
   level: 1 | 2 | 3 | 4 | 5 | 6,
   content: TipTapNode[],
   align?: TextAlign,
+  anchor?: string,
 ): TipTapNode {
   const attrs: Record<string, unknown> = { level };
   if (align) attrs.textAlign = align;
+  if (anchor) attrs.anchor = anchor;
   return { type: 'heading', attrs, content };
 }
 

@@ -178,6 +178,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "kind": "label",
         "rows": [
           [
             "Client",
@@ -209,70 +210,64 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "heading",
     },
     {
-      "content": [
-        {
-          "text": "1.  Background",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "2.  Ship's Particulars",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "3.  Draft Survey",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "4.  Initial",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "6.  Final",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "7.  Photographic Report",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
-        {
-          "text": "8.  Attachment",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
+      "attrs": {
+        "label": "1.  Background",
+        "tocTarget": "background",
+        "value": "",
+      },
+      "type": "leaderLine",
     },
     {
       "attrs": {
+        "label": "2.  Ship's Particulars",
+        "tocTarget": "particulars",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "3.  Draft Survey",
+        "tocTarget": "draft-survey",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.  Initial",
+        "tocTarget": "initial",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.  Final",
+        "tocTarget": "final",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "7.  Photographic Report",
+        "tocTarget": "photos",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "8.  Attachment",
+        "tocTarget": "attachment",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "anchor": "background",
         "level": 2,
       },
       "content": [
@@ -367,6 +362,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "anchor": "particulars",
         "level": 2,
       },
       "content": [
@@ -379,6 +375,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "kind": "label",
         "rows": [
           [
             "Flag",
@@ -439,6 +436,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "anchor": "draft-survey",
         "level": 2,
       },
       "content": [
@@ -451,6 +449,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "anchor": "initial",
         "level": 2,
       },
       "content": [
@@ -696,6 +695,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "anchor": "final",
         "level": 2,
       },
       "content": [
@@ -764,40 +764,36 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "paragraph",
     },
     {
-      "content": [
-        {
-          "text": "Shore Scale / BsL figures (Official): —",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
+      "attrs": {
+        "label": "Shore Scale / BsL figures (Official)",
+        "tocTarget": null,
+        "value": "—",
+      },
+      "type": "leaderLine",
     },
     {
-      "content": [
-        {
-          "text": "NAABSA's surveyor figures: —",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
+      "attrs": {
+        "label": "NAABSA's surveyor figures",
+        "tocTarget": null,
+        "value": "—",
+      },
+      "type": "leaderLine",
     },
     {
-      "content": [
-        {
-          "text": "Difference as per our figures: — or —",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
+      "attrs": {
+        "label": "Difference as per our figures",
+        "tocTarget": null,
+        "value": "— or —",
+      },
+      "type": "leaderLine",
     },
     {
-      "content": [
-        {
-          "text": "Vessel's figures: —",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
+      "attrs": {
+        "label": "Vessel's figures",
+        "tocTarget": null,
+        "value": "—",
+      },
+      "type": "leaderLine",
     },
     {
       "content": [
@@ -945,6 +941,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "anchor": "photos",
         "level": 2,
       },
       "content": [
@@ -1001,6 +998,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "anchor": "attachment",
         "level": 2,
       },
       "content": [

@@ -22,6 +22,7 @@ import {
   dataField,
   dataTable,
   photoFrame,
+  leaderLine,
 } from '../nodes';
 import type { BuilderInput } from '../types';
 import type { FieldValue } from '../../types';
@@ -128,7 +129,7 @@ function tableRows(matrix: FieldValue[][] | undefined): string[][] {
 function gradeSection(title: string, tableId: string, matrix: FieldValue[][] | undefined): TipTapNode[] {
   const rows = tableRows(matrix);
   if (rows.length === 0) return [];
-  return [heading(3, [text(title)]), dataTable({ tableId, rows })];
+  return [heading(3, [text(title)]), dataTable({ tableId, kind: 'grid', rows })];
 }
 
 /** Lado oposto ao de atracação. */
@@ -152,7 +153,7 @@ function actingAsLines(matrix: FieldValue[][] | undefined): TipTapNode[] {
     const role = row[0];
     const figure = row[8];
     if (role == null || String(role).trim() === '') continue;
-    out.push(paragraph([text(`${String(role).trim()}: ${fmtMt(figure)}`)]));
+    out.push(leaderLine({ label: `${String(role).trim()} figures`, value: fmtMt(figure) }));
   }
   return out;
 }
@@ -262,6 +263,7 @@ export function buildDraftSurveyContent(
     heading(2, [text('PERSON / COMPANIES CONTACTED')]),
     dataTable({
       tableId: 'persons_contacted',
+      kind: 'label',
       rows: [
         ['Client', joinVals([data['client'], data['operator']])],
         ['Undersigned Surveyor', joinVals(['NAABSA Marine Surveyors', data['surveyor_name']])],
@@ -273,22 +275,22 @@ export function buildDraftSurveyContent(
     }),
   ];
 
-  // ── Contents ────────────────────────────────────────────────────────────────
+  // ── Contents (líderes pontilhados; nº de página preenchido pelo worker) ──────
   const contents: TipTapNode[] = [
     heading(2, [text('Contents')]),
-    paragraph([text('1.  Background')]),
-    paragraph([text("2.  Ship's Particulars")]),
-    paragraph([text('3.  Draft Survey')]),
-    paragraph([text('4.  Initial')]),
-    ...(hasIntermediate ? [paragraph([text('5.  Intermediate')])] : []),
-    paragraph([text('6.  Final')]),
-    paragraph([text('7.  Photographic Report')]),
-    paragraph([text('8.  Attachment')]),
+    leaderLine({ label: '1.  Background', tocTarget: 'background' }),
+    leaderLine({ label: "2.  Ship's Particulars", tocTarget: 'particulars' }),
+    leaderLine({ label: '3.  Draft Survey', tocTarget: 'draft-survey' }),
+    leaderLine({ label: '4.  Initial', tocTarget: 'initial' }),
+    ...(hasIntermediate ? [leaderLine({ label: '5.  Intermediate', tocTarget: 'intermediate' })] : []),
+    leaderLine({ label: '6.  Final', tocTarget: 'final' }),
+    leaderLine({ label: '7.  Photographic Report', tocTarget: 'photos' }),
+    leaderLine({ label: '8.  Attachment', tocTarget: 'attachment' }),
   ];
 
   // ── Background ───────────────────────────────────────────────────────────────
   const background: TipTapNode[] = [
-    heading(2, [text('1. Background')]),
+    heading(2, [text('1. Background')], undefined, 'background'),
     paragraph([
       text('In compliance with the appointment survey from Messrs. '),
       text(fmtVal(data['client']), [dataField('client')]),
@@ -310,9 +312,10 @@ export function buildDraftSurveyContent(
 
   // ── Ship's Particulars ───────────────────────────────────────────────────────
   const particulars: TipTapNode[] = [
-    heading(2, [text("2. Ship's Particulars")]),
+    heading(2, [text("2. Ship's Particulars")], undefined, 'particulars'),
     dataTable({
       tableId: 'ships_particulars',
+      kind: 'label',
       rows: [
         ['Flag', fmtVal(data['flag'])],
         ['Port registry', fmtVal(data['register_port'])],
@@ -390,15 +393,13 @@ export function buildDraftSurveyContent(
     if (!p.hasFigures || !p.figPrefix) return [];
     const fp = p.figPrefix;
     return [
-      paragraph([text(`Shore Scale / BsL figures (Official): ${fmtMt(data[`${fp}_fig_shore_scale`])}`)]),
-      paragraph([text(`NAABSA's surveyor figures: ${fmtMt(data[`${fp}_fig_naabsa`])}`)]),
-      paragraph([
-        text(
-          `Difference as per our figures: ${fmtSignedMt(data[`${fp}_fig_diff_mt`])} or ` +
-            `${fmtSignedPct(data[`${fp}_fig_diff_pct`])}`,
-        ),
-      ]),
-      paragraph([text(`Vessel's figures: ${fmtMt(data[`${fp}_fig_vessel`])}`)]),
+      leaderLine({ label: 'Shore Scale / BsL figures (Official)', value: fmtMt(data[`${fp}_fig_shore_scale`]) }),
+      leaderLine({ label: "NAABSA's surveyor figures", value: fmtMt(data[`${fp}_fig_naabsa`]) }),
+      leaderLine({
+        label: 'Difference as per our figures',
+        value: `${fmtSignedMt(data[`${fp}_fig_diff_mt`])} or ${fmtSignedPct(data[`${fp}_fig_diff_pct`])}`,
+      }),
+      leaderLine({ label: "Vessel's figures", value: fmtMt(data[`${fp}_fig_vessel`]) }),
       ...(p.actingAsTableId ? actingAsLines(tables[p.actingAsTableId]) : []),
     ];
   }
@@ -429,7 +430,7 @@ export function buildDraftSurveyContent(
   function buildPhase(p: PhaseCfg): TipTapNode[] {
     const x = p.prefix;
     return [
-      heading(2, [text(`${p.num}. ${p.title}`)]),
+      heading(2, [text(`${p.num}. ${p.title}`)], undefined, p.key),
       phaseNarrative(p),
       ...figuresBlock(p),
       paragraph([text(draftReadingsLine)]),
@@ -455,7 +456,7 @@ export function buildDraftSurveyContent(
 
   // ── Photographic Report ─────────────────────────────────────────────────────
   const photoReport: TipTapNode[] = [
-    heading(2, [text('7. Photographic Report')]),
+    heading(2, [text('7. Photographic Report')], undefined, 'photos'),
     heading(3, [text('7.1. Initial')]),
     makePhotoFrame('photos_initial'),
     ...(hasIntermediate
@@ -467,7 +468,7 @@ export function buildDraftSurveyContent(
 
   // ── Attachment ──────────────────────────────────────────────────────────────
   const attachment: TipTapNode[] = [
-    heading(2, [text('8. Attachment')]),
+    heading(2, [text('8. Attachment')], undefined, 'attachment'),
     paragraph([text('Draft Survey Certificates issued by undersigned surveyor.')]),
     paragraph([text('Draft Survey Certificate issued by vessel.')]),
     paragraph([text("Draft Survey Certificate issued by Terminal's surveyor.")]),
@@ -479,7 +480,7 @@ export function buildDraftSurveyContent(
     ...contents,
     ...background,
     ...particulars,
-    heading(2, [text('3. Draft Survey')]),
+    heading(2, [text('3. Draft Survey')], undefined, 'draft-survey'),
     ...initial,
     ...intermediate,
     ...final_,
