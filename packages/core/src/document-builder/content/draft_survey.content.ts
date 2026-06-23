@@ -226,22 +226,28 @@ export function buildDraftSurveyContent(
 
   // ── Capa ──────────────────────────────────────────────────────────────────
   const cover: TipTapNode[] = [
-    heading(2, [text('Survey Report')]),
-    paragraph([text('Ref: '), text(fmtVal(data['ref']), [dataField('ref')])]),
-    paragraph([text('Draft Survey')]),
-    heading(1, [text(`“${fmtVal(data['vessel_name'], '')}”`, [dataField('vessel_name')])]),
-    paragraph([
-      text('Flag '),
-      text(fmtVal(data['flag']), [dataField('flag')]),
-      text(' — IMO '),
-      text(fmtVal(data['imo']), [dataField('imo')]),
-    ]),
-    paragraph([
-      text('at '),
-      text(fmtVal(data['port']), [dataField('port')]),
-      text(' Port / Brazil — '),
-      text(fmtDate(data['final_date']), [dataField('final_date')]),
-    ]),
+    heading(2, [text('Survey Report')], 'center'),
+    paragraph([text('Ref: '), text(fmtVal(data['ref']), [dataField('ref')])], 'center'),
+    heading(1, [text('Draft Survey')], 'center'),
+    heading(2, [text(`“${fmtVal(data['vessel_name'], '')}”`, [dataField('vessel_name')])], 'center'),
+    paragraph(
+      [
+        text('Flag '),
+        text(fmtVal(data['flag']), [dataField('flag')]),
+        text(' — IMO '),
+        text(fmtVal(data['imo']), [dataField('imo')]),
+      ],
+      'center',
+    ),
+    paragraph(
+      [
+        text('at '),
+        text(fmtVal(data['port']), [dataField('port')]),
+        text(' Port / Brazil — '),
+        text(fmtDate(data['final_date']), [dataField('final_date')]),
+      ],
+      'center',
+    ),
     makePhotoFrame('cover', 150, 95),
   ];
 

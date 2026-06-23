@@ -6,6 +6,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "attrs": {
         "level": 2,
+        "textAlign": "center",
       },
       "content": [
         {
@@ -16,6 +17,9 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "heading",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Ref: ",
@@ -37,17 +41,22 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "level": 1,
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Draft Survey",
           "type": "text",
         },
       ],
-      "type": "paragraph",
+      "type": "heading",
     },
     {
       "attrs": {
-        "level": 1,
+        "level": 2,
+        "textAlign": "center",
       },
       "content": [
         {
@@ -66,6 +75,9 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "heading",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Flag ",
@@ -103,6 +115,9 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "at ",

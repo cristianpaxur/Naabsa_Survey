@@ -6,6 +6,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     {
       "attrs": {
         "level": 2,
+        "textAlign": "center",
       },
       "content": [
         {
@@ -16,6 +17,9 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "heading",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Ref: ",
@@ -37,17 +41,22 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "level": 1,
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Draft Survey",
           "type": "text",
         },
       ],
-      "type": "paragraph",
+      "type": "heading",
     },
     {
       "attrs": {
-        "level": 1,
+        "level": 2,
+        "textAlign": "center",
       },
       "content": [
         {
@@ -66,6 +75,9 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "heading",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Flag ",
@@ -103,6 +115,9 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "at ",
@@ -1097,6 +1112,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "attrs": {
         "level": 2,
+        "textAlign": "center",
       },
       "content": [
         {
@@ -1107,6 +1123,9 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "heading",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Ref: ",
@@ -1128,17 +1147,22 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "level": 1,
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Draft Survey",
           "type": "text",
         },
       ],
-      "type": "paragraph",
+      "type": "heading",
     },
     {
       "attrs": {
-        "level": 1,
+        "level": 2,
+        "textAlign": "center",
       },
       "content": [
         {
@@ -1157,6 +1181,9 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "heading",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "Flag ",
@@ -1194,6 +1221,9 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "textAlign": "center",
+      },
       "content": [
         {
           "text": "at ",

@@ -90,14 +90,25 @@ export function text(
   return node;
 }
 
-/** Parágrafo contendo nodes inline. */
-export function paragraph(content: TipTapNode[] = []): TipTapNode {
-  return { type: 'paragraph', content };
+export type TextAlign = 'left' | 'center' | 'right' | 'justify';
+
+/** Parágrafo contendo nodes inline. `align` mapeia para o attr `textAlign`
+ * (compatível com a extensão TextAlign do editor 008). */
+export function paragraph(content: TipTapNode[] = [], align?: TextAlign): TipTapNode {
+  const node: TipTapNode = { type: 'paragraph', content };
+  if (align) node.attrs = { textAlign: align };
+  return node;
 }
 
-/** Heading (nível 1–6). */
-export function heading(level: 1 | 2 | 3 | 4 | 5 | 6, content: TipTapNode[]): TipTapNode {
-  return { type: 'heading', attrs: { level }, content };
+/** Heading (nível 1–6), com alinhamento opcional. */
+export function heading(
+  level: 1 | 2 | 3 | 4 | 5 | 6,
+  content: TipTapNode[],
+  align?: TextAlign,
+): TipTapNode {
+  const attrs: Record<string, unknown> = { level };
+  if (align) attrs.textAlign = align;
+  return { type: 'heading', attrs, content };
 }
 
 /** Monta o documento raiz a partir de um array de nodes de bloco. */

@@ -41,6 +41,7 @@ export function PrintDocument({ document: tipDoc, vesselName }: PrintDocumentPro
         <link key={i} rel="preload" as="image" href={src} />
       ))}
       <NaabsaHeader />
+      <CoverAddress />
       <article
         className="print-document"
         aria-label={vesselName ? `Relatório — ${vesselName}` : 'Relatório'}
@@ -53,21 +54,41 @@ export function PrintDocument({ document: tipDoc, vesselName }: PrintDocumentPro
   );
 }
 
-// ── Cabeçalho institucional ─────────────────────────────────────────────────
+// ── Cabeçalho institucional (logo + tagline, como o Word) ────────────────────
 
 function NaabsaHeader() {
   return (
     <header className="print-naabsa-header">
-      <div className="print-naabsa-identity">
-        <div className="print-naabsa-name">NAABSA</div>
-        <div className="print-naabsa-tagline">Marine Surveyors</div>
-      </div>
-      <div className="print-naabsa-contact">
-        <div>433 Ana Costa Avenue, Suite 184 — Santos / Brazil · 11060-003</div>
-        <div>Telephone: +55 13 3394-0655</div>
-        <div>surveyors@naabsa.com · www.naabsa.com</div>
+      {/* Logo real extraído do modelo do cliente (word/media/image4.jpg). */}
+      <img className="print-naabsa-logo" src="/naabsa-logo.jpg" alt="NAABSA" />
+      <div className="print-naabsa-tag">
+        <div className="print-naabsa-tag-main">MARINE SURVEYORS &amp; CONSULTANTS</div>
+        <div className="print-naabsa-tag-sub">Main Brazilian Ports</div>
       </div>
     </header>
+  );
+}
+
+// ── Bloco de endereço da capa (duas colunas, centralizado) ───────────────────
+
+function CoverAddress() {
+  return (
+    <div className="print-cover-address">
+      <div>
+        433 Ana Costa Avenue
+        <br />
+        Suite 184 - Santos / Brazil
+        <br />
+        11060-003
+      </div>
+      <div>
+        Telephone: +55 13 33940655
+        <br />
+        email: surveyors@naabsa.com
+        <br />
+        www.naabsa.com
+      </div>
+    </div>
   );
 }
 
@@ -87,10 +108,14 @@ function collectPhotoSrcs(doc: TipTapDoc): string[] {
 // ── Render de block node ────────────────────────────────────────────────────
 
 function BlockNode({ node }: { node: TipTapNode }) {
+  const align = node.attrs?.textAlign as string | undefined;
+  const alignStyle: React.CSSProperties | undefined =
+    align && align !== 'left' ? { textAlign: align as 'center' | 'right' | 'justify' } : undefined;
+
   switch (node.type) {
     case 'paragraph':
       return (
-        <p>
+        <p style={alignStyle}>
           {node.content?.map((child, i) => <InlineNode key={i} node={child} />) ?? null}
         </p>
       );
@@ -105,7 +130,7 @@ function BlockNode({ node }: { node: TipTapNode }) {
         | 'h5'
         | 'h6';
       return (
-        <Tag>
+        <Tag style={alignStyle}>
           {node.content?.map((child, i) => <InlineNode key={i} node={child} />) ?? null}
         </Tag>
       );
