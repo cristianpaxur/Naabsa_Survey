@@ -10,7 +10,7 @@
     "notes": [
       "Contrato v2: campos com `sheet` por campo, fingerprint com `sheet`, `variant_source` (Capa!L4) e `tables` (range-based). O validateSpec/extractor atuais (contrato v1, aba única) precisam ser estendidos antes de validar/extrair este spec — ver implementation/003 T-013..T-016.",
       "Ranges de `tables` marcados como provisorios: confirmar limites contra o render nativo (003/T-016).",
-      "Datas/horas das fases lidas da Capa (formula-mirror ja formatado em ingles); seriais crus existem em Inicial!C7, Intermediario!C5, final!C5 se ISO for necessario.",
+      "DATAS (2026-06-23): os mirrors Capa!L7/L8/L9 são fórmulas dynamic-array LET que o ExcelJS NÃO avalia (result=Invalid Date → NaN). Lemos as datas direto das células-fonte avaliáveis Inicial!C7, Intermediario!C5, final!C5 (type=date → ISO; o builder formata em inglês 'Month Dth, YYYY'). Horas (M/N) seguem na Capa, que o ExcelJS avalia.",
       "int_fig_diff_pct e fin_fig_diff_pct guardam fracao (0.0398); o builder multiplica por 100 para exibir '%'."
     ]
   },
@@ -63,13 +63,13 @@
         "client": { "sheet": "Capa", "cell": "C33", "type": "string", "label": "Cliente", "section": "Partes" },
         "operator": { "sheet": "Capa", "cell": "C34", "type": "string", "label": "Operador / contato", "section": "Partes" },
 
-        "initial_date": { "sheet": "Capa", "cell": "L7", "type": "string", "label": "Data — Inicial", "section": "Datas" },
+        "initial_date": { "sheet": "Inicial", "cell": "C7", "type": "date", "format": "Month Do, YYYY", "label": "Data — Inicial", "section": "Datas" },
         "initial_start": { "sheet": "Capa", "cell": "M7", "type": "time", "label": "Início — Inicial", "section": "Datas" },
         "initial_end": { "sheet": "Capa", "cell": "N7", "type": "time", "label": "Fim — Inicial", "section": "Datas" },
-        "intermediate_date": { "sheet": "Capa", "cell": "L8", "type": "string", "label": "Data — Intermediário", "section": "Datas" },
+        "intermediate_date": { "sheet": "Intermediario", "cell": "C5", "type": "date", "format": "Month Do, YYYY", "label": "Data — Intermediário", "section": "Datas" },
         "intermediate_start": { "sheet": "Capa", "cell": "M8", "type": "time", "label": "Início — Intermediário", "section": "Datas" },
         "intermediate_end": { "sheet": "Capa", "cell": "N8", "type": "time", "label": "Fim — Intermediário", "section": "Datas" },
-        "final_date": { "sheet": "Capa", "cell": "L9", "type": "string", "required": true, "label": "Data — Final", "section": "Datas" },
+        "final_date": { "sheet": "final", "cell": "C5", "type": "date", "format": "Month Do, YYYY", "required": true, "label": "Data — Final", "section": "Datas" },
         "final_start": { "sheet": "Capa", "cell": "M9", "type": "time", "label": "Início — Final", "section": "Datas" },
         "final_end": { "sheet": "Capa", "cell": "N9", "type": "time", "label": "Fim — Final", "section": "Datas" },
 

@@ -30,6 +30,29 @@ function fmtNum(v: FieldValue | undefined, dec: number, fallback = '—'): strin
   return String(v);
 }
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function ordinal(d: number): string {
+  if (d === 1 || d === 21 || d === 31) return 'st';
+  if (d === 2 || d === 22) return 'nd';
+  if (d === 3 || d === 23) return 'rd';
+  return 'th';
+}
+
+/** ISO 'YYYY-MM-DD' → inglês 'Month Dth, YYYY' (determinístico, sem locale). */
+function fmtDate(v: FieldValue | undefined, fallback = '—'): string {
+  if (v === null || v === undefined) return fallback;
+  const s = String(v);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return s;
+  const year = +m[1]!, month = +m[2]!, day = +m[3]!;
+  if (month < 1 || month > 12) return s;
+  return `${MONTHS[month - 1]} ${day}${ordinal(day)}, ${year}`;
+}
+
 /** Formata célula de grade: numéricos sem trailing zeros até 4 casas. */
 function fmtCell(v: FieldValue | undefined): string {
   if (v === null || v === undefined) return '';
@@ -84,7 +107,7 @@ export function buildDraftLoadingContent(
       text('Port: '),
       text(fmtVal(data['port']), [dataField('port')]),
       text('   Date: '),
-      text(fmtVal(data['final_date']), [dataField('final_date')]),
+      text(fmtDate(data['final_date']), [dataField('final_date')]),
     ]),
     paragraph([]),
   ];
@@ -173,7 +196,7 @@ export function buildDraftLoadingContent(
     heading(2, [text('Initial Draft Survey')]),
     paragraph([
       text('Date: '),
-      text(fmtVal(data['initial_date']), [dataField('initial_date')]),
+      text(fmtDate(data['initial_date']), [dataField('initial_date')]),
       text('   From: '),
       text(fmtVal(data['initial_start']), [dataField('initial_start')]),
       text(' to: '),
@@ -219,7 +242,7 @@ export function buildDraftLoadingContent(
         heading(2, [text('Intermediate Draft Survey')]),
         paragraph([
           text('Date: '),
-          text(fmtVal(data['intermediate_date']), [dataField('intermediate_date')]),
+          text(fmtDate(data['intermediate_date']), [dataField('intermediate_date')]),
           text('   From: '),
           text(fmtVal(data['intermediate_start']), [dataField('intermediate_start')]),
           text(' to: '),
@@ -286,7 +309,7 @@ export function buildDraftLoadingContent(
     heading(2, [text('Final Draft Survey')]),
     paragraph([
       text('Date: '),
-      text(fmtVal(data['final_date']), [dataField('final_date')]),
+      text(fmtDate(data['final_date']), [dataField('final_date')]),
       text('   From: '),
       text(fmtVal(data['final_start']), [dataField('final_start')]),
       text(' to: '),

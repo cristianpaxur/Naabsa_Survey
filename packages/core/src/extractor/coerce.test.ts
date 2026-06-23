@@ -94,6 +94,15 @@ describe('coerceField — date', () => {
   it('data textual inválida → erro', () => {
     expect(coerceField('32/13/2026', dateField).error).toBeDefined();
   });
+  it('Invalid Date (fórmula não avaliada pelo ExcelJS) → vazio, nunca NaN-NaN-NaN', () => {
+    const invalid = new Date(NaN);
+    // como date e como string: ambos devem virar null (célula vazia), sem erro.
+    expect(coerceField(invalid, dateField).value).toBeNull();
+    const stringField = { ...dateField, type: 'string' as const };
+    const r = coerceField(invalid, stringField);
+    expect(r.value).toBeNull();
+    expect(r.error).toBeUndefined();
+  });
 });
 
 describe('coerceField — enum', () => {

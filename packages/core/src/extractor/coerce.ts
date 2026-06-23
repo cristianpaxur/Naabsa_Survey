@@ -24,7 +24,11 @@ export interface CoerceResult {
 }
 
 export function isEmptyCell(raw: RawCellValue): boolean {
-  return raw === null || (typeof raw === 'string' && raw.trim() === '');
+  if (raw === null) return true;
+  if (typeof raw === 'string' && raw.trim() === '') return true;
+  // Invalid Date (fórmula não avaliada pelo ExcelJS) conta como vazio.
+  if (raw instanceof Date && Number.isNaN(raw.getTime())) return true;
+  return false;
 }
 
 export function coerceField(

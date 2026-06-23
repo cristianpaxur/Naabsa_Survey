@@ -284,7 +284,12 @@ export function normalizeCell(value: ExcelJS.CellValue): RawCellValue {
   ) {
     return value;
   }
-  if (value instanceof Date) return value;
+  if (value instanceof Date) {
+    // Fórmulas que o ExcelJS não avalia (ex.: dynamic-array LET) podem cachear
+    // o resultado como Invalid Date. Tratamos como célula vazia — nunca como
+    // "NaN-NaN-NaN". O dado real deve vir de uma célula-fonte avaliável.
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
   if (typeof value === 'object') {
     if ('result' in value) {
       return normalizeCell((value.result ?? null) as ExcelJS.CellValue);

@@ -81,6 +81,17 @@ describe('CA-007b — extração limpa da planilha real Draft Survey', () => {
     }
   });
 
+  it('datas das fases saem em ISO real (sem NaN) — regressão dos mirrors Capa!L7/L8/L9', () => {
+    const { data } = runExtraction(workbook, spec.spec);
+    const ISO = /^\d{4}-\d{2}-\d{2}$/;
+    for (const f of ['initial_date', 'intermediate_date', 'final_date']) {
+      const v = data[f];
+      expect(typeof v, `${f} deveria ser string ISO`).toBe('string');
+      expect(String(v), `${f} contém NaN — fórmula não avaliada vazou`).not.toContain('NaN');
+      expect(String(v), `${f} fora do formato ISO`).toMatch(ISO);
+    }
+  });
+
   it('tabelas range-based têm pelo menos uma linha não-nula (ranges confirmados)', () => {
     const { tables } = runExtraction(workbook, spec.spec);
     const tableIds = Object.keys(tables);
