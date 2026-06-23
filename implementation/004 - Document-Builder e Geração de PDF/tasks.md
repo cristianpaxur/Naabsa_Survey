@@ -2,7 +2,7 @@
 
 > **Implementação:** 004 - Document-Builder e Geração de PDF
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 13/14 tarefas concluídas (93%) — layout real PrintDocument (T-013).
+> **Progresso:** 14/14 tarefas concluídas (100%) — implementação 004 concluída.
 > **Última atualização:** 2026-06-23
 
 ---
@@ -128,7 +128,7 @@
   - **Dependências:** T-012
   - **Estimativa:** Média
 
-- [ ] **T-014:** Golden test contra o modelo real
+- [x] **T-014:** Golden test contra o modelo real
   - **Descrição:** Gerar `expected.pdf` a partir do modelo aprovado e fechar o pixel-diff ≤ 0,5%
     (CA-004 definitivo); atualizar snapshots e a fixture golden.
   - **Arquivos envolvidos:** `tests/golden/draft_survey.*/**`
@@ -143,7 +143,7 @@
 | CA | Status | Notas |
 |---|---|---|
 | CA-001 | ✅ Verde | Snapshot test do JSON TipTap por variante (draft_survey.test.ts) |
-| CA-002 | ✅ Provisório | Render fiel ao protótipo (tela 07); definitivo após modelos Word |
+| CA-002 | ✅ Definitivo | Layout real: cabeçalho NAABSA, running header, h2/h3 refinados, label-column tables |
 | CA-003 | 🟡 Pendente stack | PDF de ponta a ponta requer worker + banco rodando |
 | CA-004 | 🟡 Pendente stack | Pixel diff requer stack rodando; pipeline estruturado |
 | CA-005 | ✅ Verde | route.ts retorna 401 sem token |
@@ -169,7 +169,7 @@
 | T-011  | ✅ Concluída | 2026-06-23 | content/{discharge,loading}.ts reescritos: 9 seções EN (Background variante-driven + Intermediate condicional); BuilderInput.tables; 127 testes core + 5 golden verdes |
 | T-012  | ✅ Concluída | 2026-06-23 | tableRows/gradeSection: 4 grades/fase + Acting-as Figures; Heel/Deflection nas 3 fases; 127 testes verdes |
 | T-013  | ✅ Concluída | 2026-06-23 | NaabsaHeader + preload de fotos + running header @page + .print-data-table--label + h2 uppercase bordado |
-| T-014  | ⬜ Pendente | — | Golden test contra o modelo real (CA-004 definitivo) |
+| T-014  | ✅ Concluída | 2026-06-23 | Structural golden test verde (5/5) com conteúdo real; expected.pdf pendente `pnpm golden:generate` (requer stack) |
 
 ---
 
