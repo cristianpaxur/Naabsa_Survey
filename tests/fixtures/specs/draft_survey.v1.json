@@ -1,0 +1,161 @@
+{
+  "_meta": {
+    "authored": "2026-06-23",
+    "sources": [
+      "tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx",
+      "tests/fixtures/reports/draft_survey/MV-PERSEUS-I.model.docx"
+    ],
+    "field_map": "tests/fixtures/reports/draft_survey/field-map.md",
+    "targets_schema_contract": 2,
+    "notes": [
+      "Contrato v2: campos com `sheet` por campo, fingerprint com `sheet`, `variant_source` (Capa!L4) e `tables` (range-based). O validateSpec/extractor atuais (contrato v1, aba única) precisam ser estendidos antes de validar/extrair este spec — ver implementation/003 T-013..T-016.",
+      "Ranges de `tables` marcados como provisorios: confirmar limites contra o render nativo (003/T-016).",
+      "Datas/horas das fases lidas da Capa (formula-mirror ja formatado em ingles); seriais crus existem em Inicial!C7, Intermediario!C5, final!C5 se ISO for necessario.",
+      "int_fig_diff_pct e fin_fig_diff_pct guardam fracao (0.0398); o builder multiplica por 100 para exibir '%'."
+    ]
+  },
+
+  "report_type": "draft_survey",
+  "version": 1,
+  "contract": 2,
+  "variants": ["loading", "discharge"],
+
+  "source": {
+    "fingerprint": { "sheet": "Capa", "cell": "B2", "expect": "DRAFT SURVEY" },
+    "variant_source": {
+      "sheet": "Capa",
+      "cell": "L4",
+      "map": { "Loading": "loading", "Discharge": "discharge" }
+    },
+    "ignore_sheets": ["LOD-LOP"],
+
+    "common": {
+      "fields": {
+        "ref": { "sheet": "Capa", "cell": "C4", "type": "string", "label": "Ref", "section": "Serviço" },
+        "port": { "sheet": "Capa", "cell": "C5", "type": "string", "required": true, "label": "Porto de atendimento", "section": "Serviço" },
+        "terminal": { "sheet": "Capa", "cell": "C6", "type": "string", "label": "Terminal", "section": "Serviço" },
+        "shed": { "sheet": "Capa", "cell": "C7", "type": "string", "label": "Armazém (shed)", "section": "Serviço" },
+        "cargo": { "sheet": "Capa", "cell": "C8", "type": "string", "required": true, "label": "Carga", "section": "Serviço" },
+        "discharging_port": { "sheet": "Capa", "cell": "C9", "type": "string", "label": "Porto de destino/descarga", "section": "Serviço" },
+        "voyage": { "sheet": "Capa", "cell": "C10", "type": "string", "label": "Viagem", "section": "Serviço" },
+        "agency": { "sheet": "Capa", "cell": "C11", "type": "string", "label": "Agência", "section": "Serviço" },
+        "official_figures": { "sheet": "Capa", "cell": "L5", "type": "string", "label": "Official figures", "section": "Serviço" },
+
+        "vessel_name": { "sheet": "Capa", "cell": "C13", "type": "string", "required": true, "label": "Nome do navio", "section": "Particulars do navio" },
+        "flag": { "sheet": "Capa", "cell": "C14", "type": "string", "label": "Bandeira", "section": "Particulars do navio" },
+        "register_port": { "sheet": "Capa", "cell": "C15", "type": "string", "label": "Porto de registro", "section": "Particulars do navio" },
+        "call_sign": { "sheet": "Capa", "cell": "C16", "type": "string", "label": "Indicativo de chamada", "section": "Particulars do navio" },
+        "imo": { "sheet": "Capa", "cell": "C17", "type": "string", "label": "IMO", "section": "Particulars do navio" },
+        "vessel_type": { "sheet": "Capa", "cell": "C18", "type": "string", "label": "Tipo", "section": "Particulars do navio" },
+        "delivered": { "sheet": "Capa", "cell": "C19", "type": "number", "decimals": 0, "label": "Ano de entrega", "section": "Particulars do navio" },
+        "loa": { "sheet": "Capa", "cell": "C20", "type": "number", "decimals": 2, "unit": "m", "label": "LOA", "section": "Particulars do navio" },
+        "lbp": { "sheet": "Capa", "cell": "C21", "type": "number", "decimals": 2, "unit": "m", "label": "LBP", "section": "Particulars do navio" },
+        "depth_moulded": { "sheet": "Capa", "cell": "C22", "type": "number", "decimals": 2, "unit": "m", "label": "Pontal moldado", "section": "Particulars do navio" },
+        "breadth_moulded": { "sheet": "Capa", "cell": "C23", "type": "number", "decimals": 2, "unit": "m", "label": "Boca moldada", "section": "Particulars do navio" },
+        "net_tonnage": { "sheet": "Capa", "cell": "C24", "type": "number", "decimals": 0, "unit": "mt", "label": "Net tonnage", "section": "Particulars do navio" },
+        "gross_tonnage": { "sheet": "Capa", "cell": "C25", "type": "number", "decimals": 0, "unit": "mt", "label": "Gross tonnage", "section": "Particulars do navio" },
+        "summer_dwt": { "sheet": "Capa", "cell": "C26", "type": "number", "decimals": 0, "unit": "mt", "label": "Summer DWT", "section": "Particulars do navio" },
+
+        "captain": { "sheet": "Capa", "cell": "C28", "type": "string", "label": "Comandante", "section": "Comando" },
+        "chief_officer": { "sheet": "Capa", "cell": "C29", "type": "string", "label": "Imediato", "section": "Comando" },
+
+        "berthing_side": { "sheet": "Capa", "cell": "C31", "type": "enum", "options": ["Port Side", "Starboard"], "label": "Lado de atracação", "section": "Operação" },
+        "client": { "sheet": "Capa", "cell": "C33", "type": "string", "label": "Cliente", "section": "Partes" },
+        "operator": { "sheet": "Capa", "cell": "C34", "type": "string", "label": "Operador / contato", "section": "Partes" },
+
+        "initial_date": { "sheet": "Capa", "cell": "L7", "type": "string", "label": "Data — Inicial", "section": "Datas" },
+        "initial_start": { "sheet": "Capa", "cell": "M7", "type": "string", "label": "Início — Inicial", "section": "Datas" },
+        "initial_end": { "sheet": "Capa", "cell": "N7", "type": "string", "label": "Fim — Inicial", "section": "Datas" },
+        "intermediate_date": { "sheet": "Capa", "cell": "L8", "type": "string", "label": "Data — Intermediário", "section": "Datas" },
+        "intermediate_start": { "sheet": "Capa", "cell": "M8", "type": "string", "label": "Início — Intermediário", "section": "Datas" },
+        "intermediate_end": { "sheet": "Capa", "cell": "N8", "type": "string", "label": "Fim — Intermediário", "section": "Datas" },
+        "final_date": { "sheet": "Capa", "cell": "L9", "type": "string", "required": true, "label": "Data — Final", "section": "Datas" },
+        "final_start": { "sheet": "Capa", "cell": "M9", "type": "string", "label": "Início — Final", "section": "Datas" },
+        "final_end": { "sheet": "Capa", "cell": "N9", "type": "string", "label": "Fim — Final", "section": "Datas" },
+
+        "init_fwd_mean": { "sheet": "Inicial", "cell": "D10", "type": "number", "decimals": 3, "unit": "m", "label": "AV (Fwd) médio", "section": "Calados — Inicial" },
+        "init_fwd_corr": { "sheet": "Inicial", "cell": "H10", "type": "number", "decimals": 4, "unit": "m", "label": "AV (Fwd) corrigido", "section": "Calados — Inicial" },
+        "init_mid_mean": { "sheet": "Inicial", "cell": "D11", "type": "number", "decimals": 3, "unit": "m", "label": "MN (Ms) médio", "section": "Calados — Inicial" },
+        "init_mid_corr": { "sheet": "Inicial", "cell": "H11", "type": "number", "decimals": 4, "unit": "m", "label": "MN (Ms) corrigido", "section": "Calados — Inicial" },
+        "init_aft_mean": { "sheet": "Inicial", "cell": "D12", "type": "number", "decimals": 3, "unit": "m", "label": "AR (Aft) médio", "section": "Calados — Inicial" },
+        "init_aft_corr": { "sheet": "Inicial", "cell": "H12", "type": "number", "decimals": 4, "unit": "m", "label": "AR (Aft) corrigido", "section": "Calados — Inicial" },
+        "init_trim_obs": { "sheet": "Inicial", "cell": "D15", "type": "number", "decimals": 4, "unit": "m", "label": "Trim observado", "section": "Calados — Inicial" },
+        "init_trim_corr": { "sheet": "Inicial", "cell": "G15", "type": "number", "decimals": 4, "unit": "m", "label": "Trim corrigido", "section": "Calados — Inicial" },
+        "init_heel": { "sheet": "Inicial", "cell": "Z24", "type": "number", "decimals": 2, "unit": "°", "label": "Heel", "section": "Calados — Inicial" },
+        "init_heel_side": { "sheet": "Inicial", "cell": "Y25", "type": "string", "label": "Heel — lado", "section": "Calados — Inicial" },
+        "init_deflection": { "sheet": "Inicial", "cell": "G17", "type": "number", "decimals": 1, "unit": "cm", "label": "Deflection", "section": "Calados — Inicial" },
+        "init_deflection_type": { "sheet": "Inicial", "cell": "G18", "type": "string", "label": "Deflection — tipo", "section": "Calados — Inicial" },
+
+        "int_fwd_mean": { "sheet": "Intermediario", "cell": "D9", "type": "number", "decimals": 3, "unit": "m", "label": "AV (Fwd) médio", "section": "Calados — Intermediário" },
+        "int_fwd_corr": { "sheet": "Intermediario", "cell": "H9", "type": "number", "decimals": 4, "unit": "m", "label": "AV (Fwd) corrigido", "section": "Calados — Intermediário" },
+        "int_mid_mean": { "sheet": "Intermediario", "cell": "D10", "type": "number", "decimals": 3, "unit": "m", "label": "MN (Ms) médio", "section": "Calados — Intermediário" },
+        "int_mid_corr": { "sheet": "Intermediario", "cell": "H10", "type": "number", "decimals": 4, "unit": "m", "label": "MN (Ms) corrigido", "section": "Calados — Intermediário" },
+        "int_aft_mean": { "sheet": "Intermediario", "cell": "D11", "type": "number", "decimals": 3, "unit": "m", "label": "AR (Aft) médio", "section": "Calados — Intermediário" },
+        "int_aft_corr": { "sheet": "Intermediario", "cell": "H11", "type": "number", "decimals": 4, "unit": "m", "label": "AR (Aft) corrigido", "section": "Calados — Intermediário" },
+        "int_trim_obs": { "sheet": "Intermediario", "cell": "D14", "type": "number", "decimals": 4, "unit": "m", "label": "Trim aparente", "section": "Calados — Intermediário" },
+        "int_trim_corr": { "sheet": "Intermediario", "cell": "G14", "type": "number", "decimals": 4, "unit": "m", "label": "Trim corrigido", "section": "Calados — Intermediário" },
+        "int_list": { "sheet": "Intermediario", "cell": "AA23", "type": "number", "decimals": 2, "unit": "°", "label": "List", "section": "Calados — Intermediário" },
+        "int_list_side": { "sheet": "Intermediario", "cell": "Z24", "type": "string", "label": "List — lado", "section": "Calados — Intermediário" },
+        "int_deflection": { "sheet": "Intermediario", "cell": "G16", "type": "number", "decimals": 1, "unit": "cm", "label": "Deflection", "section": "Calados — Intermediário" },
+        "int_deflection_type": { "sheet": "Intermediario", "cell": "G17", "type": "string", "label": "Deflection — tipo", "section": "Calados — Intermediário" },
+
+        "fin_fwd_mean": { "sheet": "final", "cell": "D9", "type": "number", "decimals": 3, "unit": "m", "label": "AV (Fwd) médio", "section": "Calados — Final" },
+        "fin_fwd_corr": { "sheet": "final", "cell": "H9", "type": "number", "decimals": 4, "unit": "m", "label": "AV (Fwd) corrigido", "section": "Calados — Final" },
+        "fin_mid_mean": { "sheet": "final", "cell": "D10", "type": "number", "decimals": 3, "unit": "m", "label": "MN (Ms) médio", "section": "Calados — Final" },
+        "fin_mid_corr": { "sheet": "final", "cell": "H10", "type": "number", "decimals": 4, "unit": "m", "label": "MN (Ms) corrigido", "section": "Calados — Final" },
+        "fin_aft_mean": { "sheet": "final", "cell": "D11", "type": "number", "decimals": 3, "unit": "m", "label": "AR (Aft) médio", "section": "Calados — Final" },
+        "fin_aft_corr": { "sheet": "final", "cell": "H11", "type": "number", "decimals": 4, "unit": "m", "label": "AR (Aft) corrigido", "section": "Calados — Final" },
+        "fin_trim_obs": { "sheet": "final", "cell": "D14", "type": "number", "decimals": 4, "unit": "m", "label": "Trim aparente", "section": "Calados — Final" },
+        "fin_trim_corr": { "sheet": "final", "cell": "G14", "type": "number", "decimals": 4, "unit": "m", "label": "Trim corrigido", "section": "Calados — Final" },
+        "fin_list": { "sheet": "final", "cell": "Z23", "type": "number", "decimals": 2, "unit": "°", "label": "List", "section": "Calados — Final" },
+        "fin_list_side": { "sheet": "final", "cell": "Y24", "type": "string", "label": "List — lado", "section": "Calados — Final" },
+        "fin_deflection": { "sheet": "final", "cell": "G16", "type": "number", "decimals": 1, "unit": "cm", "label": "Deflection", "section": "Calados — Final" },
+        "fin_deflection_type": { "sheet": "final", "cell": "G17", "type": "string", "label": "Deflection — tipo", "section": "Calados — Final" },
+
+        "int_fig_shore_scale": { "sheet": "DS INTERMEDIATE", "cell": "C37", "type": "number", "decimals": 3, "unit": "MT", "label": "Shore Scale (oficial)", "section": "Figures — Intermediário" },
+        "int_fig_naabsa": { "sheet": "DS INTERMEDIATE", "cell": "C38", "type": "number", "decimals": 3, "unit": "MT", "label": "NAABSA surveyor", "section": "Figures — Intermediário" },
+        "int_fig_diff_mt": { "sheet": "DS INTERMEDIATE", "cell": "C39", "type": "number", "decimals": 3, "unit": "MT", "label": "Diferença (MT)", "section": "Figures — Intermediário" },
+        "int_fig_diff_pct": { "sheet": "DS INTERMEDIATE", "cell": "C40", "type": "number", "decimals": 3, "unit": "%", "label": "Diferença (%)", "section": "Figures — Intermediário" },
+        "int_fig_vessel": { "sheet": "DS INTERMEDIATE", "cell": "I38", "type": "number", "decimals": 3, "unit": "MT", "label": "Vessel's figures", "section": "Figures — Intermediário" },
+
+        "fin_fig_shore_scale": { "sheet": "DS FINAL", "cell": "C37", "type": "number", "decimals": 3, "unit": "MT", "label": "Shore Scale (oficial)", "section": "Figures — Final" },
+        "fin_fig_naabsa": { "sheet": "DS FINAL", "cell": "C38", "type": "number", "decimals": 3, "unit": "MT", "label": "NAABSA surveyor", "section": "Figures — Final" },
+        "fin_fig_diff_mt": { "sheet": "DS FINAL", "cell": "C39", "type": "number", "decimals": 3, "unit": "MT", "label": "Diferença (MT)", "section": "Figures — Final" },
+        "fin_fig_diff_pct": { "sheet": "DS FINAL", "cell": "C40", "type": "number", "decimals": 3, "unit": "%", "label": "Diferença (%)", "section": "Figures — Final" },
+        "fin_fig_vessel": { "sheet": "DS FINAL", "cell": "I38", "type": "number", "decimals": 3, "unit": "MT", "label": "Vessel's figures", "section": "Figures — Final" }
+      }
+    },
+
+    "tables": [
+      { "id": "init_draft_marks", "label": "Initial — Draft marks & corrections", "sheet": "Inicial", "range": "B8:H18", "phase": "initial", "provisional": true },
+      { "id": "init_displacement", "label": "Initial — Displacement corrections", "sheet": "Inicial", "range": "K2:O28", "phase": "initial", "provisional": true },
+      { "id": "init_ballast", "label": "Initial — Ballast water", "sheet": "Inicial", "range": "Q2:V31", "phase": "initial", "provisional": true },
+      { "id": "init_freshwater", "label": "Initial — Fresh water & bunkers", "sheet": "Inicial", "range": "X2:AB21", "phase": "initial", "provisional": true },
+
+      { "id": "int_draft_marks", "label": "Intermediate — Draft marks & corrections", "sheet": "Intermediario", "range": "B7:H17", "phase": "intermediate", "optional": true, "provisional": true },
+      { "id": "int_displacement", "label": "Intermediate — Displacement corrections", "sheet": "Intermediario", "range": "K2:O30", "phase": "intermediate", "optional": true, "provisional": true },
+      { "id": "int_ballast", "label": "Intermediate — Ballast water", "sheet": "Intermediario", "range": "S2:W30", "phase": "intermediate", "optional": true, "provisional": true },
+      { "id": "int_freshwater", "label": "Intermediate — Fresh water & bunkers", "sheet": "Intermediario", "range": "Y2:AC21", "phase": "intermediate", "optional": true, "provisional": true },
+
+      { "id": "fin_draft_marks", "label": "Final — Draft marks & corrections", "sheet": "final", "range": "B7:H17", "phase": "final", "provisional": true },
+      { "id": "fin_displacement", "label": "Final — Displacement corrections", "sheet": "final", "range": "K2:O30", "phase": "final", "provisional": true },
+      { "id": "fin_ballast", "label": "Final — Ballast water", "sheet": "final", "range": "Q2:V30", "phase": "final", "provisional": true },
+      { "id": "fin_freshwater", "label": "Final — Fresh water & bunkers", "sheet": "final", "range": "X2:AB21", "phase": "final", "provisional": true },
+
+      { "id": "int_figures_acting_as", "label": "Intermediate — Acting as / figures", "sheet": "DS INTERMEDIATE", "range": "B50:K52", "phase": "intermediate", "optional": true, "provisional": true },
+      { "id": "fin_figures_acting_as", "label": "Final — Acting as / figures", "sheet": "DS FINAL", "range": "B48:K50", "phase": "final", "provisional": true }
+    ]
+  },
+
+  "validations": [
+    { "rule": "range", "field": "loa", "min": 50, "max": 400, "level": "warning", "message": "LOA fora do intervalo usual (50–400 m) — confira a célula Capa!C20." },
+    { "rule": "range", "field": "summer_dwt", "min": 0, "max": 500000, "level": "warning", "message": "Summer DWT fora do intervalo usual — confira a célula Capa!C26." },
+    { "rule": "range", "field": "fin_fig_diff_pct", "min": -0.05, "max": 0.05, "level": "warning", "message": "Diferença final acima de 0,5% entre figuras — revisar antes de aprovar." }
+  ],
+
+  "photo_slots": [
+    { "id": "photos_initial", "label": "Photographic Report — Initial", "aspect": "4:3", "required": true, "min": 1 },
+    { "id": "photos_intermediate", "label": "Photographic Report — Intermediate", "aspect": "4:3", "required": false, "min": 0 },
+    { "id": "photos_final", "label": "Photographic Report — Final", "aspect": "4:3", "required": true, "min": 1 }
+  ]
+}
