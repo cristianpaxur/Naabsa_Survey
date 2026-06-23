@@ -5,11 +5,11 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
   "content": [
     {
       "attrs": {
-        "level": 1,
+        "level": 2,
       },
       "content": [
         {
-          "text": "DRAFT SURVEY REPORT",
+          "text": "Survey Report",
           "type": "text",
         },
       ],
@@ -39,9 +39,17 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Vessel: ",
+          "text": "Draft Survey",
           "type": "text",
         },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 1,
+      },
+      "content": [
         {
           "marks": [
             {
@@ -51,11 +59,16 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
               "type": "dataField",
             },
           ],
-          "text": "MV Cabo Frio",
+          "text": "“MV Cabo Frio”",
           "type": "text",
         },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
         {
-          "text": "   Flag: ",
+          "text": "Flag ",
           "type": "text",
         },
         {
@@ -71,7 +84,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": "   IMO: ",
+          "text": " — IMO ",
           "type": "text",
         },
         {
@@ -92,7 +105,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Port: ",
+          "text": "at ",
           "type": "text",
         },
         {
@@ -108,7 +121,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": "   Date: ",
+          "text": " Port / Brazil — ",
           "type": "text",
         },
         {
@@ -127,8 +140,14 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "paragraph",
     },
     {
-      "content": [],
-      "type": "paragraph",
+      "attrs": {
+        "heightMm": 95,
+        "photoId": null,
+        "slotId": "cover",
+        "src": null,
+        "widthMm": 150,
+      },
+      "type": "photoFrame",
     },
     {
       "attrs": {
@@ -136,7 +155,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Persons / Companies Contacted",
+          "text": "Person / Companies Contacted",
           "type": "text",
         },
       ],
@@ -160,13 +179,8 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "text": "—",
           "type": "text",
         },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
         {
-          "text": "Operator / Contact: ",
+          "text": " — ",
           "type": "text",
         },
         {
@@ -187,7 +201,19 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Undersigned Surveyor: NAABSA Marine Surveyors",
+          "text": "Undersigned Surveyor: NAABSA Marine Surveyors — ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "surveyor_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "",
           "type": "text",
         },
       ],
@@ -196,7 +222,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Vessel's Command — Captain: ",
+          "text": "Vessel's Command (Master / Chief Officer): ",
           "type": "text",
         },
         {
@@ -212,7 +238,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": "  /  Chief Officer: ",
+          "text": " / ",
           "type": "text",
         },
         {
@@ -231,7 +257,78 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "paragraph",
     },
     {
-      "content": [],
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Contents",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "1.  Background",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "2.  Ship's Particulars",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "3.  Draft Survey",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "4.  Initial",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "6.  Final",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "7.  Photographic Report",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "8.  Attachment",
+          "type": "text",
+        },
+      ],
       "type": "paragraph",
     },
     {
@@ -249,7 +346,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "At the request and appointment of Messrs. ",
+          "text": "In compliance with the appointment survey from Messrs. ",
           "type": "text",
         },
         {
@@ -265,55 +362,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": ", the undersigned surveyor of NAABSA Marine Surveyors proceeded to ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "port",
-              },
-              "type": "dataField",
-            },
-          ],
-          "text": "—",
-          "type": "text",
-        },
-        {
-          "text": " Port, at ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "terminal",
-              },
-              "type": "dataField",
-            },
-          ],
-          "text": "—",
-          "type": "text",
-        },
-        {
-          "text": ", to carry out a Discharge Draft Survey of the M.V. ",
-          "type": "text",
-        },
-        {
-          "marks": [
-            {
-              "attrs": {
-                "field": "vessel_name",
-              },
-              "type": "dataField",
-            },
-          ],
-          "text": "MV Cabo Frio",
-          "type": "text",
-        },
-        {
-          "text": ".",
+          "text": ", we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo discharged and to compare it with the Shore scale / Bills of lading.",
           "type": "text",
         },
       ],
@@ -354,7 +403,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": " in bulk, loaded in ",
+          "text": " in bulk loaded in ",
           "type": "text",
         },
         {
@@ -377,19 +426,6 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "paragraph",
     },
     {
-      "content": [
-        {
-          "text": "The vessel was berthed — side.",
-          "type": "text",
-        },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [],
-      "type": "paragraph",
-    },
-    {
       "attrs": {
         "level": 2,
       },
@@ -403,25 +439,21 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "headers": [
-          "Item",
-          "Value",
-        ],
         "rows": [
           [
             "Flag",
             "—",
           ],
           [
-            "Port of Registry",
+            "Port registry",
             "—",
           ],
           [
-            "Call Sign",
+            "Call sign",
             "—",
           ],
           [
-            "IMO Number",
+            "IMO number",
             "—",
           ],
           [
@@ -434,31 +466,31 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           ],
           [
             "LOA",
-            "— m",
+            "—",
           ],
           [
             "LBP",
-            "— m",
+            "—",
           ],
           [
-            "Depth Moulded",
-            "— m",
+            "Depth moulded",
+            "—",
           ],
           [
-            "Breadth Moulded",
-            "— m",
+            "Breadth moulded",
+            "—",
           ],
           [
-            "Net Tonnage",
-            "— mt",
+            "Net tonnage",
+            "—",
           ],
           [
-            "Gross Tonnage",
-            "— mt",
+            "Gross tonnage",
+            "—",
           ],
           [
             "Summer DWT",
-            "— mt",
+            "—",
           ],
         ],
         "tableId": "ships_particulars",
@@ -466,8 +498,16 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       "type": "dataTable",
     },
     {
-      "content": [],
-      "type": "paragraph",
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Draft Survey",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
     },
     {
       "attrs": {
@@ -475,7 +515,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Initial Draft Survey",
+          "text": "Initial",
           "type": "text",
         },
       ],
@@ -484,7 +524,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Date: ",
+          "text": "The initial Draft Survey was carried out on ",
           "type": "text",
         },
         {
@@ -500,7 +540,39 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": "   From: ",
+          "text": ", upon berthing at ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "terminal",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": " Terminal, shed ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "shed",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": ", from ",
           "type": "text",
         },
         {
@@ -516,7 +588,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": " to: ",
+          "text": " up to ",
           "type": "text",
         },
         {
@@ -531,8 +603,33 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "text": "—",
           "type": "text",
         },
+        {
+          "text": " local time jointly with ship's command and the undersigned surveyor.",
+          "type": "text",
+        },
       ],
       "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft readings: — from shore, alongside vessel and — from boat.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "4.1. Draft readings",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
     },
     {
       "attrs": {
@@ -540,67 +637,55 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "Draft Mark",
           "Means (m)",
           "Mean corrected (m)",
+          "",
+          "Item",
+          "Value",
         ],
         "rows": [
           [
             "Fwd",
             "—",
             "—",
+            "",
+            "Trim observed",
+            "— m",
           ],
           [
             "Ms",
             "—",
             "—",
+            "",
+            "Trim corrected",
+            "— m",
           ],
           [
             "Aft",
             "—",
             "—",
-          ],
-        ],
-        "tableId": "init_readings_summary",
-      },
-      "type": "dataTable",
-    },
-    {
-      "attrs": {
-        "headers": [
-          "Item",
-          "Observed",
-          "Corrected / Type",
-        ],
-        "rows": [
-          [
-            "Trim (m)",
-            "—",
+            "",
+            "Heel",
             "—",
           ],
           [
-            "Heel/List (°)",
-            "—",
-            "—",
-          ],
-          [
+            "",
+            "",
+            "",
+            "",
             "Deflection",
-            "— cm",
             "—",
           ],
         ],
-        "tableId": "init_trim_heel",
+        "tableId": "init_readings",
       },
       "type": "dataTable",
     },
     {
-      "content": [],
-      "type": "paragraph",
-    },
-    {
       "attrs": {
-        "level": 2,
+        "level": 3,
       },
       "content": [
         {
-          "text": "Final Draft Survey",
+          "text": "4.2. Sea water density",
           "type": "text",
         },
       ],
@@ -609,7 +694,82 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Date: ",
+          "text": "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "4.3. Ballast water and fresh water",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "4.4. Fuel R.O.B.",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "According to the logbook — FWE.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "4.5. Initial Draft details",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Final",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "The final Draft Survey was carried out on ",
           "type": "text",
         },
         {
@@ -625,7 +785,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": "   From: ",
+          "text": ", from ",
           "type": "text",
         },
         {
@@ -641,7 +801,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "type": "text",
         },
         {
-          "text": " to: ",
+          "text": " up to ",
           "type": "text",
         },
         {
@@ -656,8 +816,69 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "text": "—",
           "type": "text",
         },
+        {
+          "text": " local time jointly with ship's command and the undersigned surveyor to ascertain the total quantity of the cargo discharged being the following figures disclosed:",
+          "type": "text",
+        },
       ],
       "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Shore Scale / BsL figures (Official): —",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "NAABSA's surveyor figures: —",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Difference as per our figures: — or —",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Vessel's figures: —",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft readings: — from shore, alongside vessel and — from boat.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "6.1. Draft readings",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
     },
     {
       "attrs": {
@@ -665,53 +886,45 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "Draft Mark",
           "Means (m)",
           "Mean corrected (m)",
+          "",
+          "Item",
+          "Value",
         ],
         "rows": [
           [
             "Fwd",
             "—",
             "—",
+            "",
+            "Trim observed",
+            "— m",
           ],
           [
             "Ms",
             "—",
             "—",
+            "",
+            "Trim corrected",
+            "— m",
           ],
           [
             "Aft",
             "—",
             "—",
-          ],
-        ],
-        "tableId": "fin_readings_summary",
-      },
-      "type": "dataTable",
-    },
-    {
-      "attrs": {
-        "headers": [
-          "Item",
-          "Observed",
-          "Corrected / Type",
-        ],
-        "rows": [
-          [
-            "Trim (m)",
-            "—",
+            "",
+            "List",
             "—",
           ],
           [
-            "Heel/List (°)",
-            "—",
-            "—",
-          ],
-          [
+            "",
+            "",
+            "",
+            "",
             "Deflection",
-            "— cm",
             "—",
           ],
         ],
-        "tableId": "fin_trim_heel",
+        "tableId": "fin_readings",
       },
       "type": "dataTable",
     },
@@ -721,47 +934,74 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Figures — Final",
+          "text": "6.2. Sea water density",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
-      "attrs": {
-        "headers": [
-          "",
-          "MT",
-        ],
-        "rows": [
-          [
-            "Shore Scale (Official)",
-            "—",
-          ],
-          [
-            "NAABSA Surveyor's Figures",
-            "—",
-          ],
-          [
-            "Vessel's Figures",
-            "—",
-          ],
-          [
-            "Difference (MT)",
-            "—",
-          ],
-          [
-            "Difference (%)",
-            "—",
-          ],
-        ],
-        "tableId": "fin_figures",
-      },
-      "type": "dataTable",
+      "content": [
+        {
+          "text": "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
     },
     {
-      "content": [],
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "6.3. Ballast water and fresh water",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer.",
+          "type": "text",
+        },
+      ],
       "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "6.4. Fuel R.O.B.",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Declared by the Chief Engineer at the time of survey.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "6.5. Final Draft details",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
     },
     {
       "attrs": {
@@ -781,7 +1021,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Initial",
+          "text": "7.1. Initial",
           "type": "text",
         },
       ],
@@ -789,11 +1029,11 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "heightMm": 97,
+        "heightMm": 100,
         "photoId": "golden-photo-1",
         "slotId": "photos_initial",
         "src": "https://cdn.example.com/golden.jpg",
-        "widthMm": 130,
+        "widthMm": 150,
       },
       "type": "photoFrame",
     },
@@ -803,7 +1043,7 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "Final",
+          "text": "7.3. Final",
           "type": "text",
         },
       ],
@@ -811,17 +1051,13 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "heightMm": 97,
+        "heightMm": 100,
         "photoId": null,
         "slotId": "photos_final",
         "src": null,
-        "widthMm": 130,
+        "widthMm": 150,
       },
       "type": "photoFrame",
-    },
-    {
-      "content": [],
-      "type": "paragraph",
     },
     {
       "attrs": {
@@ -838,7 +1074,25 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Draft Survey Certificates issued by undersigned surveyor / by vessel / by Terminal's surveyor.",
+          "text": "Draft Survey Certificates issued by undersigned surveyor.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft Survey Certificate issued by vessel.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft Survey Certificate issued by Terminal's surveyor.",
           "type": "text",
         },
       ],

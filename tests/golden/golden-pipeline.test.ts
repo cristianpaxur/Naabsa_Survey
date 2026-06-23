@@ -66,10 +66,10 @@ describe('Golden pipeline — draft_survey.discharge', () => {
     );
 
     expect(html).toContain('MV Cabo Frio');
-    expect(html).toContain('DRAFT SURVEY REPORT');
+    expect(html).toContain('Survey Report');
     expect(html).toContain('NAABSA');
-    expect(html).toContain('Discharge Draft Survey');
-    expect(html).toContain("Ship");
+    expect(html).toContain('Background');
+    expect(html).toContain("Ship&#x27;s Particulars");
   });
 
   it('HTML renderizado sem foto exibe placeholder de erro visível', async () => {
@@ -96,6 +96,7 @@ describe('Golden pipeline — draft_survey.discharge', () => {
     const wb = buildCompleteWorkbook();
     const { data } = await runExtraction(wb, sampleSpec, 'discharge');
     const photos: PhotoAlloc[] = [
+      { slotId: 'cover', photoId: 'p0', src: 'https://cdn.example.com/cover.jpg' },
       { slotId: 'photos_initial', photoId: 'p1', src: 'https://cdn.example.com/photo.jpg' },
       { slotId: 'photos_final', photoId: 'p2', src: 'https://cdn.example.com/photo-final.jpg' },
     ];

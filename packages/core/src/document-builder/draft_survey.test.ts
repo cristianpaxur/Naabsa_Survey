@@ -161,7 +161,7 @@ describe('buildDraftSurvey — CA-001', () => {
     expect(frame?.attrs?.['photoId']).toBeNull();
   });
 
-  it('variante discharge contém "Discharge" e "loaded in" no Background', () => {
+  it('variante discharge: "discharge a cargo" e "loaded in" no Background', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
@@ -170,12 +170,12 @@ describe('buildDraftSurvey — CA-001', () => {
       photos: [],
     };
     const json = JSON.stringify(buildDraftSurvey(input));
-    expect(json).toContain('Discharge Draft Survey');
+    expect(json).toContain('discharge a cargo');
     expect(json).toContain('loaded in');
     expect(json).not.toContain('bound to');
   });
 
-  it('variante loading contém "Loading" e "bound to" no Background', () => {
+  it('variante loading: "load a cargo" e "bound to" no Background', () => {
     const input: BuilderInput = {
       spec,
       variant: 'loading',
@@ -184,7 +184,7 @@ describe('buildDraftSurvey — CA-001', () => {
       photos: [],
     };
     const json = JSON.stringify(buildDraftSurvey(input));
-    expect(json).toContain('Loading Draft Survey');
+    expect(json).toContain('load a cargo');
     expect(json).toContain('bound to');
     expect(json).not.toContain('loaded in');
   });
@@ -198,7 +198,7 @@ describe('buildDraftSurvey — CA-001', () => {
       photos: [],
     };
     const json = JSON.stringify(buildDraftSurvey(input));
-    expect(json).not.toContain('Intermediate Draft Survey');
+    expect(json).not.toContain('intermediate Draft Survey was carried out');
     expect(json).not.toContain('photos_intermediate');
   });
 
@@ -227,7 +227,7 @@ describe('buildDraftSurvey — CA-001', () => {
     };
     const result = buildDraftSurvey(input);
     const json = JSON.stringify(result);
-    expect(json).toContain('Intermediate Draft Survey');
+    expect(json).toContain('intermediate Draft Survey was carried out');
     expect(json).toContain('photos_intermediate');
   });
 

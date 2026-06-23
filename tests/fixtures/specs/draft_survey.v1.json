@@ -154,6 +154,7 @@
   ],
 
   "photo_slots": [
+    { "id": "cover", "label": "Foto de capa (navio)", "aspect": "4:3", "required": false, "min": 0 },
     { "id": "photos_initial", "label": "Photographic Report — Initial", "aspect": "4:3", "required": true, "min": 1 },
     { "id": "photos_intermediate", "label": "Photographic Report — Intermediate", "aspect": "4:3", "required": false, "min": 0 },
     { "id": "photos_final", "label": "Photographic Report — Final", "aspect": "4:3", "required": true, "min": 1 }

@@ -63,9 +63,9 @@ function NaabsaHeader() {
         <div className="print-naabsa-tagline">Marine Surveyors</div>
       </div>
       <div className="print-naabsa-contact">
-        <div>Av. Conselheiro Rodrigues Alves, 26 — sala 12</div>
-        <div>Santos — SP — Brasil · CEP 11010-020</div>
-        <div>+55 (13) 3228-5420 · naabsa@naabsa.com.br</div>
+        <div>433 Ana Costa Avenue, Suite 184 — Santos / Brazil · 11060-003</div>
+        <div>Telephone: +55 13 3394-0655</div>
+        <div>surveyors@naabsa.com · www.naabsa.com</div>
       </div>
     </header>
   );
