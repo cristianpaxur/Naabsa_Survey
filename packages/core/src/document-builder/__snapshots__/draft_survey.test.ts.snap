@@ -5,7 +5,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
   "content": [
     {
       "attrs": {
-        "level": 2,
+        "level": 3,
         "textAlign": "center",
       },
       "content": [
@@ -1111,7 +1111,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
   "content": [
     {
       "attrs": {
-        "level": 2,
+        "level": 3,
         "textAlign": "center",
       },
       "content": [

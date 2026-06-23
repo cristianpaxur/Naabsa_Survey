@@ -226,7 +226,7 @@ export function buildDraftSurveyContent(
 
   // ── Capa ──────────────────────────────────────────────────────────────────
   const cover: TipTapNode[] = [
-    heading(2, [text('Survey Report')], 'center'),
+    heading(3, [text('Survey Report')], 'center'),
     paragraph([text('Ref: '), text(fmtVal(data['ref']), [dataField('ref')])], 'center'),
     heading(1, [text('Draft Survey')], 'center'),
     heading(2, [text(`“${fmtVal(data['vessel_name'], '')}”`, [dataField('vessel_name')])], 'center'),

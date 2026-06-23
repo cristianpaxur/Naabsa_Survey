@@ -137,14 +137,15 @@
 .print-document h2[style*='center'] {
   font-size: 24pt;
   font-weight: 800;
+  color: var(--print-tinta);
   text-transform: none;
   letter-spacing: normal;
   border-bottom: none;
   padding: 0;
-  margin: 4pt 0;
+  margin: 6pt 0;
 }
 .print-document h3[style*='center'] {
-  font-size: 16pt;
+  font-size: 17pt;
   font-weight: 700;
   color: var(--print-tinta);
   margin: 4pt 0 0;
@@ -156,11 +157,13 @@
 }
 
 /* ── dataField (valor dinâmico) ──────────────────────────────────────────── */
+/* Herda a fonte/tamanho do contexto (como no Word) — apenas realça em navy.
+ * NUNCA forçar mono/size fixo, senão encolhe os títulos da capa. */
 .print-data-field {
-  font-family: var(--font-mono);
-  font-size: 10pt;
-  color: var(--naabsa-navy);
-  font-weight: 600;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  font-weight: inherit;
 }
 
 /* ── dataTable ───────────────────────────────────────────────────────────── */

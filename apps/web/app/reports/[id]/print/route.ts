@@ -163,12 +163,12 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
   padding-bottom: 2pt; border-bottom: 1pt solid var(--naabsa-navy); break-after: avoid; }
 .print-document h3 { font-size: 10.5pt; font-weight: 700; color: var(--naabsa-navy);
   margin: 10pt 0 3pt; break-after: avoid; }
-.print-document h2[style*='center'] { font-size: 24pt; font-weight: 800; text-transform: none;
-  letter-spacing: normal; border-bottom: none; padding: 0; margin: 4pt 0; }
-.print-document h3[style*='center'] { font-size: 16pt; font-weight: 700; color: var(--print-tinta); margin: 4pt 0 0; }
+.print-document h2[style*='center'] { font-size: 24pt; font-weight: 800; color: var(--print-tinta); text-transform: none;
+  letter-spacing: normal; border-bottom: none; padding: 0; margin: 6pt 0; }
+.print-document h3[style*='center'] { font-size: 17pt; font-weight: 700; color: var(--print-tinta); margin: 4pt 0 0; }
 .print-document p { margin: 0 0 5pt; }
 
-.print-data-field { font-family: var(--font-mono); font-size: 10pt; color: var(--naabsa-navy); font-weight: 600; }
+.print-data-field { font-family: inherit; font-size: inherit; color: inherit; font-weight: inherit; }
 
 .print-data-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans);
   font-size: 9.5pt; break-inside: avoid; margin: 4pt 0 8pt; }
