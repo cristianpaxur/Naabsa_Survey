@@ -2,8 +2,7 @@
 
 > **Implementação:** 004 - Document-Builder e Geração de PDF
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 10/14 tarefas concluídas (71%) — pipeline pronto; modelo Word recebido
->   (2026-06-23). Conteúdo real (EN) destravado, mas depende do contrato v2 (003/T-013..T-016).
+> **Progresso:** 11/14 tarefas concluídas (79%) — pipeline pronto; conteúdo real inglês implementado (T-011).
 > **Última atualização:** 2026-06-23
 
 ---
@@ -103,7 +102,7 @@
 > Modelo: `tests/fixtures/reports/draft_survey/MV-PERSEUS-I.model.docx` · estrutura: `field-map.md`.
 > Depende do contrato v2 do spec (003/T-013..T-016) para variante/multi-aba/tables.
 
-- [ ] **T-011:** Conteúdo real do `draft_survey` em inglês
+- [x] **T-011:** Conteúdo real do `draft_survey` em inglês
   - **Descrição:** Reescrever `content/draft_survey.{loading,discharge}.ts` com o texto do modelo:
     cabeçalho (Ref/vessel/flag/IMO/port/date), Person/Companies contacted, Background (com texto
     por variante load/discharge e por berthing side `Capa!C31`), Ship's Particulars, e as 3 fases
@@ -167,7 +166,7 @@
 | T-008  | ✅ Concluída | 2026-06-13 | generatePdf.ts — job completo com hash, Storage, transição |
 | T-009  | ✅ Concluída | 2026-06-13 | golden-pipeline.test.ts (5 testes verdes); CA-004 definitivo requer stack |
 | T-010  | ✅ Concluída | 2026-06-13 | Todos CA marcados; implementação concluída |
-| T-011  | ⬜ Pendente | — | Conteúdo real EN destravado (modelo recebido); depende de 003/T-014 |
+| T-011  | ✅ Concluída | 2026-06-23 | content/{discharge,loading}.ts reescritos: 9 seções EN (Background variante-driven + Intermediate condicional); BuilderInput.tables; 127 testes core + 5 golden verdes |
 | T-012  | ⬜ Pendente | — | Tabelas-resumo + grades nativas (RF-008); depende de 003/T-015 |
 | T-013  | ⬜ Pendente | — | PrintDocument/print.css no layout do modelo (CA-002 definitivo) |
 | T-014  | ⬜ Pendente | — | Golden test contra o modelo real (CA-004 definitivo) |
