@@ -9,44 +9,37 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
       },
       "content": [
         {
-          "text": "NAABSA — RELATÓRIOS DE SURVEY",
+          "text": "DRAFT SURVEY REPORT",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
-      "attrs": {
-        "level": 2,
-      },
       "content": [
         {
-          "text": "RELATÓRIO DE DRAFT SURVEY · DESCARGA",
+          "text": "Ref: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "ref",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
           "type": "text",
         },
       ],
-      "type": "heading",
-    },
-    {
-      "content": [],
       "type": "paragraph",
     },
     {
-      "attrs": {
-        "level": 3,
-      },
       "content": [
         {
-          "text": "Identificação",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
-        {
-          "text": "Navio: ",
+          "text": "Vessel: ",
           "type": "text",
         },
         {
@@ -61,25 +54,73 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
           "text": "MV Cabo Frio",
           "type": "text",
         },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
         {
-          "text": "Data do survey: ",
+          "text": "   Flag: ",
           "type": "text",
         },
         {
           "marks": [
             {
               "attrs": {
-                "field": "survey_date",
+                "field": "flag",
               },
               "type": "dataField",
             },
           ],
-          "text": "2026-06-06",
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": "   IMO: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "imo",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Port: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": "   Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
           "type": "text",
         },
       ],
@@ -91,11 +132,11 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Operação",
+          "text": "Persons / Companies Contacted",
           "type": "text",
         },
       ],
@@ -104,19 +145,86 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "content": [
         {
-          "text": "Porto de descarga: ",
+          "text": "Client: ",
           "type": "text",
         },
         {
           "marks": [
             {
               "attrs": {
-                "field": "disch_port",
+                "field": "client",
               },
               "type": "dataField",
             },
           ],
-          "text": "Tubarão",
+          "text": "—",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Operator / Contact: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "operator",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Undersigned Surveyor: NAABSA Marine Surveyors",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Vessel's Command — Captain: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "captain",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": "  /  Chief Officer: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "chief_officer",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
           "type": "text",
         },
       ],
@@ -128,11 +236,166 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Carga",
+          "text": "Background",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "At the request and appointment of Messrs. ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "client",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": ", the undersigned surveyor of NAABSA Marine Surveyors proceeded to ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": " Port, at ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "terminal",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": ", to carry out a Discharge Draft Survey of the M.V. ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "vessel_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "MV Cabo Frio",
+          "type": "text",
+        },
+        {
+          "text": ".",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "She called ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": " Port to discharge a cargo of ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "cargo",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": " in bulk, loaded in ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "discharging_port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": ".",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "The vessel was berthed — side.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Ship's Particulars",
           "type": "text",
         },
       ],
@@ -141,20 +404,64 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     {
       "attrs": {
         "headers": [
-          "Campo",
-          "Valor",
+          "Item",
+          "Value",
         ],
         "rows": [
           [
-            "Peso de carga (t)",
-            "208450",
+            "Flag",
+            "—",
           ],
           [
-            "Porões limpos",
-            "Sim",
+            "Port of Registry",
+            "—",
+          ],
+          [
+            "Call Sign",
+            "—",
+          ],
+          [
+            "IMO Number",
+            "—",
+          ],
+          [
+            "Type",
+            "—",
+          ],
+          [
+            "Delivered",
+            "—",
+          ],
+          [
+            "LOA",
+            "— m",
+          ],
+          [
+            "LBP",
+            "— m",
+          ],
+          [
+            "Depth Moulded",
+            "— m",
+          ],
+          [
+            "Breadth Moulded",
+            "— m",
+          ],
+          [
+            "Net Tonnage",
+            "— mt",
+          ],
+          [
+            "Gross Tonnage",
+            "— mt",
+          ],
+          [
+            "Summer DWT",
+            "— mt",
           ],
         ],
-        "tableId": "carga_info",
+        "tableId": "ships_particulars",
       },
       "type": "dataTable",
     },
@@ -164,39 +471,112 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Calados",
+          "text": "Initial Draft Survey",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
+      "content": [
+        {
+          "text": "Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": "   From: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_start",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": " to: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_end",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
       "attrs": {
         "headers": [
-          "Leitura",
-          "Proa (m)",
-          "Meio (m)",
-          "Popa (m)",
+          "Draft Mark",
+          "Means (m)",
+          "Mean corrected (m)",
         ],
         "rows": [
           [
-            "Inicial",
-            "—",
+            "Fwd",
             "—",
             "—",
           ],
           [
-            "Final",
+            "Ms",
             "—",
+            "—",
+          ],
+          [
+            "Aft",
             "—",
             "—",
           ],
         ],
-        "tableId": "draft_readings",
+        "tableId": "init_readings_summary",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Item",
+          "Observed",
+          "Corrected",
+        ],
+        "rows": [
+          [
+            "Trim",
+            "—",
+            "—",
+          ],
+        ],
+        "tableId": "init_trim_heel",
       },
       "type": "dataTable",
     },
@@ -206,11 +586,122 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Final Draft Survey",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": "   From: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_start",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+        {
+          "text": " to: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_end",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Draft Mark",
+          "Means (m)",
+          "Mean corrected (m)",
+        ],
+        "rows": [
+          [
+            "Fwd",
+            "—",
+            "—",
+          ],
+          [
+            "Ms",
+            "—",
+            "—",
+          ],
+          [
+            "Aft",
+            "—",
+            "—",
+          ],
+        ],
+        "tableId": "fin_readings_summary",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Item",
+          "Observed",
+          "Corrected",
+        ],
+        "rows": [
+          [
+            "Trim",
+            "—",
+            "—",
+          ],
+        ],
+        "tableId": "fin_trim_heel",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
         "level": 3,
       },
       "content": [
         {
-          "text": "Fotos",
+          "text": "Figures — Final",
           "type": "text",
         },
       ],
@@ -218,25 +709,119 @@ exports[`Golden pipeline — draft_survey.discharge > builder produz doc TipTap 
     },
     {
       "attrs": {
-        "heightMm": 112,
+        "headers": [
+          "",
+          "MT",
+        ],
+        "rows": [
+          [
+            "Shore Scale (Official)",
+            "—",
+          ],
+          [
+            "NAABSA Surveyor's Figures",
+            "—",
+          ],
+          [
+            "Vessel's Figures",
+            "—",
+          ],
+          [
+            "Difference (MT)",
+            "—",
+          ],
+          [
+            "Difference (%)",
+            "—",
+          ],
+        ],
+        "tableId": "fin_figures",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Photographic Report",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Initial",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 97,
         "photoId": "golden-photo-1",
-        "slotId": "draft_fwd",
+        "slotId": "photos_initial",
         "src": "https://cdn.example.com/golden.jpg",
-        "widthMm": 150,
+        "widthMm": 130,
       },
       "type": "photoFrame",
     },
     {
+      "attrs": {
+        "level": 3,
+      },
       "content": [
         {
-          "text": "Calado de proa",
+          "text": "Final",
           "type": "text",
         },
       ],
-      "type": "paragraph",
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 97,
+        "photoId": null,
+        "slotId": "photos_final",
+        "src": null,
+        "widthMm": 130,
+      },
+      "type": "photoFrame",
     },
     {
       "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Attachment",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft Survey Certificates issued by undersigned surveyor / by vessel / by Terminal's surveyor.",
+          "type": "text",
+        },
+      ],
       "type": "paragraph",
     },
   ],

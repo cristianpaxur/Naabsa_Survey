@@ -102,5 +102,5 @@ export async function assembleDocument(
   );
   const photos = await loadAllocatedPhotos(supabase, reportId);
 
-  return builder({ spec: input.spec, variant: input.variant, data, photos });
+  return builder({ spec: input.spec, variant: input.variant, data, tables: {}, photos });
 }

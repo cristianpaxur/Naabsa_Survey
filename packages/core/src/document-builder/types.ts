@@ -22,6 +22,8 @@ export interface BuilderInput {
   variant: string | null;
   /** Valores efetivos (extracted_data + overrides já resolvidos). */
   data: Record<string, FieldValue>;
+  /** Matrizes das tabelas range-based (v2) — usado pelas grades em T-012. */
+  tables: Record<string, FieldValue[][]>;
   photos: PhotoAlloc[];
 }
 

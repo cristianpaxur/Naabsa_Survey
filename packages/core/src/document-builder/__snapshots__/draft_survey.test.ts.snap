@@ -9,44 +9,37 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "NAABSA — RELATÓRIOS DE SURVEY",
+          "text": "DRAFT SURVEY REPORT",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
-      "attrs": {
-        "level": 2,
-      },
       "content": [
         {
-          "text": "RELATÓRIO DE DRAFT SURVEY · DESCARGA",
+          "text": "Ref: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "ref",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
           "type": "text",
         },
       ],
-      "type": "heading",
-    },
-    {
-      "content": [],
       "type": "paragraph",
     },
     {
-      "attrs": {
-        "level": 3,
-      },
       "content": [
         {
-          "text": "Identificação",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
-        {
-          "text": "Navio: ",
+          "text": "Vessel: ",
           "type": "text",
         },
         {
@@ -58,60 +51,55 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
               "type": "dataField",
             },
           ],
-          "text": "MV Naabsa Test",
+          "text": "MV Perseus I",
           "type": "text",
         },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [
         {
-          "text": "Data do survey: ",
+          "text": "   Flag: ",
           "type": "text",
         },
         {
           "marks": [
             {
               "attrs": {
-                "field": "survey_date",
+                "field": "flag",
               },
               "type": "dataField",
             },
           ],
-          "text": "2026-06-01",
+          "text": "Malta",
           "type": "text",
         },
-      ],
-      "type": "paragraph",
-    },
-    {
-      "content": [],
-      "type": "paragraph",
-    },
-    {
-      "attrs": {
-        "level": 3,
-      },
-      "content": [
         {
-          "text": "Operação",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
-        {
-          "text": "Porto de descarga: ",
+          "text": "   IMO: ",
           "type": "text",
         },
         {
           "marks": [
             {
               "attrs": {
-                "field": "disch_port",
+                "field": "imo",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "9876543",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Port: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
               },
               "type": "dataField",
             },
@@ -119,6 +107,22 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
           "text": "Santos",
           "type": "text",
         },
+        {
+          "text": "   Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "24/Jun/2026",
+          "type": "text",
+        },
       ],
       "type": "paragraph",
     },
@@ -128,11 +132,270 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Carga",
+          "text": "Persons / Companies Contacted",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Client: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "client",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Cargill",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Operator / Contact: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "operator",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos Brasil",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Undersigned Surveyor: NAABSA Marine Surveyors",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Vessel's Command — Captain: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "captain",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "J. Silva",
+          "type": "text",
+        },
+        {
+          "text": "  /  Chief Officer: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "chief_officer",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "A. Pereira",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Background",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "At the request and appointment of Messrs. ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "client",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Cargill",
+          "type": "text",
+        },
+        {
+          "text": ", the undersigned surveyor of NAABSA Marine Surveyors proceeded to ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos",
+          "type": "text",
+        },
+        {
+          "text": " Port, at ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "terminal",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "T-Granéis",
+          "type": "text",
+        },
+        {
+          "text": ", to carry out a Discharge Draft Survey of the M.V. ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "vessel_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "MV Perseus I",
+          "type": "text",
+        },
+        {
+          "text": ".",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "She called ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos",
+          "type": "text",
+        },
+        {
+          "text": " Port to discharge a cargo of ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "cargo",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Soybean",
+          "type": "text",
+        },
+        {
+          "text": " in bulk, loaded in ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "discharging_port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Rotterdam",
+          "type": "text",
+        },
+        {
+          "text": ".",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "The vessel was berthed Starboard side from shore and Port side from the boat.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Ship's Particulars",
           "type": "text",
         },
       ],
@@ -141,20 +404,64 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     {
       "attrs": {
         "headers": [
-          "Campo",
-          "Valor",
+          "Item",
+          "Value",
         ],
         "rows": [
           [
-            "Peso de carga (t)",
-            "42000",
+            "Flag",
+            "Malta",
           ],
           [
-            "Porões limpos",
-            "Sim",
+            "Port of Registry",
+            "—",
+          ],
+          [
+            "Call Sign",
+            "—",
+          ],
+          [
+            "IMO Number",
+            "9876543",
+          ],
+          [
+            "Type",
+            "—",
+          ],
+          [
+            "Delivered",
+            "—",
+          ],
+          [
+            "LOA",
+            "— m",
+          ],
+          [
+            "LBP",
+            "— m",
+          ],
+          [
+            "Depth Moulded",
+            "— m",
+          ],
+          [
+            "Breadth Moulded",
+            "— m",
+          ],
+          [
+            "Net Tonnage",
+            "— mt",
+          ],
+          [
+            "Gross Tonnage",
+            "— mt",
+          ],
+          [
+            "Summer DWT",
+            "— mt",
           ],
         ],
-        "tableId": "carga_info",
+        "tableId": "ships_particulars",
       },
       "type": "dataTable",
     },
@@ -164,39 +471,112 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Calados",
+          "text": "Initial Draft Survey",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
+      "content": [
+        {
+          "text": "Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "24/Jun/2026",
+          "type": "text",
+        },
+        {
+          "text": "   From: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_start",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "08:00",
+          "type": "text",
+        },
+        {
+          "text": " to: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_end",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "10:30",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
       "attrs": {
         "headers": [
-          "Leitura",
-          "Proa (m)",
-          "Meio (m)",
-          "Popa (m)",
+          "Draft Mark",
+          "Means (m)",
+          "Mean corrected (m)",
         ],
         "rows": [
           [
-            "Inicial",
-            "—",
-            "—",
-            "—",
+            "Fwd",
+            "4.780",
+            "4.7802",
           ],
           [
-            "Final",
-            "—",
-            "—",
-            "—",
+            "Ms",
+            "5.120",
+            "5.1198",
+          ],
+          [
+            "Aft",
+            "5.440",
+            "5.4401",
           ],
         ],
-        "tableId": "draft_readings",
+        "tableId": "init_readings_summary",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Item",
+          "Observed",
+          "Corrected",
+        ],
+        "rows": [
+          [
+            "Trim",
+            "-0.6600",
+            "-0.6599",
+          ],
+        ],
+        "tableId": "init_trim_heel",
       },
       "type": "dataTable",
     },
@@ -206,11 +586,122 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Final Draft Survey",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "24/Jun/2026",
+          "type": "text",
+        },
+        {
+          "text": "   From: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_start",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "14:00",
+          "type": "text",
+        },
+        {
+          "text": " to: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_end",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "16:30",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Draft Mark",
+          "Means (m)",
+          "Mean corrected (m)",
+        ],
+        "rows": [
+          [
+            "Fwd",
+            "4.550",
+            "4.5503",
+          ],
+          [
+            "Ms",
+            "4.970",
+            "4.9701",
+          ],
+          [
+            "Aft",
+            "5.380",
+            "5.3800",
+          ],
+        ],
+        "tableId": "fin_readings_summary",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Item",
+          "Observed",
+          "Corrected",
+        ],
+        "rows": [
+          [
+            "Trim",
+            "-0.8300",
+            "-0.8300",
+          ],
+        ],
+        "tableId": "fin_trim_heel",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
         "level": 3,
       },
       "content": [
         {
-          "text": "Fotos",
+          "text": "Figures — Final",
           "type": "text",
         },
       ],
@@ -218,25 +709,119 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "heightMm": 112,
+        "headers": [
+          "",
+          "MT",
+        ],
+        "rows": [
+          [
+            "Shore Scale (Official)",
+            "—",
+          ],
+          [
+            "NAABSA Surveyor's Figures",
+            "—",
+          ],
+          [
+            "Vessel's Figures",
+            "—",
+          ],
+          [
+            "Difference (MT)",
+            "—",
+          ],
+          [
+            "Difference (%)",
+            "—",
+          ],
+        ],
+        "tableId": "fin_figures",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Photographic Report",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Initial",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 97,
         "photoId": "photo-1",
-        "slotId": "draft_fwd",
+        "slotId": "photos_initial",
         "src": "https://cdn.example.com/photo.jpg",
-        "widthMm": 150,
+        "widthMm": 130,
       },
       "type": "photoFrame",
     },
     {
+      "attrs": {
+        "level": 3,
+      },
       "content": [
         {
-          "text": "Calado de proa",
+          "text": "Final",
           "type": "text",
         },
       ],
-      "type": "paragraph",
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 97,
+        "photoId": null,
+        "slotId": "photos_final",
+        "src": null,
+        "widthMm": 130,
+      },
+      "type": "photoFrame",
     },
     {
       "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Attachment",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft Survey Certificates issued by undersigned surveyor / by vessel / by Terminal's surveyor.",
+          "type": "text",
+        },
+      ],
       "type": "paragraph",
     },
   ],
@@ -253,44 +838,37 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "NAABSA — RELATÓRIOS DE SURVEY",
+          "text": "DRAFT SURVEY REPORT",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
-      "attrs": {
-        "level": 2,
-      },
       "content": [
         {
-          "text": "RELATÓRIO DE DRAFT SURVEY · CARREGAMENTO",
+          "text": "Ref: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "ref",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "—",
           "type": "text",
         },
       ],
-      "type": "heading",
-    },
-    {
-      "content": [],
       "type": "paragraph",
     },
     {
-      "attrs": {
-        "level": 3,
-      },
       "content": [
         {
-          "text": "Identificação",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
-        {
-          "text": "Navio: ",
+          "text": "Vessel: ",
           "type": "text",
         },
         {
@@ -302,7 +880,39 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
               "type": "dataField",
             },
           ],
-          "text": "MV Naabsa Test",
+          "text": "MV Perseus I",
+          "type": "text",
+        },
+        {
+          "text": "   Flag: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "flag",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Malta",
+          "type": "text",
+        },
+        {
+          "text": "   IMO: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "imo",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "9876543",
           "type": "text",
         },
       ],
@@ -311,19 +921,35 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Data do survey: ",
+          "text": "Port: ",
           "type": "text",
         },
         {
           "marks": [
             {
               "attrs": {
-                "field": "survey_date",
+                "field": "port",
               },
               "type": "dataField",
             },
           ],
-          "text": "2026-06-01",
+          "text": "Santos",
+          "type": "text",
+        },
+        {
+          "text": "   Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "24/Jun/2026",
           "type": "text",
         },
       ],
@@ -335,11 +961,11 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Operação",
+          "text": "Persons / Companies Contacted",
           "type": "text",
         },
       ],
@@ -348,19 +974,86 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Porto de carregamento: ",
+          "text": "Client: ",
           "type": "text",
         },
         {
           "marks": [
             {
               "attrs": {
-                "field": "load_port",
+                "field": "client",
               },
               "type": "dataField",
             },
           ],
-          "text": "Paranaguá",
+          "text": "Cargill",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Operator / Contact: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "operator",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos Brasil",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Undersigned Surveyor: NAABSA Marine Surveyors",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "Vessel's Command — Captain: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "captain",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "J. Silva",
+          "type": "text",
+        },
+        {
+          "text": "  /  Chief Officer: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "chief_officer",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "A. Pereira",
           "type": "text",
         },
       ],
@@ -372,11 +1065,166 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Carga",
+          "text": "Background",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "At the request and appointment of Messrs. ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "client",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Cargill",
+          "type": "text",
+        },
+        {
+          "text": ", the undersigned surveyor of NAABSA Marine Surveyors proceeded to ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos",
+          "type": "text",
+        },
+        {
+          "text": " Port, at ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "terminal",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "T-Granéis",
+          "type": "text",
+        },
+        {
+          "text": ", to carry out a Loading Draft Survey of the M.V. ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "vessel_name",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "MV Perseus I",
+          "type": "text",
+        },
+        {
+          "text": ".",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "She called ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Santos",
+          "type": "text",
+        },
+        {
+          "text": " Port to load a cargo of ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "cargo",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Soybean",
+          "type": "text",
+        },
+        {
+          "text": " in bulk, bound to ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "discharging_port",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "Rotterdam",
+          "type": "text",
+        },
+        {
+          "text": ".",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [
+        {
+          "text": "The vessel was berthed Starboard side from shore and Port side from the boat.",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Ship's Particulars",
           "type": "text",
         },
       ],
@@ -385,20 +1233,64 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "attrs": {
         "headers": [
-          "Campo",
-          "Valor",
+          "Item",
+          "Value",
         ],
         "rows": [
           [
-            "Peso de carga (t)",
-            "42000",
+            "Flag",
+            "Malta",
           ],
           [
-            "Porões limpos",
-            "Sim",
+            "Port of Registry",
+            "—",
+          ],
+          [
+            "Call Sign",
+            "—",
+          ],
+          [
+            "IMO Number",
+            "9876543",
+          ],
+          [
+            "Type",
+            "—",
+          ],
+          [
+            "Delivered",
+            "—",
+          ],
+          [
+            "LOA",
+            "— m",
+          ],
+          [
+            "LBP",
+            "— m",
+          ],
+          [
+            "Depth Moulded",
+            "— m",
+          ],
+          [
+            "Breadth Moulded",
+            "— m",
+          ],
+          [
+            "Net Tonnage",
+            "— mt",
+          ],
+          [
+            "Gross Tonnage",
+            "— mt",
+          ],
+          [
+            "Summer DWT",
+            "— mt",
           ],
         ],
-        "tableId": "carga_info",
+        "tableId": "ships_particulars",
       },
       "type": "dataTable",
     },
@@ -408,39 +1300,112 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "level": 2,
       },
       "content": [
         {
-          "text": "Calados",
+          "text": "Initial Draft Survey",
           "type": "text",
         },
       ],
       "type": "heading",
     },
     {
+      "content": [
+        {
+          "text": "Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "24/Jun/2026",
+          "type": "text",
+        },
+        {
+          "text": "   From: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_start",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "08:00",
+          "type": "text",
+        },
+        {
+          "text": " to: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "initial_end",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "10:30",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
       "attrs": {
         "headers": [
-          "Leitura",
-          "Proa (m)",
-          "Meio (m)",
-          "Popa (m)",
+          "Draft Mark",
+          "Means (m)",
+          "Mean corrected (m)",
         ],
         "rows": [
           [
-            "Inicial",
-            "—",
-            "—",
-            "—",
+            "Fwd",
+            "4.780",
+            "4.7802",
           ],
           [
-            "Final",
-            "—",
-            "—",
-            "—",
+            "Ms",
+            "5.120",
+            "5.1198",
+          ],
+          [
+            "Aft",
+            "5.440",
+            "5.4401",
           ],
         ],
-        "tableId": "draft_readings",
+        "tableId": "init_readings_summary",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Item",
+          "Observed",
+          "Corrected",
+        ],
+        "rows": [
+          [
+            "Trim",
+            "-0.6600",
+            "-0.6599",
+          ],
+        ],
+        "tableId": "init_trim_heel",
       },
       "type": "dataTable",
     },
@@ -450,11 +1415,122 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Final Draft Survey",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Date: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_date",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "24/Jun/2026",
+          "type": "text",
+        },
+        {
+          "text": "   From: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_start",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "14:00",
+          "type": "text",
+        },
+        {
+          "text": " to: ",
+          "type": "text",
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "field": "final_end",
+              },
+              "type": "dataField",
+            },
+          ],
+          "text": "16:30",
+          "type": "text",
+        },
+      ],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Draft Mark",
+          "Means (m)",
+          "Mean corrected (m)",
+        ],
+        "rows": [
+          [
+            "Fwd",
+            "4.550",
+            "4.5503",
+          ],
+          [
+            "Ms",
+            "4.970",
+            "4.9701",
+          ],
+          [
+            "Aft",
+            "5.380",
+            "5.3800",
+          ],
+        ],
+        "tableId": "fin_readings_summary",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
+        "headers": [
+          "Item",
+          "Observed",
+          "Corrected",
+        ],
+        "rows": [
+          [
+            "Trim",
+            "-0.8300",
+            "-0.8300",
+          ],
+        ],
+        "tableId": "fin_trim_heel",
+      },
+      "type": "dataTable",
+    },
+    {
+      "attrs": {
         "level": 3,
       },
       "content": [
         {
-          "text": "Fotos",
+          "text": "Figures — Final",
           "type": "text",
         },
       ],
@@ -462,25 +1538,119 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "heightMm": 112,
+        "headers": [
+          "",
+          "MT",
+        ],
+        "rows": [
+          [
+            "Shore Scale (Official)",
+            "—",
+          ],
+          [
+            "NAABSA Surveyor's Figures",
+            "—",
+          ],
+          [
+            "Vessel's Figures",
+            "—",
+          ],
+          [
+            "Difference (MT)",
+            "—",
+          ],
+          [
+            "Difference (%)",
+            "—",
+          ],
+        ],
+        "tableId": "fin_figures",
+      },
+      "type": "dataTable",
+    },
+    {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Photographic Report",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "level": 3,
+      },
+      "content": [
+        {
+          "text": "Initial",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 97,
         "photoId": null,
-        "slotId": "draft_fwd",
+        "slotId": "photos_initial",
         "src": null,
-        "widthMm": 150,
+        "widthMm": 130,
       },
       "type": "photoFrame",
     },
     {
+      "attrs": {
+        "level": 3,
+      },
       "content": [
         {
-          "text": "Calado de proa",
+          "text": "Final",
           "type": "text",
         },
       ],
-      "type": "paragraph",
+      "type": "heading",
+    },
+    {
+      "attrs": {
+        "heightMm": 97,
+        "photoId": null,
+        "slotId": "photos_final",
+        "src": null,
+        "widthMm": 130,
+      },
+      "type": "photoFrame",
     },
     {
       "content": [],
+      "type": "paragraph",
+    },
+    {
+      "attrs": {
+        "level": 2,
+      },
+      "content": [
+        {
+          "text": "Attachment",
+          "type": "text",
+        },
+      ],
+      "type": "heading",
+    },
+    {
+      "content": [
+        {
+          "text": "Draft Survey Certificates issued by undersigned surveyor / by vessel / by Terminal's surveyor.",
+          "type": "text",
+        },
+      ],
       "type": "paragraph",
     },
   ],

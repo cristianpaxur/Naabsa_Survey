@@ -8,38 +8,91 @@ const spec: ReportSpec = {
   version: 1,
   variants: ['loading', 'discharge'],
   source: {
-    sheet: 'DADOS',
-    fingerprint: { cell: 'A1', expect: 'NAABSA-DRAFT' },
+    sheet: 'Capa',
+    fingerprint: { cell: 'B2', expect: 'DRAFT SURVEY', sheet: 'Capa' },
     common: {
       fields: {
-        vessel_name: { cell: 'B4', type: 'string', required: true, label: 'Nome do navio', section: 'Identificação' },
-        cargo_weight: { cell: 'B5', type: 'number', decimals: 0, label: 'Peso de carga (t)', section: 'Carga' },
-        survey_date: { cell: 'B6', type: 'date', format: 'DD/MMM/YYYY', required: true, label: 'Data do survey', section: 'Survey' },
-        clean: { cell: 'B7', type: 'boolean', label: 'Porões limpos', section: 'Survey' },
+        vessel_name: { cell: 'C13', type: 'string', required: true, label: 'Navio', section: 'Identificação' },
+        flag: { cell: 'C14', type: 'string', label: 'Bandeira', section: 'Ship Particulars' },
+        imo: { cell: 'C17', type: 'string', label: 'IMO', section: 'Ship Particulars' },
+        port: { cell: 'C5', type: 'string', required: true, label: 'Porto', section: 'Identificação' },
+        final_date: { cell: 'L9', type: 'date', format: 'DD/MMM/YYYY', label: 'Data Final', section: 'Survey', sheet: 'Capa' },
+        client: { cell: 'C33', type: 'string', label: 'Cliente', section: 'Identificação' },
+        operator: { cell: 'C34', type: 'string', label: 'Operador', section: 'Identificação' },
+        captain: { cell: 'C28', type: 'string', label: 'Comandante', section: 'Identificação' },
+        chief_officer: { cell: 'C29', type: 'string', label: 'Imediato', section: 'Identificação' },
+        terminal: { cell: 'C6', type: 'string', label: 'Terminal', section: 'Identificação' },
+        cargo: { cell: 'C7', type: 'string', label: 'Carga', section: 'Carga' },
+        discharging_port: { cell: 'C8', type: 'string', label: 'Porto de descarga', section: 'Carga' },
+        berthing_side: { cell: 'C31', type: 'enum', options: ['Port Side', 'Starboard'], label: 'Bordo', section: 'Identificação' },
+        initial_date: { cell: 'L7', type: 'date', format: 'DD/MMM/YYYY', label: 'Data Inicial', section: 'Survey', sheet: 'Capa' },
+        initial_start: { cell: 'M7', type: 'time', label: 'Hora Inicial Início', section: 'Survey', sheet: 'Capa' },
+        initial_end: { cell: 'N7', type: 'time', label: 'Hora Inicial Fim', section: 'Survey', sheet: 'Capa' },
+        init_fwd_mean: { cell: 'D10', type: 'number', decimals: 3, label: 'Médias Proa Inicial', section: 'Survey', sheet: 'Capa' },
+        init_fwd_corr: { cell: 'E10', type: 'number', decimals: 4, label: 'Proa Corrigida Inicial', section: 'Survey', sheet: 'Capa' },
+        init_mid_mean: { cell: 'D11', type: 'number', decimals: 3, label: 'Médias Meio Inicial', section: 'Survey', sheet: 'Capa' },
+        init_mid_corr: { cell: 'E11', type: 'number', decimals: 4, label: 'Meio Corrigido Inicial', section: 'Survey', sheet: 'Capa' },
+        init_aft_mean: { cell: 'D12', type: 'number', decimals: 3, label: 'Médias Popa Inicial', section: 'Survey', sheet: 'Capa' },
+        init_aft_corr: { cell: 'E12', type: 'number', decimals: 4, label: 'Popa Corrigida Inicial', section: 'Survey', sheet: 'Capa' },
+        init_trim_obs: { cell: 'F10', type: 'number', decimals: 4, label: 'Trim Obs Inicial', section: 'Survey', sheet: 'Capa' },
+        init_trim_corr: { cell: 'G10', type: 'number', decimals: 4, label: 'Trim Corrigido Inicial', section: 'Survey', sheet: 'Capa' },
+        fin_fwd_mean: { cell: 'D13', type: 'number', decimals: 3, label: 'Médias Proa Final', section: 'Survey', sheet: 'Capa' },
+        fin_fwd_corr: { cell: 'E13', type: 'number', decimals: 4, label: 'Proa Corrigida Final', section: 'Survey', sheet: 'Capa' },
+        fin_mid_mean: { cell: 'D14', type: 'number', decimals: 3, label: 'Médias Meio Final', section: 'Survey', sheet: 'Capa' },
+        fin_mid_corr: { cell: 'E14', type: 'number', decimals: 4, label: 'Meio Corrigido Final', section: 'Survey', sheet: 'Capa' },
+        fin_aft_mean: { cell: 'D15', type: 'number', decimals: 3, label: 'Médias Popa Final', section: 'Survey', sheet: 'Capa' },
+        fin_aft_corr: { cell: 'E15', type: 'number', decimals: 4, label: 'Popa Corrigida Final', section: 'Survey', sheet: 'Capa' },
+        fin_trim_obs: { cell: 'F13', type: 'number', decimals: 4, label: 'Trim Obs Final', section: 'Survey', sheet: 'Capa' },
+        fin_trim_corr: { cell: 'G13', type: 'number', decimals: 4, label: 'Trim Corrigido Final', section: 'Survey', sheet: 'Capa' },
+        final_start: { cell: 'M9', type: 'time', label: 'Hora Final Início', section: 'Survey', sheet: 'Capa' },
+        final_end: { cell: 'N9', type: 'time', label: 'Hora Final Fim', section: 'Survey', sheet: 'Capa' },
       },
     },
-    by_variant: {
-      loading: {
-        fields: {
-          load_port: { cell: 'B8', type: 'string', required: true, label: 'Porto de carregamento', section: 'Operação' },
-        },
-      },
-      discharge: {
-        fields: {
-          disch_port: { cell: 'B8', type: 'string', required: true, label: 'Porto de descarga', section: 'Operação' },
-        },
-      },
-    },
+    by_variant: {},
   },
   validations: [],
-  photo_slots: [{ id: 'draft_fwd', label: 'Calado de proa', aspect: '4:3', required: true, max: 1 }],
+  photo_slots: [
+    { id: 'photos_initial', label: 'Fotos — Inicial', aspect: '4:3', required: true, min: 1 },
+    { id: 'photos_intermediate', label: 'Fotos — Intermediário', aspect: '4:3', required: false },
+    { id: 'photos_final', label: 'Fotos — Final', aspect: '4:3', required: true, min: 1 },
+  ],
 };
 
 const baseData: BuilderInput['data'] = {
-  vessel_name: 'MV Naabsa Test',
-  cargo_weight: 42000,
-  survey_date: '2026-06-01',
-  clean: true,
+  vessel_name: 'MV Perseus I',
+  flag: 'Malta',
+  imo: '9876543',
+  port: 'Santos',
+  final_date: '24/Jun/2026',
+  client: 'Cargill',
+  operator: 'Santos Brasil',
+  captain: 'J. Silva',
+  chief_officer: 'A. Pereira',
+  terminal: 'T-Granéis',
+  cargo: 'Soybean',
+  discharging_port: 'Rotterdam',
+  berthing_side: 'Starboard',
+  initial_date: '24/Jun/2026',
+  initial_start: '08:00',
+  initial_end: '10:30',
+  init_fwd_mean: 4.78,
+  init_fwd_corr: 4.7802,
+  init_mid_mean: 5.12,
+  init_mid_corr: 5.1198,
+  init_aft_mean: 5.44,
+  init_aft_corr: 5.4401,
+  init_trim_obs: -0.66,
+  init_trim_corr: -0.6599,
+  fin_fwd_mean: 4.55,
+  fin_fwd_corr: 4.5503,
+  fin_mid_mean: 4.97,
+  fin_mid_corr: 4.9701,
+  fin_aft_mean: 5.38,
+  fin_aft_corr: 5.3800,
+  fin_trim_obs: -0.83,
+  fin_trim_corr: -0.8300,
+  final_start: '14:00',
+  final_end: '16:30',
 };
 
 describe('buildDraftSurvey — CA-001', () => {
@@ -47,7 +100,8 @@ describe('buildDraftSurvey — CA-001', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
-      data: { ...baseData, disch_port: 'Santos' },
+      data: baseData,
+      tables: {},
       photos: [],
     };
     const result = buildDraftSurvey(input);
@@ -60,8 +114,9 @@ describe('buildDraftSurvey — CA-001', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
-      data: { ...baseData, disch_port: 'Santos' },
-      photos: [{ slotId: 'draft_fwd', photoId: 'photo-1', src: 'https://cdn.example.com/photo.jpg' }],
+      data: baseData,
+      tables: {},
+      photos: [{ slotId: 'photos_initial', photoId: 'photo-1', src: 'https://cdn.example.com/photo.jpg' }],
     };
     expect(buildDraftSurvey(input)).toMatchSnapshot();
   });
@@ -70,31 +125,34 @@ describe('buildDraftSurvey — CA-001', () => {
     const input: BuilderInput = {
       spec,
       variant: 'loading',
-      data: { ...baseData, load_port: 'Paranaguá' },
+      data: baseData,
+      tables: {},
       photos: [],
     };
     expect(buildDraftSurvey(input)).toMatchSnapshot();
   });
 
-  it('inclui photoFrame do slot draft_fwd quando foto presente', () => {
+  it('inclui photoFrame do slot photos_initial quando foto presente', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
-      data: { ...baseData, disch_port: 'Santos' },
-      photos: [{ slotId: 'draft_fwd', photoId: 'photo-1', src: 'https://cdn.example.com/photo.jpg' }],
+      data: baseData,
+      tables: {},
+      photos: [{ slotId: 'photos_initial', photoId: 'photo-1', src: 'https://cdn.example.com/photo.jpg' }],
     };
     const result = buildDraftSurvey(input);
     const frames = result.content.filter((n) => n.type === 'photoFrame');
-    expect(frames).toHaveLength(1);
-    expect(frames[0]?.attrs?.['photoId']).toBe('photo-1');
-    expect(frames[0]?.attrs?.['slotId']).toBe('draft_fwd');
+    const initialFrame = frames.find((n) => n.attrs?.['slotId'] === 'photos_initial');
+    expect(initialFrame).toBeDefined();
+    expect(initialFrame?.attrs?.['photoId']).toBe('photo-1');
   });
 
   it('photoFrame com src null quando slot sem foto', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
-      data: { ...baseData, disch_port: 'Vitória' },
+      data: baseData,
+      tables: {},
       photos: [],
     };
     const result = buildDraftSurvey(input);
@@ -103,42 +161,84 @@ describe('buildDraftSurvey — CA-001', () => {
     expect(frame?.attrs?.['photoId']).toBeNull();
   });
 
-  it('variante loading inclui Porto de carregamento', () => {
-    const input: BuilderInput = {
-      spec,
-      variant: 'loading',
-      data: { ...baseData, load_port: 'Itajaí' },
-      photos: [],
-    };
-    const result = buildDraftSurvey(input);
-    const json = JSON.stringify(result);
-    expect(json).toContain('load_port');
-    expect(json).toContain('Porto de carregamento');
-    expect(json).not.toContain('disch_port');
-  });
-
-  it('variante discharge inclui Porto de descarga', () => {
+  it('variante discharge contém "Discharge" e "loaded in" no Background', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
-      data: { ...baseData, disch_port: 'Santos' },
+      data: baseData,
+      tables: {},
       photos: [],
+    };
+    const json = JSON.stringify(buildDraftSurvey(input));
+    expect(json).toContain('Discharge Draft Survey');
+    expect(json).toContain('loaded in');
+    expect(json).not.toContain('bound to');
+  });
+
+  it('variante loading contém "Loading" e "bound to" no Background', () => {
+    const input: BuilderInput = {
+      spec,
+      variant: 'loading',
+      data: baseData,
+      tables: {},
+      photos: [],
+    };
+    const json = JSON.stringify(buildDraftSurvey(input));
+    expect(json).toContain('Loading Draft Survey');
+    expect(json).toContain('bound to');
+    expect(json).not.toContain('loaded in');
+  });
+
+  it('Intermediate não aparece quando intermediate_date ausente', () => {
+    const input: BuilderInput = {
+      spec,
+      variant: 'discharge',
+      data: { ...baseData, intermediate_date: null },
+      tables: {},
+      photos: [],
+    };
+    const json = JSON.stringify(buildDraftSurvey(input));
+    expect(json).not.toContain('Intermediate Draft Survey');
+    expect(json).not.toContain('photos_intermediate');
+  });
+
+  it('Intermediate aparece quando intermediate_date presente', () => {
+    const input: BuilderInput = {
+      spec,
+      variant: 'discharge',
+      data: {
+        ...baseData,
+        intermediate_date: '24/Jun/2026',
+        intermediate_start: '11:00',
+        intermediate_end: '13:00',
+        int_fwd_mean: 4.65,
+        int_fwd_corr: 4.6502,
+        int_mid_mean: 5.00,
+        int_mid_corr: 5.0001,
+        int_aft_mean: 5.40,
+        int_aft_corr: 5.4000,
+        int_trim_obs: -0.75,
+        int_trim_corr: -0.7501,
+      },
+      tables: {},
+      photos: [
+        { slotId: 'photos_intermediate', photoId: 'photo-mid', src: 'https://cdn.example.com/mid.jpg' },
+      ],
     };
     const result = buildDraftSurvey(input);
     const json = JSON.stringify(result);
-    expect(json).toContain('disch_port');
-    expect(json).toContain('Porto de descarga');
-    expect(json).not.toContain('load_port');
+    expect(json).toContain('Intermediate Draft Survey');
+    expect(json).toContain('photos_intermediate');
   });
 
   it('rejeita tipo incompatível', () => {
     const wrongSpec = { ...spec, report_type: 'rob' };
-    expect(() => buildDraftSurvey({ spec: wrongSpec, variant: null, data: baseData, photos: [] }))
+    expect(() => buildDraftSurvey({ spec: wrongSpec, variant: null, data: baseData, tables: {}, photos: [] }))
       .toThrow('incompatível');
   });
 
   it('rejeita variante desconhecida', () => {
-    expect(() => buildDraftSurvey({ spec, variant: 'unknown_variant', data: baseData, photos: [] }))
+    expect(() => buildDraftSurvey({ spec, variant: 'unknown_variant', data: baseData, tables: {}, photos: [] }))
       .toThrow('variante desconhecida');
   });
 });

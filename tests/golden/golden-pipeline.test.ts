@@ -41,22 +41,23 @@ describe('Golden pipeline — draft_survey.discharge', () => {
     const { data } = await runExtraction(wb, sampleSpec, 'discharge');
 
     const photos: PhotoAlloc[] = [
-      { slotId: 'draft_fwd', photoId: 'golden-photo-1', src: 'https://cdn.example.com/golden.jpg' },
+      { slotId: 'photos_initial', photoId: 'golden-photo-1', src: 'https://cdn.example.com/golden.jpg' },
     ];
 
-    const doc = buildDraftSurvey({ spec: sampleSpec, variant: 'discharge', data, photos });
+    const doc = buildDraftSurvey({ spec: sampleSpec, variant: 'discharge', data, tables: {}, photos });
 
     expect(doc.type).toBe('doc');
     expect(doc).toMatchSnapshot('draft_survey.discharge.json');
   });
 
-  it('HTML renderizado contém os dados do navio e porto', async () => {
+  it('HTML renderizado contém os dados do navio e seções esperadas', async () => {
     const wb = buildCompleteWorkbook();
     const { data } = await runExtraction(wb, sampleSpec, 'discharge');
     const doc = buildDraftSurvey({
       spec: sampleSpec,
       variant: 'discharge',
       data,
+      tables: {},
       photos: [],
     }) as TipTapDoc;
 
@@ -65,9 +66,10 @@ describe('Golden pipeline — draft_survey.discharge', () => {
     );
 
     expect(html).toContain('MV Cabo Frio');
-    expect(html).toContain('Tubarão');
-    expect(html).toContain('DESCARGA');
+    expect(html).toContain('DRAFT SURVEY REPORT');
     expect(html).toContain('NAABSA');
+    expect(html).toContain('Discharge Draft Survey');
+    expect(html).toContain("Ship");
   });
 
   it('HTML renderizado sem foto exibe placeholder de erro visível', async () => {
@@ -77,6 +79,7 @@ describe('Golden pipeline — draft_survey.discharge', () => {
       spec: sampleSpec,
       variant: 'discharge',
       data,
+      tables: {},
       photos: [], // sem foto
     }) as TipTapDoc;
 
@@ -93,17 +96,20 @@ describe('Golden pipeline — draft_survey.discharge', () => {
     const wb = buildCompleteWorkbook();
     const { data } = await runExtraction(wb, sampleSpec, 'discharge');
     const photos: PhotoAlloc[] = [
-      { slotId: 'draft_fwd', photoId: 'p1', src: 'https://cdn.example.com/photo.jpg' },
+      { slotId: 'photos_initial', photoId: 'p1', src: 'https://cdn.example.com/photo.jpg' },
+      { slotId: 'photos_final', photoId: 'p2', src: 'https://cdn.example.com/photo-final.jpg' },
     ];
     const doc = buildDraftSurvey({
       spec: sampleSpec,
       variant: 'discharge',
       data,
+      tables: {},
       photos,
     }) as TipTapDoc;
 
     const html = renderToStaticMarkup(PrintDocument({ document: doc }));
     expect(html).toContain('https://cdn.example.com/photo.jpg');
+    expect(html).toContain('https://cdn.example.com/photo-final.jpg');
     expect(html).not.toContain('print-photo-placeholder');
   });
 });
