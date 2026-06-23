@@ -2,7 +2,7 @@
 
 > **Implementação:** 004 - Document-Builder e Geração de PDF
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 11/14 tarefas concluídas (79%) — pipeline pronto; conteúdo real inglês implementado (T-011).
+> **Progresso:** 12/14 tarefas concluídas (86%) — grades nativas implementadas (T-012).
 > **Última atualização:** 2026-06-23
 
 ---
@@ -112,7 +112,7 @@
   - **Dependências:** 003/T-014
   - **Estimativa:** Grande
 
-- [ ] **T-012:** Tabelas-resumo + grades nativas das fases
+- [x] **T-012:** Tabelas-resumo + grades nativas das fases
   - **Descrição:** `dataTable` de draft readings (Fwd/Ms/Aft, Trim, Heel/List, Deflection) por fase +
     as grades "…Draft details" a partir de `source.tables[]` (RF-008) + a tabela "Acting as / figures".
   - **Arquivos envolvidos:** `packages/core/src/document-builder/content/*`, `nodes.ts` (se preciso)
@@ -167,7 +167,7 @@
 | T-009  | ✅ Concluída | 2026-06-13 | golden-pipeline.test.ts (5 testes verdes); CA-004 definitivo requer stack |
 | T-010  | ✅ Concluída | 2026-06-13 | Todos CA marcados; implementação concluída |
 | T-011  | ✅ Concluída | 2026-06-23 | content/{discharge,loading}.ts reescritos: 9 seções EN (Background variante-driven + Intermediate condicional); BuilderInput.tables; 127 testes core + 5 golden verdes |
-| T-012  | ⬜ Pendente | — | Tabelas-resumo + grades nativas (RF-008); depende de 003/T-015 |
+| T-012  | ✅ Concluída | 2026-06-23 | tableRows/gradeSection: 4 grades/fase + Acting-as Figures; Heel/Deflection nas 3 fases; 127 testes verdes |
 | T-013  | ⬜ Pendente | — | PrintDocument/print.css no layout do modelo (CA-002 definitivo) |
 | T-014  | ⬜ Pendente | — | Golden test contra o modelo real (CA-004 definitivo) |
 
