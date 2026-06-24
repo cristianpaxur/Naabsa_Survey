@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
-import { enqueueRenderSheets } from '@/lib/queue';
+import { enqueueRenderSheets, enqueueAiReview } from '@/lib/queue';
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB (RF-04)
 const BUCKET = 'reports';
@@ -158,6 +158,13 @@ export async function POST(
     await enqueueRenderSheets({ reportId: id });
   } catch (err) {
     console.error('[spreadsheet] falha ao enfileirar render_sheets:', err);
+  }
+
+  // Revisão por IA pós-extração (010/T-007) — no-op no worker se AI_ENABLED=off.
+  try {
+    await enqueueAiReview({ reportId: id });
+  } catch (err) {
+    console.error('[spreadsheet] falha ao enfileirar ai_review:', err);
   }
 
   return NextResponse.json({ ok: true, reportId: id, errors, warnings });

@@ -12,6 +12,7 @@ export const PROCESS_PHOTO_QUEUE = 'process_photo';
 export const GENERATE_PDF_QUEUE = 'generate_pdf';
 export const PREVIEW_PDF_QUEUE = 'preview_pdf';
 export const RENDER_SHEETS_QUEUE = 'render_sheets';
+export const AI_REVIEW_QUEUE = 'ai_review';
 
 let bossPromise: Promise<PgBoss> | null = null;
 
@@ -38,6 +39,9 @@ async function getBoss(): Promise<PgBoss> {
       /* já existe */
     });
     await boss.createQueue(RENDER_SHEETS_QUEUE).catch(() => {
+      /* já existe */
+    });
+    await boss.createQueue(AI_REVIEW_QUEUE).catch(() => {
       /* já existe */
     });
     return boss;
@@ -88,4 +92,12 @@ export async function enqueueRenderSheets(
 ): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(RENDER_SHEETS_QUEUE, payload);
+}
+
+/** Enfileira a revisão por IA pós-extração (010/T-007; no-op se AI_ENABLED=off). */
+export async function enqueueAiReview(
+  payload: GeneratePdfPayload,
+): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(AI_REVIEW_QUEUE, payload);
 }

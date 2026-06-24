@@ -49,7 +49,7 @@ import {
   RETENTION_PURGE_QUEUE,
   RETENTION_PURGE_CRON,
 } from './jobs/retentionPurge';
-import { aiReview } from './jobs/aiReview';
+import { aiReview, AI_REVIEW_QUEUE, type AiReviewPayload } from './jobs/aiReview';
 
 /** Mapa nome-da-fila → handler. Apenas process_photo é consumido na impl 007. */
 const JOBS = {
@@ -185,6 +185,24 @@ async function registerJobs(): Promise<void> {
   });
   await boss.schedule(RETENTION_PURGE_QUEUE, RETENTION_PURGE_CRON);
   console.log(`[worker] cron '${RETENTION_PURGE_QUEUE}' agendado (${RETENTION_PURGE_CRON})`);
+
+  // ai_review — revisão de dados por IA (010/T-007); no-op se AI_ENABLED=off.
+  await boss.createQueue(AI_REVIEW_QUEUE, { retryLimit: 1 });
+  await boss.work<AiReviewPayload>(
+    AI_REVIEW_QUEUE,
+    { localConcurrency: 2, includeMetadata: true },
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await aiReview(job.data);
+        } catch (err) {
+          console.error(`[worker][ai_review] erro no job ${job.id}:`, err);
+          // IA nunca bloqueia o fluxo — não relança.
+        }
+      }
+    },
+  );
+  console.log(`[worker] consumindo '${AI_REVIEW_QUEUE}' (localConcurrency 2)`);
 }
 
 async function main(): Promise<void> {
