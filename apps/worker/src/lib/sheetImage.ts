@@ -16,6 +16,66 @@ import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import sharp from 'sharp';
 
+/**
+ * Recorta a imagem para o BLOCO principal de conteúdo (a tabela do template).
+ * Detecta linhas com conteúdo (cor saturada azul/rosa OU pixel escuro de
+ * texto/borda) e para no primeiro GAP grande de linhas brancas — assim ignora
+ * células soltas (ex.: marcadores amarelos) muito abaixo da tabela impressa.
+ */
+async function cropToColoredContent(png: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  const GAP = 50; // px de linhas vazias que encerram o bloco
+  const M = 6; // margem
+
+  const isContent = (i: number): boolean => {
+    const r = data[i]!;
+    const g = data[i + 1]!;
+    const b = data[i + 2]!;
+    const mx = Math.max(r, g, b);
+    const mn = Math.min(r, g, b);
+    return mx - mn > 35 && mx > 70; // só cor saturada (azul/rosa do template)
+  };
+  const rowHasContent = (y: number): boolean => {
+    const base = y * width * channels;
+    for (let x = 0; x < width; x++) if (isContent(base + x * channels)) return true;
+    return false;
+  };
+
+  let top = -1;
+  for (let y = 0; y < height; y++) {
+    if (rowHasContent(y)) { top = y; break; }
+  }
+  if (top < 0) return png; // imagem vazia
+
+  let bottom = top;
+  let gap = 0;
+  for (let y = top + 1; y < height; y++) {
+    if (rowHasContent(y)) { bottom = y; gap = 0; }
+    else if (++gap >= GAP) break;
+  }
+
+  // left/right só no bloco principal [top, bottom]
+  let left = width;
+  let right = -1;
+  for (let y = top; y <= bottom; y++) {
+    const base = y * width * channels;
+    for (let x = 0; x < width; x++) {
+      if (isContent(base + x * channels)) {
+        if (x < left) left = x;
+        if (x > right) right = x;
+      }
+    }
+  }
+  if (right < 0) return png;
+
+  const cl = Math.max(0, left - M);
+  const ct = Math.max(0, top - M);
+  const cw = Math.min(width - cl, right - left + 1 + 2 * M);
+  const ch = Math.min(height - ct, bottom - top + 1 + 2 * M);
+  return sharp(png).extract({ left: cl, top: ct, width: cw, height: ch }).png().toBuffer();
+}
+
 function findSoffice(): string {
   const fromEnv = process.env.SOFFICE_PATH;
   if (fromEnv && existsSync(fromEnv)) return fromEnv;
@@ -57,14 +117,10 @@ export async function renderSheetPng(
   for (const ws of wb.worksheets) {
     ws.state = ws.name === sheetName ? 'visible' : 'hidden';
   }
-  try {
-    const dim = target.dimensions as unknown as { tl?: string; br?: string };
-    if (dim?.tl && dim?.br) {
-      target.pageSetup = { ...target.pageSetup, printArea: `${dim.tl}:${dim.br}` };
-    }
-  } catch {
-    /* sem print area definida — segue */
-  }
+  // Sem gridlines: o "mar" de células vazias abaixo do conteúdo sai branco.
+  target.views = (target.views?.length ? target.views : [{}]).map(
+    (v) => ({ ...v, showGridLines: false }) as never,
+  );
 
   const dir = await mkdtemp(join(tmpdir(), 'naabsa-sheet-'));
   try {
@@ -81,11 +137,11 @@ export async function renderSheetPng(
     if (!existsSync(outPath)) throw new Error('LibreOffice não gerou o PNG.');
     const raw = await readFile(outPath);
 
-    // Recorta as bordas brancas (a aba ocupa só parte da página exportada).
-    return await sharp(raw)
-      .trim({ threshold: 10 })
-      .png({ compressionLevel: 9 })
-      .toBuffer();
+    // Recorta para o conteúdo COLORIDO (template azul/rosa) + margem, e remove
+    // as bordas brancas. O LibreOffice exporta a página inteira; o conteúdo
+    // impresso é a região colorida — abaixo dela é branco.
+    const cropped = await cropToColoredContent(raw);
+    return await sharp(cropped).trim({ threshold: 12 }).png({ compressionLevel: 9 }).toBuffer();
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
