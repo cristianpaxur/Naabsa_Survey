@@ -10,6 +10,7 @@ import { PgBoss } from 'pg-boss';
  */
 export const PROCESS_PHOTO_QUEUE = 'process_photo';
 export const GENERATE_PDF_QUEUE = 'generate_pdf';
+export const PREVIEW_PDF_QUEUE = 'preview_pdf';
 export const RENDER_SHEETS_QUEUE = 'render_sheets';
 
 let bossPromise: Promise<PgBoss> | null = null;
@@ -31,6 +32,9 @@ async function getBoss(): Promise<PgBoss> {
       /* já existe */
     });
     await boss.createQueue(GENERATE_PDF_QUEUE).catch(() => {
+      /* já existe */
+    });
+    await boss.createQueue(PREVIEW_PDF_QUEUE).catch(() => {
       /* já existe */
     });
     await boss.createQueue(RENDER_SHEETS_QUEUE).catch(() => {
@@ -64,6 +68,14 @@ export async function enqueueGeneratePdf(
 ): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(GENERATE_PDF_QUEUE, payload);
+}
+
+/** Enfileira a geração do PDF de PRÉ-VISUALIZAÇÃO (não transiciona o estado). */
+export async function enqueuePreviewPdf(
+  payload: GeneratePdfPayload,
+): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(PREVIEW_PDF_QUEUE, payload);
 }
 
 export interface RenderSheetsPayload {

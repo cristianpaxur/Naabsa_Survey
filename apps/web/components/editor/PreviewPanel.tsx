@@ -5,6 +5,8 @@ import {
   approve as approveAction,
   getPdfStatus,
   getDownloadUrl,
+  generatePreview,
+  getPreviewUrl,
 } from '@/lib/actions/editor';
 import type { TipTapDoc } from '@naabsa/core';
 import type { ReportStatus } from '@/lib/state-machine';
@@ -12,9 +14,11 @@ import type { ReportStatus } from '@/lib/state-machine';
 /**
  * Painel de preview + aprovação + download (008/T-007 + T-009).
  *
- * - Preview pela MESMA rota /print do worker (iframe; RNF-02).
- * - "Aprovar e gerar PDF" → approve() → polling de status → "Baixar PDF".
+ * O preview mostra o PDF REAL gerado pelo worker (mesmo .docx→PDF do download),
+ * via job `preview_pdf` — assim a pré-visualização é IDÊNTICA ao documento final.
  */
+type PreviewState = 'generating' | 'ready' | 'error';
+
 export function PreviewPanel({
   reportId,
   initialStatus,
@@ -24,31 +28,86 @@ export function PreviewPanel({
 }: {
   reportId: string;
   initialStatus: ReportStatus;
-  /** Se true, aprova automaticamente ao montar (botão "Aprovar" do editor). */
   autoApprove?: boolean;
-  /** Devolve o JSON atual do editor (para enviar na aprovação). */
   getDoc: () => TipTapDoc;
   onBackToEdit: () => void;
 }) {
   const [status, setStatus] = useState<ReportStatus>(initialStatus);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<PreviewState>('generating');
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoApprovedRef = useRef(false);
 
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearTimeout(pollRef.current);
-      pollRef.current = null;
+  // ── Pré-visualização: gera o PDF real e faz polling até ficar pronto ──
+  const runPreview = useCallback(async () => {
+    if (previewPollRef.current) clearTimeout(previewPollRef.current);
+    setPreviewState('generating');
+    setPreviewUrl(null);
+    setError(null);
+    const res = await generatePreview(reportId);
+    if ('error' in res) {
+      setPreviewState('error');
+      setError(res.error);
+      return;
     }
-  }, []);
+    let attempts = 0;
+    const poll = async () => {
+      const r = await getPreviewUrl(reportId);
+      if ('url' in r) {
+        setPreviewUrl(r.url);
+        setPreviewState('ready');
+        return;
+      }
+      if ('error' in r) {
+        setPreviewState('error');
+        setError(r.error);
+        return;
+      }
+      if (++attempts > 40) {
+        setPreviewState('error');
+        setError('Tempo esgotado ao gerar a pré-visualização.');
+        return;
+      }
+      previewPollRef.current = setTimeout(() => void poll(), 1500);
+    };
+    void poll();
+  }, [reportId]);
 
-  // Polling enquanto o PDF está sendo gerado (status approved).
+  useEffect(() => {
+    // Ao aprovar (autoApprove), o PDF FINAL é gerado pelo fluxo de aprovação;
+    // mostramos ele quando pronto (evita gerar duas vezes).
+    if (autoApprove) return;
+    void runPreview();
+    return () => {
+      if (previewPollRef.current) clearTimeout(previewPollRef.current);
+    };
+  }, [runPreview, autoApprove]);
+
+  // Quando o PDF final fica pronto (generated), exibe-o no preview.
+  useEffect(() => {
+    if (status !== 'generated') return;
+    let cancelled = false;
+    void (async () => {
+      const res = await getDownloadUrl(reportId);
+      if (cancelled) return;
+      if ('url' in res) {
+        setPreviewUrl(res.url);
+        setPreviewState('ready');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, reportId]);
+
+  // ── Polling do PDF FINAL após aprovação (status approved → generated) ──
   useEffect(() => {
     if (status !== 'approved') return;
     let cancelled = false;
     let delay = 2000;
-
     const tick = async () => {
       const res = await getPdfStatus(reportId);
       if (cancelled) return;
@@ -60,16 +119,15 @@ export function PreviewPanel({
         setStatus('generated');
         return;
       }
-      delay = Math.min(delay + 500, 4000); // backoff leve (RNF: 2–3 s)
+      delay = Math.min(delay + 500, 4000);
       pollRef.current = setTimeout(() => void tick(), delay);
     };
-
     pollRef.current = setTimeout(() => void tick(), delay);
     return () => {
       cancelled = true;
-      stopPolling();
+      if (pollRef.current) clearTimeout(pollRef.current);
     };
-  }, [status, reportId, stopPolling]);
+  }, [status, reportId]);
 
   const onApprove = useCallback(async () => {
     setBusy(true);
@@ -83,7 +141,6 @@ export function PreviewPanel({
     setStatus('approved');
   }, [reportId, getDoc]);
 
-  // Aprovação automática quando o operador clica "Aprovar" no editor (1 clique).
   useEffect(() => {
     if (autoApprove && !autoApprovedRef.current && status === 'editing') {
       autoApprovedRef.current = true;
@@ -106,24 +163,34 @@ export function PreviewPanel({
   const badge =
     status === 'approved' ? (
       <span className="ed-preview__badge ed-preview__badge--generating">
-        <span className="ed-spinner" /> Gerando PDF…
+        <span className="ed-spinner" /> Gerando PDF final…
       </span>
     ) : status === 'generated' ? (
+      <span className="ed-preview__badge ed-preview__badge--ready">✓ PDF pronto</span>
+    ) : previewState === 'ready' ? (
       <span className="ed-preview__badge ed-preview__badge--ready">
-        ✓ PDF pronto · idêntico ao preview
+        ✓ Pré-visualização fiel (PDF real)
       </span>
     ) : (
-      <span className="ed-preview__badge ed-preview__badge--idle">
-        Pré-visualização paginada
+      <span className="ed-preview__badge ed-preview__badge--generating">
+        <span className="ed-spinner" /> Gerando pré-visualização…
       </span>
     );
 
   return (
     <div className="ed-preview">
       <div className="ed-preview__bar">
-        <h2>Preview paginado</h2>
+        <h2>Preview</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {badge}
+          <button
+            className="ed-btn"
+            style={{ borderColor: '#fff', color: '#fff', background: 'transparent' }}
+            onClick={() => void runPreview()}
+            disabled={previewState === 'generating'}
+          >
+            Atualizar preview
+          </button>
           {status === 'editing' && (
             <>
               <button
@@ -160,22 +227,27 @@ export function PreviewPanel({
       {error && (
         <div
           role="alert"
-          style={{
-            background: '#fbeceb',
-            color: '#9b2a2c',
-            padding: '8px 24px',
-            fontSize: 13,
-          }}
+          style={{ background: '#fbeceb', color: '#9b2a2c', padding: '8px 24px', fontSize: 13 }}
         >
-          {error}
+          {error}{' '}
+          <button
+            onClick={() => void runPreview()}
+            style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#9b2a2c', cursor: 'pointer' }}
+          >
+            Tentar de novo
+          </button>
         </div>
       )}
 
-      <iframe
-        className="ed-preview__frame"
-        title="Preview do relatório"
-        src={`/reports/${reportId}/print`}
-      />
+      {previewState === 'ready' && previewUrl ? (
+        <iframe className="ed-preview__frame" title="Preview do relatório" src={previewUrl} />
+      ) : previewState === 'error' ? (
+        <div className="ed-preview__placeholder">Não foi possível gerar a pré-visualização.</div>
+      ) : (
+        <div className="ed-preview__placeholder">
+          <span className="ed-spinner" /> Gerando o PDF real… isso leva alguns segundos.
+        </div>
+      )}
     </div>
   );
 }

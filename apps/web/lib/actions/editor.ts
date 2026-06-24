@@ -6,7 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { transition, type ReportStatus } from '@/lib/state-machine';
-import { enqueueGeneratePdf } from '@/lib/queue';
+import { enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
 
 export type SaveResult =
   | { ok: true; savedAt: string }
@@ -143,6 +143,55 @@ export async function approve(
   }
 
   return { ok: true };
+}
+
+/**
+ * Pré-visualização FIEL: enfileira a geração do PDF REAL (mesmo do download) sem
+ * transicionar o estado. Remove o preview anterior para o polling detectar o novo.
+ */
+export async function generatePreview(
+  reportId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+
+  const svc = createServiceClient();
+  await svc.storage.from('reports').remove([`${reportId}/preview.pdf`]).catch(() => {
+    /* não existia */
+  });
+  try {
+    await enqueuePreviewPdf({ reportId });
+  } catch {
+    return { error: 'Falha ao enfileirar a pré-visualização.' };
+  }
+  return { ok: true };
+}
+
+/** URL assinada do preview.pdf quando pronto; `pending` enquanto o worker gera. */
+export async function getPreviewUrl(
+  reportId: string,
+): Promise<{ url: string } | { pending: true } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const svc = createServiceClient();
+  const { data: files } = await svc.storage.from('reports').list(reportId, { limit: 100 });
+  if (!(files ?? []).some((f) => f.name === 'preview.pdf')) return { pending: true };
+
+  const { data, error } = await svc.storage
+    .from('reports')
+    .createSignedUrl(`${reportId}/preview.pdf`, 600);
+  if (error || !data?.signedUrl) return { pending: true };
+  return { url: data.signedUrl };
 }
 
 /** Status do PDF para o polling (008/T-009, RF-29). */

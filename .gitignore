@@ -41,3 +41,11 @@ Thumbs.db
 
 # Ferramentas locais do agente (Claude Code) — estado de sessão/worktrees
 .claude/
+
+# Artefatos locais do gerador de .docx/PDF (LibreOffice) e validação
+.lo-profile/
+**/.lo-profile/
+.tmp_report.*
+.tmp_docx/
+.tmp_toc*
+templates/

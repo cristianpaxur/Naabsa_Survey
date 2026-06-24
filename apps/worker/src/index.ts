@@ -30,6 +30,13 @@ import {
   type GeneratePdfPayload,
 } from './jobs/generatePdf';
 import {
+  previewPdf,
+  PREVIEW_PDF_QUEUE,
+  PREVIEW_PDF_CONCURRENCY,
+  PREVIEW_PDF_RETRY_LIMIT,
+  type PreviewPdfPayload,
+} from './jobs/previewPdf';
+import {
   renderSheets,
   RENDER_SHEETS_QUEUE,
   RENDER_SHEETS_CONCURRENCY,
@@ -44,6 +51,7 @@ import { aiReview } from './jobs/aiReview';
 const JOBS = {
   process_photo: processPhoto,
   generate_pdf: generatePdf,
+  preview_pdf: previewPdf,
   render_sheets: renderSheets,
   retention_purge: retentionPurge,
   ai_review: aiReview,
@@ -111,6 +119,30 @@ async function registerJobs(): Promise<void> {
   );
   console.log(
     `[worker] consumindo '${GENERATE_PDF_QUEUE}' (localConcurrency ${GENERATE_PDF_CONCURRENCY})`,
+  );
+
+  // preview_pdf — gera o PDF real para pré-visualização (serializado com generate_pdf)
+  await boss.createQueue(PREVIEW_PDF_QUEUE, {
+    retryLimit: PREVIEW_PDF_RETRY_LIMIT,
+    retryDelay: 3,
+    retryBackoff: true,
+  });
+  await boss.work<PreviewPdfPayload>(
+    PREVIEW_PDF_QUEUE,
+    { localConcurrency: PREVIEW_PDF_CONCURRENCY, includeMetadata: true },
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await previewPdf(job.data);
+        } catch (err) {
+          console.error(`[worker][preview_pdf] erro no job ${job.id}:`, err);
+          throw err;
+        }
+      }
+    },
+  );
+  console.log(
+    `[worker] consumindo '${PREVIEW_PDF_QUEUE}' (localConcurrency ${PREVIEW_PDF_CONCURRENCY})`,
   );
 
   // render_sheets — concorrência 1 (LibreOffice é pesado)
