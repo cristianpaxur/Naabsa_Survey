@@ -18,6 +18,7 @@ import { DataTable } from './nodes/dataTable';
 import { LeaderLine } from './nodes/leaderLine';
 import { SheetImage } from './nodes/sheetImage';
 import { DataField } from './marks/dataField';
+import { GlobalAnchor } from './globalAnchor';
 import { LockGuard } from './lockGuard';
 import { Toolbar } from './Toolbar';
 import { PreviewPanel } from './PreviewPanel';
@@ -72,6 +73,7 @@ export function EditorClient({
       LeaderLine,
       SheetImage,
       DataField,
+      GlobalAnchor,
       LockGuard,
     ],
     content: initialDoc,

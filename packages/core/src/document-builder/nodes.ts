@@ -131,11 +131,18 @@ export function text(
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
-/** Parágrafo contendo nodes inline. `align` mapeia para o attr `textAlign`
- * (compatível com a extensão TextAlign do editor 008). */
-export function paragraph(content: TipTapNode[] = [], align?: TextAlign): TipTapNode {
+/** Parágrafo contendo nodes inline. `align` → attr `textAlign`; `anchor` → attr
+ * `anchor` (alvo do Contents, preservado pelo atributo global do editor). */
+export function paragraph(
+  content: TipTapNode[] = [],
+  align?: TextAlign,
+  anchor?: string,
+): TipTapNode {
+  const attrs: Record<string, unknown> = {};
+  if (align) attrs.textAlign = align;
+  if (anchor) attrs.anchor = anchor;
   const node: TipTapNode = { type: 'paragraph', content };
-  if (align) node.attrs = { textAlign: align };
+  if (Object.keys(attrs).length > 0) node.attrs = attrs;
   return node;
 }
 

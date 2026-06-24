@@ -141,10 +141,36 @@ function sideLabel(berthing: FieldValue | undefined): { berthed: string; opposit
   return { berthed: fmtVal(berthing), opposite: '—' };
 }
 
+/** Texto em negrito (rótulo das subseções e do "Draft readings:"). */
+function bold(s: string): TipTapNode {
+  return text(s, [{ type: 'bold' }]);
+}
+
 /**
- * Linhas de figures das partes "acting as" a partir da matriz extraída.
- * Layout: col 0 = papel ("Terminal's Surveyor"), col 8 = figura (MT).
- * Pula a linha de cabeçalho (row 0).
+ * Papéis das partes "acting as" da matriz (col 0, rows 1+), encurtados para a
+ * forma do Word: "Terminal's Surveyor" → "terminal's surveyor".
+ */
+function actingAsRoles(matrix: FieldValue[][] | undefined): string[] {
+  if (!matrix || matrix.length < 2) return [];
+  const out: string[] = [];
+  for (let i = 1; i < matrix.length; i++) {
+    const role = matrix[i]?.[0];
+    if (role == null || String(role).trim() === '') continue;
+    out.push(String(role).trim().toLowerCase());
+  }
+  return out;
+}
+
+/** Forma possessiva curta para o bloco de figures: "Terminal's Surveyor" → "Terminal's". */
+function possessiveParty(role: string): string {
+  let r = role.trim().replace(/\s+surveyor$/i, '').trim();
+  if (!/['’]s?$/.test(r)) r += "'s";
+  return r;
+}
+
+/**
+ * Linhas de figures das partes "acting as" (col 0 = papel, col 8 = figura MT).
+ * Rótulo possessivo "X's figures" como no Word.
  */
 function actingAsLines(matrix: FieldValue[][] | undefined): TipTapNode[] {
   if (!matrix || matrix.length < 2) return [];
@@ -154,7 +180,7 @@ function actingAsLines(matrix: FieldValue[][] | undefined): TipTapNode[] {
     const role = row[0];
     const figure = row[8];
     if (role == null || String(role).trim() === '') continue;
-    out.push(leaderLine({ label: `${String(role).trim()} figures`, value: fmtMt(figure) }));
+    out.push(leaderLine({ label: `${possessiveParty(String(role))} figures`, value: fmtMt(figure) }));
   }
   return out;
 }
@@ -193,16 +219,22 @@ interface PhaseCfg {
   actingAsTableId: string | null;
   photoSlot: string;
   fuelText: string;
+  seaWaterText: string;
+  ballastText: string;
 }
 
-const SEA_WATER_TEXT =
+// Textos exatos do modelo Word (variam por fase).
+const SEA_WATER_DEFAULT =
   'A seawater sample was collected in way of the midship draft mark, on the sea side. ' +
   "The vessel's hydrometer was considered the official instrument for all readings.";
-
-const BALLAST_TEXT =
+const SEA_WATER_FINAL =
+  'A water sample was collected in front of the mid draft, sea side. ' +
+  'The vessel hydrometer was considered as official.';
+const BALLAST_DEFAULT =
   'All ballast water tanks were gauged individually, and the volumes were calculated by ' +
   'applying the applicable trim and list corrections. The fresh water quantity was provided ' +
-  'by the Chief Officer.';
+  'by the Chief Officer';
+const BALLAST_FINAL = 'The ballast quantity and fresh water was informed by Chief Officer.';
 
 // ── Builder principal ──────────────────────────────────────────────────────
 
@@ -225,19 +257,19 @@ export function buildDraftSurveyContent(
 
   const hasIntermediate = data['intermediate_date'] != null;
   const sides = sideLabel(data['berthing_side']);
-  const draftReadingsLine = `Draft readings: ${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`;
+  const draftReadingsBody = `${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`;
 
   // ── Capa ──────────────────────────────────────────────────────────────────
   const cover: TipTapNode[] = [
     heading(3, [text('Survey Report')], 'center'),
-    paragraph([text('Ref: '), text(fmtVal(data['ref']), [dataField('ref')])], 'center'),
+    paragraph([text('Ref:'), text(fmtVal(data['ref']), [dataField('ref')])], 'center'),
     heading(1, [text('Draft Survey')], 'center'),
     heading(2, [text(`“${fmtVal(data['vessel_name'], '')}”`, [dataField('vessel_name')])], 'center'),
     paragraph(
       [
         text('Flag '),
         text(fmtVal(data['flag']), [dataField('flag')]),
-        text(' — IMO '),
+        text(' – IMO '),
         text(fmtVal(data['imo']), [dataField('imo')]),
       ],
       'center',
@@ -246,7 +278,7 @@ export function buildDraftSurveyContent(
       [
         text('at '),
         text(fmtVal(data['port']), [dataField('port')]),
-        text(' Port / Brazil — '),
+        text(' Port/Brazil – '),
         text(fmtDate(data['final_date']), [dataField('final_date')]),
       ],
       'center',
@@ -278,27 +310,42 @@ export function buildDraftSurveyContent(
   ];
 
   // ── Contents (líderes pontilhados; nº de página preenchido pelo worker) ──────
+  // Seções SEM número (como o Word); subseções numeradas 4.x/5.x/6.x/7.x.
+  const phaseTocLines = (num: number, title: string, key: string): TipTapNode[] => [
+    leaderLine({ label: `${num}.1. Draft readings`, tocTarget: `${key}-1` }),
+    leaderLine({ label: `${num}.2. Sea water density`, tocTarget: `${key}-2` }),
+    leaderLine({ label: `${num}.3. Ballast water and fresh water`, tocTarget: `${key}-3` }),
+    leaderLine({ label: `${num}.4. Fuel R.O.B.`, tocTarget: `${key}-4` }),
+    leaderLine({ label: `${num}.5. ${title} Draft details`, tocTarget: `${key}-5` }),
+  ];
   const contents: TipTapNode[] = [
     heading(2, [text('Contents')]),
-    leaderLine({ label: '1.  Background', tocTarget: 'background' }),
-    leaderLine({ label: "2.  Ship's Particulars", tocTarget: 'particulars' }),
-    leaderLine({ label: '3.  Draft Survey', tocTarget: 'draft-survey' }),
-    leaderLine({ label: '4.  Initial', tocTarget: 'initial' }),
-    ...(hasIntermediate ? [leaderLine({ label: '5.  Intermediate', tocTarget: 'intermediate' })] : []),
-    leaderLine({ label: '6.  Final', tocTarget: 'final' }),
-    leaderLine({ label: '7.  Photographic Report', tocTarget: 'photos' }),
-    leaderLine({ label: '8.  Attachment', tocTarget: 'attachment' }),
+    leaderLine({ label: 'Background', tocTarget: 'background' }),
+    leaderLine({ label: "Ship's Particulars", tocTarget: 'particulars' }),
+    leaderLine({ label: 'Draft Survey', tocTarget: 'draft-survey' }),
+    leaderLine({ label: 'Initial', tocTarget: 'initial' }),
+    ...phaseTocLines(4, 'Initial', 'initial'),
+    ...(hasIntermediate
+      ? [leaderLine({ label: 'Intermediate', tocTarget: 'intermediate' }), ...phaseTocLines(5, 'Intermediate', 'intermediate')]
+      : []),
+    leaderLine({ label: 'Final', tocTarget: 'final' }),
+    ...phaseTocLines(6, 'Final', 'final'),
+    leaderLine({ label: 'Photographic Report', tocTarget: 'photos' }),
+    leaderLine({ label: '7.1. Initial', tocTarget: 'photos-1' }),
+    ...(hasIntermediate ? [leaderLine({ label: '7.2. Intermediate', tocTarget: 'photos-2' })] : []),
+    leaderLine({ label: '7.3. Final', tocTarget: 'photos-3' }),
+    leaderLine({ label: 'Attachment', tocTarget: 'attachment' }),
   ];
 
   // ── Background ───────────────────────────────────────────────────────────────
   const background: TipTapNode[] = [
-    heading(2, [text('1. Background')], undefined, 'background'),
+    heading(2, [text('Background')], undefined, 'background'),
     paragraph([
       text('In compliance with the appointment survey from Messrs. '),
       text(fmtVal(data['client']), [dataField('client')]),
       text(
         `, we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo ${V.done} ` +
-          'and to compare it with the Shore scale / Bills of lading.',
+          'and to compare it with the Shore scale/Bills of lading.',
       ),
     ]),
     paragraph([
@@ -314,7 +361,7 @@ export function buildDraftSurveyContent(
 
   // ── Ship's Particulars ───────────────────────────────────────────────────────
   const particulars: TipTapNode[] = [
-    heading(2, [text("2. Ship's Particulars")], undefined, 'particulars'),
+    heading(2, [text("Ship's Particulars")], undefined, 'particulars'),
     dataTable({
       tableId: 'ships_particulars',
       kind: 'label',
@@ -343,25 +390,35 @@ export function buildDraftSurveyContent(
       dateField: 'initial_date', startField: 'initial_start', endField: 'initial_end',
       heelLabel: 'Heel', heelField: 'init_heel', heelSideField: 'init_heel_side',
       hasFigures: false, figPrefix: null, actingAsTableId: null,
-      photoSlot: 'photos_initial', fuelText: 'According to the logbook — FWE.',
+      photoSlot: 'photos_initial', fuelText: 'According to the logbook – FWE.',
+      seaWaterText: SEA_WATER_DEFAULT, ballastText: BALLAST_DEFAULT,
     },
     {
       key: 'intermediate', title: 'Intermediate', num: 5, prefix: 'int',
       dateField: 'intermediate_date', startField: 'intermediate_start', endField: 'intermediate_end',
       heelLabel: 'List', heelField: 'int_list', heelSideField: 'int_list_side',
       hasFigures: true, figPrefix: 'int', actingAsTableId: 'int_figures_acting_as',
-      photoSlot: 'photos_intermediate', fuelText: 'Declared by the Chief Engineer at the time of survey.',
+      photoSlot: 'photos_intermediate', fuelText: 'Declared by Ch/Eng at time of survey.',
+      seaWaterText: SEA_WATER_DEFAULT, ballastText: BALLAST_DEFAULT,
     },
     {
       key: 'final', title: 'Final', num: 6, prefix: 'fin',
       dateField: 'final_date', startField: 'final_start', endField: 'final_end',
       heelLabel: 'List', heelField: 'fin_list', heelSideField: 'fin_list_side',
       hasFigures: true, figPrefix: 'fin', actingAsTableId: 'fin_figures_acting_as',
-      photoSlot: 'photos_final', fuelText: 'Declared by the Chief Engineer at the time of survey.',
+      photoSlot: 'photos_final', fuelText: 'Declared by Ch/Eng at time of survey.',
+      seaWaterText: SEA_WATER_FINAL, ballastText: BALLAST_FINAL,
     },
   ];
 
+  /** "...jointly with ship's command{, partes presentes} and the undersigned surveyor". */
+  function partiesPhrase(p: PhaseCfg): string {
+    const roles = p.actingAsTableId ? actingAsRoles(tables[p.actingAsTableId]) : [];
+    return roles.length ? `, ${roles.join(', ')}` : '';
+  }
+
   function phaseNarrative(p: PhaseCfg): TipTapNode {
+    const parties = partiesPhrase(p);
     if (p.key === 'initial') {
       return paragraph([
         text(`The ${p.key} Draft Survey was carried out on `),
@@ -370,11 +427,11 @@ export function buildDraftSurveyContent(
         text(fmtVal(data['terminal']), [dataField('terminal')]),
         text(' Terminal, shed '),
         text(fmtVal(data['shed']), [dataField('shed')]),
-        text(', from '),
+        text(' from '),
         text(fmtTime(data[p.startField]), [dataField(p.startField)]),
         text(' up to '),
         text(fmtTime(data[p.endField]), [dataField(p.endField)]),
-        text(" local time jointly with ship's command and the undersigned surveyor."),
+        text(` local time jointly with ship's command${parties} and the undersigned surveyor.`),
       ]);
     }
     return paragraph([
@@ -385,7 +442,7 @@ export function buildDraftSurveyContent(
       text(' up to '),
       text(fmtTime(data[p.endField]), [dataField(p.endField)]),
       text(
-        ` local time jointly with ship's command and the undersigned surveyor to ascertain the ` +
+        ` local time jointly with ship's command${parties} and the undersigned surveyor to ascertain the ` +
           `total quantity of the cargo ${V.done} being the following figures disclosed:`,
       ),
     ]);
@@ -395,12 +452,13 @@ export function buildDraftSurveyContent(
     if (!p.hasFigures || !p.figPrefix) return [];
     const fp = p.figPrefix;
     return [
-      leaderLine({ label: 'Shore Scale / BsL figures (Official)', value: fmtMt(data[`${fp}_fig_shore_scale`]) }),
+      leaderLine({ label: 'Shore Scale/BsL figures (Official)', value: fmtMt(data[`${fp}_fig_shore_scale`]) }),
       leaderLine({ label: "NAABSA's surveyor figures", value: fmtMt(data[`${fp}_fig_naabsa`]) }),
       leaderLine({
         label: 'Difference as per our figures',
         value: `${fmtSignedMt(data[`${fp}_fig_diff_mt`])} or ${fmtSignedPct(data[`${fp}_fig_diff_pct`])}`,
       }),
+      paragraph([]),
       leaderLine({ label: "Vessel's figures", value: fmtMt(data[`${fp}_fig_vessel`]) }),
       ...(p.actingAsTableId ? actingAsLines(tables[p.actingAsTableId]) : []),
     ];
@@ -419,32 +477,30 @@ export function buildDraftSurveyContent(
         : '—';
     return dataTable({
       tableId: `${x}_readings`,
-      headers: ['Draft Mark', 'Means (m)', 'Mean corrected (m)', '', 'Item', 'Value'],
+      headers: ['Draft Mark', 'Means', 'Mean corrected', '', '', ''],
       rows: [
-        ['Fwd', fmtNum(data[`${x}_fwd_mean`], 3), fmtNum(data[`${x}_fwd_corr`], 4), '', 'Trim observed', `${fmtNum(data[`${x}_trim_obs`], 4)} m`],
-        ['Ms', fmtNum(data[`${x}_mid_mean`], 3), fmtNum(data[`${x}_mid_corr`], 4), '', 'Trim corrected', `${fmtNum(data[`${x}_trim_corr`], 4)} m`],
+        ['Fwd', fmtNum(data[`${x}_fwd_mean`], 3), fmtNum(data[`${x}_fwd_corr`], 4), '', 'Trim obs', `${fmtNum(data[`${x}_trim_obs`], 4)} m`],
+        ['Ms', fmtNum(data[`${x}_mid_mean`], 3), fmtNum(data[`${x}_mid_corr`], 4), '', 'Trim correct', `${fmtNum(data[`${x}_trim_corr`], 4)} m`],
         ['Aft', fmtNum(data[`${x}_aft_mean`], 3), fmtNum(data[`${x}_aft_corr`], 4), '', p.heelLabel, heelVal],
         ['', '', '', '', 'Deflection', deflVal],
       ],
     });
   }
 
+  // Subseções no corpo: parágrafos com rótulo em NEGRITO inline (como o Word),
+  // sem heading numerado. As âncoras (key-N) ligam o Contents ao corpo.
   function buildPhase(p: PhaseCfg): TipTapNode[] {
     const x = p.prefix;
     return [
-      heading(2, [text(`${p.num}. ${p.title}`)], undefined, p.key),
+      heading(2, [text(p.title)], undefined, p.key),
       phaseNarrative(p),
       ...figuresBlock(p),
-      paragraph([text(draftReadingsLine)]),
-      heading(3, [text(`${p.num}.1. Draft readings`)]),
+      paragraph([bold('Draft readings: '), text(draftReadingsBody)], undefined, `${p.key}-1`),
       draftReadingsTable(p),
-      heading(3, [text(`${p.num}.2. Sea water density`)]),
-      paragraph([text(SEA_WATER_TEXT)]),
-      heading(3, [text(`${p.num}.3. Ballast water and fresh water`)]),
-      paragraph([text(BALLAST_TEXT)]),
-      heading(3, [text(`${p.num}.4. Fuel R.O.B.`)]),
-      paragraph([text(p.fuelText)]),
-      heading(3, [text(`${p.num}.5. ${p.title} Draft details`)]),
+      paragraph([bold('Sea water density: '), text(p.seaWaterText)], undefined, `${p.key}-2`),
+      paragraph([bold('Ballast water and fresh water: '), text(p.ballastText)], undefined, `${p.key}-3`),
+      paragraph([bold('Fuel R.O.B.: '), text(p.fuelText)], undefined, `${p.key}-4`),
+      heading(3, [text(`${p.title} Draft details`)], undefined, `${p.key}-5`),
       // Print pixel-perfeito da aba (LibreOffice) quando disponível; senão grades nativas.
       ...(sheetImages[p.key]
         ? [sheetImage({ src: sheetImages[p.key]!, alt: `${p.title} draft details` })]
@@ -463,22 +519,22 @@ export function buildDraftSurveyContent(
 
   // ── Photographic Report ─────────────────────────────────────────────────────
   const photoReport: TipTapNode[] = [
-    heading(2, [text('7. Photographic Report')], undefined, 'photos'),
-    heading(3, [text('7.1. Initial')]),
+    heading(2, [text('Photographic Report')], undefined, 'photos'),
+    heading(3, [text('Initial')], undefined, 'photos-1'),
     makePhotoFrame('photos_initial'),
     ...(hasIntermediate
-      ? [heading(3, [text('7.2. Intermediate')]), makePhotoFrame('photos_intermediate')]
+      ? [heading(3, [text('Intermediate')], undefined, 'photos-2'), makePhotoFrame('photos_intermediate')]
       : []),
-    heading(3, [text('7.3. Final')]),
+    heading(3, [text('Final')], undefined, 'photos-3'),
     makePhotoFrame('photos_final'),
   ];
 
-  // ── Attachment ──────────────────────────────────────────────────────────────
+  // ── Attachment (sem ponto final; apóstrofo curvo, como o Word) ──────────────
   const attachment: TipTapNode[] = [
-    heading(2, [text('8. Attachment')], undefined, 'attachment'),
-    paragraph([text('Draft Survey Certificates issued by undersigned surveyor.')]),
-    paragraph([text('Draft Survey Certificate issued by vessel.')]),
-    paragraph([text("Draft Survey Certificate issued by Terminal's surveyor.")]),
+    heading(2, [text('Attachment')], undefined, 'attachment'),
+    paragraph([text('Draft Survey Certificates issued by undersigned surveyor')]),
+    paragraph([text('Draft Survey Certificate issued by vessel')]),
+    paragraph([text('Draft Survey Certificate issued by Terminal’s surveyor')]),
   ];
 
   return [
@@ -487,7 +543,7 @@ export function buildDraftSurveyContent(
     ...contents,
     ...background,
     ...particulars,
-    heading(2, [text('3. Draft Survey')], undefined, 'draft-survey'),
+    heading(2, [text('Draft Survey')], undefined, 'draft-survey'),
     ...initial,
     ...intermediate,
     ...final_,

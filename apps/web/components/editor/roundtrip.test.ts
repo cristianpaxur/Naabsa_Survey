@@ -13,6 +13,7 @@ import { DataTable } from './nodes/dataTable';
 import { LeaderLine } from './nodes/leaderLine';
 import { SheetImage } from './nodes/sheetImage';
 import { DataField } from './marks/dataField';
+import { GlobalAnchor } from './globalAnchor';
 import { LockGuard } from './lockGuard';
 import { buildDraftSurvey } from '@naabsa/core';
 import type { ReportSpec } from '@naabsa/core';
@@ -36,6 +37,7 @@ const schema = getSchema([
   LeaderLine,
   SheetImage,
   DataField,
+  GlobalAnchor,
   LockGuard,
 ]);
 
@@ -114,6 +116,19 @@ describe('Editor round-trip preserva atributos dos nodes custom', () => {
       expect(node.type.name).toBe('doc');
       expect(node.childCount).toBeGreaterThan(0);
     }
+  });
+
+  it('heading/paragraph preservam o atributo anchor (Contents/worker)', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { level: 2, anchor: 'background' }, content: [{ type: 'text', text: 'Background' }] },
+        { type: 'paragraph', attrs: { anchor: 'initial-2' }, content: [{ type: 'text', text: 'Sea water density: x' }] },
+      ],
+    };
+    const out = roundTrip(doc) as { content: { attrs?: Record<string, unknown> }[] };
+    expect(out.content[0]!.attrs?.anchor).toBe('background');
+    expect(out.content[1]!.attrs?.anchor).toBe('initial-2');
   });
 
   it('dataField (mark) preserva field', () => {

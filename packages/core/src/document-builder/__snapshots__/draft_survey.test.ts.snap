@@ -22,7 +22,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Ref: ",
+          "text": "Ref:",
           "type": "text",
         },
         {
@@ -96,7 +96,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": " — IMO ",
+          "text": " – IMO ",
           "type": "text",
         },
         {
@@ -136,7 +136,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": " Port / Brazil — ",
+          "text": " Port/Brazil – ",
           "type": "text",
         },
         {
@@ -211,7 +211,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "1.  Background",
+        "label": "Background",
         "tocTarget": "background",
         "value": "",
       },
@@ -219,7 +219,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "2.  Ship's Particulars",
+        "label": "Ship's Particulars",
         "tocTarget": "particulars",
         "value": "",
       },
@@ -227,7 +227,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "3.  Draft Survey",
+        "label": "Draft Survey",
         "tocTarget": "draft-survey",
         "value": "",
       },
@@ -235,7 +235,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "4.  Initial",
+        "label": "Initial",
         "tocTarget": "initial",
         "value": "",
       },
@@ -243,7 +243,47 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "6.  Final",
+        "label": "4.1. Draft readings",
+        "tocTarget": "initial-1",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.2. Sea water density",
+        "tocTarget": "initial-2",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.3. Ballast water and fresh water",
+        "tocTarget": "initial-3",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.4. Fuel R.O.B.",
+        "tocTarget": "initial-4",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.5. Initial Draft details",
+        "tocTarget": "initial-5",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "Final",
         "tocTarget": "final",
         "value": "",
       },
@@ -251,7 +291,47 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "7.  Photographic Report",
+        "label": "6.1. Draft readings",
+        "tocTarget": "final-1",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.2. Sea water density",
+        "tocTarget": "final-2",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.3. Ballast water and fresh water",
+        "tocTarget": "final-3",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.4. Fuel R.O.B.",
+        "tocTarget": "final-4",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.5. Final Draft details",
+        "tocTarget": "final-5",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "Photographic Report",
         "tocTarget": "photos",
         "value": "",
       },
@@ -259,7 +339,23 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "8.  Attachment",
+        "label": "7.1. Initial",
+        "tocTarget": "photos-1",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "7.3. Final",
+        "tocTarget": "photos-3",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "Attachment",
         "tocTarget": "attachment",
         "value": "",
       },
@@ -272,7 +368,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "1. Background",
+          "text": "Background",
           "type": "text",
         },
       ],
@@ -297,7 +393,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": ", we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo discharged and to compare it with the Shore scale / Bills of lading.",
+          "text": ", we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo discharged and to compare it with the Shore scale/Bills of lading.",
           "type": "text",
         },
       ],
@@ -367,7 +463,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "2. Ship's Particulars",
+          "text": "Ship's Particulars",
           "type": "text",
         },
       ],
@@ -441,7 +537,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "3. Draft Survey",
+          "text": "Draft Survey",
           "type": "text",
         },
       ],
@@ -454,7 +550,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "4. Initial",
+          "text": "Initial",
           "type": "text",
         },
       ],
@@ -511,7 +607,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": ", from ",
+          "text": " from ",
           "type": "text",
         },
         {
@@ -550,9 +646,21 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "anchor": "initial-1",
+      },
       "content": [
         {
-          "text": "Draft readings: Starboard side from shore, alongside vessel and Port side from boat.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Draft readings: ",
+          "type": "text",
+        },
+        {
+          "text": "Starboard side from shore, alongside vessel and Port side from boat.",
           "type": "text",
         },
       ],
@@ -560,25 +668,13 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
-      },
-      "content": [
-        {
-          "text": "4.1. Draft readings",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "attrs": {
         "headers": [
           "Draft Mark",
-          "Means (m)",
-          "Mean corrected (m)",
+          "Means",
+          "Mean corrected",
           "",
-          "Item",
-          "Value",
+          "",
+          "",
         ],
         "rows": [
           [
@@ -586,7 +682,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
             "4.780",
             "4.7802",
             "",
-            "Trim observed",
+            "Trim obs",
             "-0.6600 m",
           ],
           [
@@ -594,7 +690,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
             "5.120",
             "5.1198",
             "",
-            "Trim corrected",
+            "Trim correct",
             "-0.6599 m",
           ],
           [
@@ -620,18 +716,18 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "initial-2",
       },
       "content": [
         {
-          "text": "4.2. Sea water density",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Sea water density: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
           "text": "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings.",
           "type": "text",
@@ -641,20 +737,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "initial-3",
       },
       "content": [
         {
-          "text": "4.3. Ballast water and fresh water",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Ballast water and fresh water: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer.",
+          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer",
           "type": "text",
         },
       ],
@@ -662,20 +758,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "initial-4",
       },
       "content": [
         {
-          "text": "4.4. Fuel R.O.B.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Fuel R.O.B.: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "According to the logbook — FWE.",
+          "text": "According to the logbook – FWE.",
           "type": "text",
         },
       ],
@@ -683,11 +779,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "initial-5",
         "level": 3,
       },
       "content": [
         {
-          "text": "4.5. Initial Draft details",
+          "text": "Initial Draft details",
           "type": "text",
         },
       ],
@@ -700,7 +797,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "6. Final",
+          "text": "Final",
           "type": "text",
         },
       ],
@@ -765,7 +862,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "Shore Scale / BsL figures (Official)",
+        "label": "Shore Scale/BsL figures (Official)",
         "tocTarget": null,
         "value": "—",
       },
@@ -788,6 +885,10 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "leaderLine",
     },
     {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
       "attrs": {
         "label": "Vessel's figures",
         "tocTarget": null,
@@ -796,9 +897,21 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       "type": "leaderLine",
     },
     {
+      "attrs": {
+        "anchor": "final-1",
+      },
       "content": [
         {
-          "text": "Draft readings: Starboard side from shore, alongside vessel and Port side from boat.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Draft readings: ",
+          "type": "text",
+        },
+        {
+          "text": "Starboard side from shore, alongside vessel and Port side from boat.",
           "type": "text",
         },
       ],
@@ -806,25 +919,13 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
-      },
-      "content": [
-        {
-          "text": "6.1. Draft readings",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "attrs": {
         "headers": [
           "Draft Mark",
-          "Means (m)",
-          "Mean corrected (m)",
+          "Means",
+          "Mean corrected",
           "",
-          "Item",
-          "Value",
+          "",
+          "",
         ],
         "rows": [
           [
@@ -832,7 +933,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
             "4.550",
             "4.5503",
             "",
-            "Trim observed",
+            "Trim obs",
             "-0.8300 m",
           ],
           [
@@ -840,7 +941,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
             "4.970",
             "4.9701",
             "",
-            "Trim corrected",
+            "Trim correct",
             "-0.8300 m",
           ],
           [
@@ -866,20 +967,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "final-2",
       },
       "content": [
         {
-          "text": "6.2. Sea water density",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Sea water density: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings.",
+          "text": "A water sample was collected in front of the mid draft, sea side. The vessel hydrometer was considered as official.",
           "type": "text",
         },
       ],
@@ -887,20 +988,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "final-3",
       },
       "content": [
         {
-          "text": "6.3. Ballast water and fresh water",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Ballast water and fresh water: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer.",
+          "text": "The ballast quantity and fresh water was informed by Chief Officer.",
           "type": "text",
         },
       ],
@@ -908,20 +1009,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "final-4",
       },
       "content": [
         {
-          "text": "6.4. Fuel R.O.B.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Fuel R.O.B.: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "Declared by the Chief Engineer at the time of survey.",
+          "text": "Declared by Ch/Eng at time of survey.",
           "type": "text",
         },
       ],
@@ -929,11 +1030,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "final-5",
         "level": 3,
       },
       "content": [
         {
-          "text": "6.5. Final Draft details",
+          "text": "Final Draft details",
           "type": "text",
         },
       ],
@@ -946,7 +1048,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "7. Photographic Report",
+          "text": "Photographic Report",
           "type": "text",
         },
       ],
@@ -954,11 +1056,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "photos-1",
         "level": 3,
       },
       "content": [
         {
-          "text": "7.1. Initial",
+          "text": "Initial",
           "type": "text",
         },
       ],
@@ -976,11 +1079,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "photos-3",
         "level": 3,
       },
       "content": [
         {
-          "text": "7.3. Final",
+          "text": "Final",
           "type": "text",
         },
       ],
@@ -1003,7 +1107,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "8. Attachment",
+          "text": "Attachment",
           "type": "text",
         },
       ],
@@ -1012,7 +1116,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Draft Survey Certificates issued by undersigned surveyor.",
+          "text": "Draft Survey Certificates issued by undersigned surveyor",
           "type": "text",
         },
       ],
@@ -1021,7 +1125,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Draft Survey Certificate issued by vessel.",
+          "text": "Draft Survey Certificate issued by vessel",
           "type": "text",
         },
       ],
@@ -1030,7 +1134,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — discharge (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Draft Survey Certificate issued by Terminal's surveyor.",
+          "text": "Draft Survey Certificate issued by Terminal’s surveyor",
           "type": "text",
         },
       ],
@@ -1063,7 +1167,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "Ref: ",
+          "text": "Ref:",
           "type": "text",
         },
         {
@@ -1137,7 +1241,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": " — IMO ",
+          "text": " – IMO ",
           "type": "text",
         },
         {
@@ -1177,7 +1281,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": " Port / Brazil — ",
+          "text": " Port/Brazil – ",
           "type": "text",
         },
         {
@@ -1252,7 +1356,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "1.  Background",
+        "label": "Background",
         "tocTarget": "background",
         "value": "",
       },
@@ -1260,7 +1364,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "2.  Ship's Particulars",
+        "label": "Ship's Particulars",
         "tocTarget": "particulars",
         "value": "",
       },
@@ -1268,7 +1372,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "3.  Draft Survey",
+        "label": "Draft Survey",
         "tocTarget": "draft-survey",
         "value": "",
       },
@@ -1276,7 +1380,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "4.  Initial",
+        "label": "Initial",
         "tocTarget": "initial",
         "value": "",
       },
@@ -1284,7 +1388,47 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "6.  Final",
+        "label": "4.1. Draft readings",
+        "tocTarget": "initial-1",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.2. Sea water density",
+        "tocTarget": "initial-2",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.3. Ballast water and fresh water",
+        "tocTarget": "initial-3",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.4. Fuel R.O.B.",
+        "tocTarget": "initial-4",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "4.5. Initial Draft details",
+        "tocTarget": "initial-5",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "Final",
         "tocTarget": "final",
         "value": "",
       },
@@ -1292,7 +1436,47 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "7.  Photographic Report",
+        "label": "6.1. Draft readings",
+        "tocTarget": "final-1",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.2. Sea water density",
+        "tocTarget": "final-2",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.3. Ballast water and fresh water",
+        "tocTarget": "final-3",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.4. Fuel R.O.B.",
+        "tocTarget": "final-4",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "6.5. Final Draft details",
+        "tocTarget": "final-5",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "Photographic Report",
         "tocTarget": "photos",
         "value": "",
       },
@@ -1300,7 +1484,23 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "8.  Attachment",
+        "label": "7.1. Initial",
+        "tocTarget": "photos-1",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "7.3. Final",
+        "tocTarget": "photos-3",
+        "value": "",
+      },
+      "type": "leaderLine",
+    },
+    {
+      "attrs": {
+        "label": "Attachment",
         "tocTarget": "attachment",
         "value": "",
       },
@@ -1313,7 +1513,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "1. Background",
+          "text": "Background",
           "type": "text",
         },
       ],
@@ -1338,7 +1538,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": ", we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo loaded and to compare it with the Shore scale / Bills of lading.",
+          "text": ", we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo loaded and to compare it with the Shore scale/Bills of lading.",
           "type": "text",
         },
       ],
@@ -1408,7 +1608,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "2. Ship's Particulars",
+          "text": "Ship's Particulars",
           "type": "text",
         },
       ],
@@ -1482,7 +1682,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "3. Draft Survey",
+          "text": "Draft Survey",
           "type": "text",
         },
       ],
@@ -1495,7 +1695,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "4. Initial",
+          "text": "Initial",
           "type": "text",
         },
       ],
@@ -1552,7 +1752,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
           "type": "text",
         },
         {
-          "text": ", from ",
+          "text": " from ",
           "type": "text",
         },
         {
@@ -1591,9 +1791,21 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "paragraph",
     },
     {
+      "attrs": {
+        "anchor": "initial-1",
+      },
       "content": [
         {
-          "text": "Draft readings: Starboard side from shore, alongside vessel and Port side from boat.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Draft readings: ",
+          "type": "text",
+        },
+        {
+          "text": "Starboard side from shore, alongside vessel and Port side from boat.",
           "type": "text",
         },
       ],
@@ -1601,25 +1813,13 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
-      },
-      "content": [
-        {
-          "text": "4.1. Draft readings",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "attrs": {
         "headers": [
           "Draft Mark",
-          "Means (m)",
-          "Mean corrected (m)",
+          "Means",
+          "Mean corrected",
           "",
-          "Item",
-          "Value",
+          "",
+          "",
         ],
         "rows": [
           [
@@ -1627,7 +1827,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
             "4.780",
             "4.7802",
             "",
-            "Trim observed",
+            "Trim obs",
             "-0.6600 m",
           ],
           [
@@ -1635,7 +1835,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
             "5.120",
             "5.1198",
             "",
-            "Trim corrected",
+            "Trim correct",
             "-0.6599 m",
           ],
           [
@@ -1661,18 +1861,18 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "initial-2",
       },
       "content": [
         {
-          "text": "4.2. Sea water density",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Sea water density: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
           "text": "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings.",
           "type": "text",
@@ -1682,20 +1882,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "initial-3",
       },
       "content": [
         {
-          "text": "4.3. Ballast water and fresh water",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Ballast water and fresh water: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer.",
+          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer",
           "type": "text",
         },
       ],
@@ -1703,20 +1903,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "initial-4",
       },
       "content": [
         {
-          "text": "4.4. Fuel R.O.B.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Fuel R.O.B.: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "According to the logbook — FWE.",
+          "text": "According to the logbook – FWE.",
           "type": "text",
         },
       ],
@@ -1724,11 +1924,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "initial-5",
         "level": 3,
       },
       "content": [
         {
-          "text": "4.5. Initial Draft details",
+          "text": "Initial Draft details",
           "type": "text",
         },
       ],
@@ -1741,7 +1942,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "6. Final",
+          "text": "Final",
           "type": "text",
         },
       ],
@@ -1806,7 +2007,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "label": "Shore Scale / BsL figures (Official)",
+        "label": "Shore Scale/BsL figures (Official)",
         "tocTarget": null,
         "value": "—",
       },
@@ -1829,6 +2030,10 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "leaderLine",
     },
     {
+      "content": [],
+      "type": "paragraph",
+    },
+    {
       "attrs": {
         "label": "Vessel's figures",
         "tocTarget": null,
@@ -1837,9 +2042,21 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       "type": "leaderLine",
     },
     {
+      "attrs": {
+        "anchor": "final-1",
+      },
       "content": [
         {
-          "text": "Draft readings: Starboard side from shore, alongside vessel and Port side from boat.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Draft readings: ",
+          "type": "text",
+        },
+        {
+          "text": "Starboard side from shore, alongside vessel and Port side from boat.",
           "type": "text",
         },
       ],
@@ -1847,25 +2064,13 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
-      },
-      "content": [
-        {
-          "text": "6.1. Draft readings",
-          "type": "text",
-        },
-      ],
-      "type": "heading",
-    },
-    {
-      "attrs": {
         "headers": [
           "Draft Mark",
-          "Means (m)",
-          "Mean corrected (m)",
+          "Means",
+          "Mean corrected",
           "",
-          "Item",
-          "Value",
+          "",
+          "",
         ],
         "rows": [
           [
@@ -1873,7 +2078,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
             "4.550",
             "4.5503",
             "",
-            "Trim observed",
+            "Trim obs",
             "-0.8300 m",
           ],
           [
@@ -1881,7 +2086,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
             "4.970",
             "4.9701",
             "",
-            "Trim corrected",
+            "Trim correct",
             "-0.8300 m",
           ],
           [
@@ -1907,20 +2112,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "final-2",
       },
       "content": [
         {
-          "text": "6.2. Sea water density",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Sea water density: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings.",
+          "text": "A water sample was collected in front of the mid draft, sea side. The vessel hydrometer was considered as official.",
           "type": "text",
         },
       ],
@@ -1928,20 +2133,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "final-3",
       },
       "content": [
         {
-          "text": "6.3. Ballast water and fresh water",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Ballast water and fresh water: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer.",
+          "text": "The ballast quantity and fresh water was informed by Chief Officer.",
           "type": "text",
         },
       ],
@@ -1949,20 +2154,20 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
-        "level": 3,
+        "anchor": "final-4",
       },
       "content": [
         {
-          "text": "6.4. Fuel R.O.B.",
+          "marks": [
+            {
+              "type": "bold",
+            },
+          ],
+          "text": "Fuel R.O.B.: ",
           "type": "text",
         },
-      ],
-      "type": "heading",
-    },
-    {
-      "content": [
         {
-          "text": "Declared by the Chief Engineer at the time of survey.",
+          "text": "Declared by Ch/Eng at time of survey.",
           "type": "text",
         },
       ],
@@ -1970,11 +2175,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "final-5",
         "level": 3,
       },
       "content": [
         {
-          "text": "6.5. Final Draft details",
+          "text": "Final Draft details",
           "type": "text",
         },
       ],
@@ -1987,7 +2193,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "7. Photographic Report",
+          "text": "Photographic Report",
           "type": "text",
         },
       ],
@@ -1995,11 +2201,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "photos-1",
         "level": 3,
       },
       "content": [
         {
-          "text": "7.1. Initial",
+          "text": "Initial",
           "type": "text",
         },
       ],
@@ -2017,11 +2224,12 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     },
     {
       "attrs": {
+        "anchor": "photos-3",
         "level": 3,
       },
       "content": [
         {
-          "text": "7.3. Final",
+          "text": "Final",
           "type": "text",
         },
       ],
@@ -2044,7 +2252,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
       },
       "content": [
         {
-          "text": "8. Attachment",
+          "text": "Attachment",
           "type": "text",
         },
       ],
@@ -2053,7 +2261,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Draft Survey Certificates issued by undersigned surveyor.",
+          "text": "Draft Survey Certificates issued by undersigned surveyor",
           "type": "text",
         },
       ],
@@ -2062,7 +2270,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Draft Survey Certificate issued by vessel.",
+          "text": "Draft Survey Certificate issued by vessel",
           "type": "text",
         },
       ],
@@ -2071,7 +2279,7 @@ exports[`buildDraftSurvey — CA-001 > snapshot — loading (CA-001) 1`] = `
     {
       "content": [
         {
-          "text": "Draft Survey Certificate issued by Terminal's surveyor.",
+          "text": "Draft Survey Certificate issued by Terminal’s surveyor",
           "type": "text",
         },
       ],

@@ -126,7 +126,7 @@ function BlockNode({ node }: { node: TipTapNode }) {
   switch (node.type) {
     case 'paragraph':
       return (
-        <p style={alignStyle}>
+        <p style={alignStyle} data-anchor={(node.attrs?.anchor as string | undefined) || undefined}>
           {node.content?.map((child, i) => <InlineNode key={i} node={child} />) ?? null}
         </p>
       );
