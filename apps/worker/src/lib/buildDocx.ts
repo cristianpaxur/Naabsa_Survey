@@ -9,7 +9,7 @@ import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   Header, Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
   TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
-  Bookmark, InternalHyperlink,
+  Bookmark, InternalHyperlink, TableLayoutType,
 } from 'docx';
 import type { FieldValue } from '@naabsa/core';
 
@@ -66,14 +66,16 @@ const para = (children: TextRun[], opts: { align?: (typeof AlignmentType)[keyof 
   new Paragraph({ children, alignment: opts.align, spacing: { after: opts.spacing ?? 80 } });
 
 // célula de tabela "label : valor" (sem fundo, como o Word)
+// Larguras absolutas (twips) — o LibreOffice não respeita % em tabela; DXA + FIXED sim.
+const KV_COLS = [2000, 250, 7610] as const; // rótulo | ":" | valor (≈ largura útil A4)
 function kvRow(label: string, value: string): TableRow {
   const cell = (children: Paragraph[], w: number) =>
-    new TableCell({ children, width: { size: w, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, margins: { top: 20, bottom: 20, left: 80, right: 80 } });
+    new TableCell({ children, width: { size: w, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 20, bottom: 20, left: 80, right: 80 } });
   return new TableRow({
     children: [
-      cell([new Paragraph({ children: [run(label, { bold: true })] })], 38),
-      cell([new Paragraph({ children: [run(':', { bold: true })] })], 6),
-      cell([new Paragraph({ children: [run(value)] })], 56),
+      cell([new Paragraph({ children: [run(label, { bold: true })] })], KV_COLS[0]),
+      cell([new Paragraph({ children: [run(':', { bold: true })] })], KV_COLS[1]),
+      cell([new Paragraph({ children: [run(value)] })], KV_COLS[2]),
     ],
   });
 }
@@ -238,7 +240,7 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
 
   // ── 2. Ship's Particulars ──
   body.push(sectionTitle('s2', numTitle(2, "Ship's Particulars")));
-  body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [
+  body.push(new Table({ width: { size: 9860, type: WidthType.DXA }, columnWidths: [...KV_COLS], layout: TableLayoutType.FIXED, borders: tableNoBorders, rows: [
     kvRow('Flag', v(data['flag'])), kvRow('Port registry', v(data['register_port'])), kvRow('Call sign', v(data['call_sign'])),
     kvRow('IMO number', v(data['imo'])), kvRow('Type', v(data['vessel_type'])), kvRow('Delivered', v(data['delivered'])),
     kvRow('LOA', meters(data['loa'])), kvRow('LBP', meters(data['lbp'])), kvRow('Depth moulded', meters(data['depth_moulded'])),
