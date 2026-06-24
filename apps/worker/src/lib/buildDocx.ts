@@ -79,6 +79,9 @@ function kvRow(label: string, value: string): TableRow {
 }
 const THIN = { style: BorderStyle.SINGLE, size: 4, color: 'BFBFBF' } as const;
 const tableBorders = { top: THIN, bottom: THIN, left: THIN, right: THIN, insideHorizontal: THIN, insideVertical: THIN };
+const NONE_B = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const;
+/** Tabela sem linhas (alinhamento label:valor como o modelo Word). */
+const tableNoBorders = { top: NONE_B, bottom: NONE_B, left: NONE_B, right: NONE_B, insideHorizontal: NONE_B, insideVertical: NONE_B };
 
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 /** Lê largura/altura (px) de PNG ou JPEG direto do cabeçalho (sync, sem libs). */
@@ -235,7 +238,7 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
 
   // ── 2. Ship's Particulars ──
   body.push(sectionTitle('s2', numTitle(2, "Ship's Particulars")));
-  body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableBorders, rows: [
+  body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [
     kvRow('Flag', v(data['flag'])), kvRow('Port registry', v(data['register_port'])), kvRow('Call sign', v(data['call_sign'])),
     kvRow('IMO number', v(data['imo'])), kvRow('Type', v(data['vessel_type'])), kvRow('Delivered', v(data['delivered'])),
     kvRow('LOA', meters(data['loa'])), kvRow('LBP', meters(data['lbp'])), kvRow('Depth moulded', meters(data['depth_moulded'])),
