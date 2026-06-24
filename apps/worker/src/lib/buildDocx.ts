@@ -18,6 +18,8 @@ const GREY = '7F7F7F';
 const SLAB = 'Rockwell';      // aprox. do GeoSlab703 do modelo
 const SANS = 'Calibri';
 const TITLE_FONT = 'Tahoma';
+// Nome do surveyor que assina (1ª página). Fixo por ora; pode virar config/perfil.
+const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
 
 type Data = Record<string, FieldValue>;
 export interface DocxInput {
@@ -212,7 +214,7 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
   body.push(plainTitle('PERSON / COMPANIES CONTACTED'));
   body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableBorders, rows: [
     personRow('Client', [v(data['client']), v(data['operator'])]),
-    personRow('Undersigned Surveyor', ['NAABSA Marine Surveyors', v(data['surveyor_name'], '')]),
+    personRow('Undersigned Surveyor', ['NAABSA Marine Surveyors', v(data['surveyor_name'], UNDERSIGNED_SURVEYOR)]),
     personRow("Vessel’s Command", ['Master / Chief Officer', `${v(data['captain'])} / ${v(data['chief_officer'])}`]),
   ] }));
 
@@ -353,8 +355,9 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   const sides = sideLabel(data['berthing_side']);
   out.push(new Paragraph({ spacing: { after: 80 }, children: [new Bookmark({ id: `s${num}_1`, children: [run(`${num}.1 Draft readings: `, { bold: true })] }), run(`${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`)] }));
   out.push(draftReadingsTable(x, data));
-  out.push(subLead(`s${num}_2`, `${num}.2 Sea water density: `, x === 'fin' ? 'A water sample was collected in front of the mid draft, sea side. The vessel hydrometer was considered as official.' : "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings."));
-  out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, x === 'fin' ? 'The ballast quantity and fresh water was informed by Chief Officer.' : 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
+  // 6.2/6.3 (Final) usam o MESMO texto de 4.2/4.3 e 5.2/5.3 (pedido do cliente).
+  out.push(subLead(`s${num}_2`, `${num}.2 Sea water density: `, "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings."));
+  out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
   out.push(subLead(`s${num}_4`, `${num}.4 Fuel R.O.B.: `, x === 'init' ? 'According to the logbook – FWE.' : 'Declared by Ch/Eng at time of survey.'));
   out.push(subTitle(`s${num}_5`, `${num}.5 ${title} Draft details`));
   if (image) out.push(img(image, 165));
