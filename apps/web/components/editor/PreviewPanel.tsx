@@ -8,6 +8,7 @@ import {
   generatePreview,
   getPreviewUrl,
 } from '@/lib/actions/editor';
+import { regenerate } from '@/lib/actions/regenerate';
 import type { TipTapDoc } from '@naabsa/core';
 import type { ReportStatus } from '@/lib/state-machine';
 
@@ -160,6 +161,19 @@ export function PreviewPanel({
     window.open(res.url, '_blank', 'noopener');
   }
 
+  // Regenerar (010/T-004): reabre em edição; recarrega para o editor voltar ao modo edit.
+  async function onRegenerate() {
+    setBusy(true);
+    setError(null);
+    const res = await regenerate(reportId);
+    if ('error' in res) {
+      setBusy(false);
+      setError(res.error);
+      return;
+    }
+    window.location.reload();
+  }
+
   const badge =
     status === 'approved' ? (
       <span className="ed-preview__badge ed-preview__badge--generating">
@@ -210,6 +224,17 @@ export function PreviewPanel({
                 {busy ? 'Aprovando…' : 'Aprovar e gerar PDF'}
               </button>
             </>
+          )}
+          {status === 'generated' && (
+            <button
+              className="ed-btn"
+              style={{ borderColor: '#fff', color: '#fff', background: 'transparent' }}
+              onClick={() => void onRegenerate()}
+              disabled={busy}
+              title="Reabrir para edição e gerar uma nova versão do PDF"
+            >
+              Regenerar
+            </button>
           )}
           {(status === 'approved' || status === 'generated') && (
             <button

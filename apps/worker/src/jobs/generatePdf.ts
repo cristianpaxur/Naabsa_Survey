@@ -98,16 +98,27 @@ export interface ReportRow {
   operator_overrides: unknown;
   spreadsheet_path: string | null;
   created_by: string | null;
+  pdf_paths: string[] | null;
 }
 
 export async function loadReport(svc: ReturnType<typeof getServiceClient>, reportId: string): Promise<ReportRow | null> {
   const { data, error } = await svc
     .from('reports')
-    .select('status, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by')
+    .select('status, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths')
     .eq('id', reportId)
     .single();
   if (error || !data) return null;
   return data as unknown as ReportRow;
+}
+
+/** Próxima versão do PDF a partir dos caminhos existentes (final-v{n}.pdf). */
+function nextPdfVersion(paths: string[]): number {
+  let max = 0;
+  for (const p of paths) {
+    const m = /final-v(\d+)\.pdf$/.exec(p);
+    if (m) max = Math.max(max, parseInt(m[1]!, 10));
+  }
+  return max + 1;
 }
 
 /**
@@ -201,8 +212,9 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
 
   const { pdf, docx, docHash } = await renderReportPdf(svc, reportId, row);
 
-  // Upload (PDF + .docx editável).
-  const pdfPath = `${reportId}/final.pdf`;
+  // Upload: PDF VERSIONADO (final-v{n}.pdf, 010/T-005) + .docx editável (mais recente).
+  const version = nextPdfVersion(row.pdf_paths ?? []);
+  const pdfPath = `${reportId}/final-v${version}.pdf`;
   const docxPath = `${reportId}/final.docx`;
   const up1 = await svc.storage.from(BUCKET).upload(pdfPath, pdf, { contentType: 'application/pdf', upsert: true });
   if (up1.error) throw new Error(`[generate_pdf] falha no upload do PDF: ${up1.error.message}`);
@@ -211,10 +223,11 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
     upsert: true,
   });
 
-  // Transição → generated + auditoria (guarda de corrida no status).
+  // Transição → generated + auditoria. pdf_paths acumula as versões (download = última).
+  const pdfPaths = [...(row.pdf_paths ?? []), pdfPath];
   const { error: updateErr } = await svc
     .from('reports')
-    .update({ status: 'generated', document_hash: docHash, pdf_paths: [pdfPath] } as never)
+    .update({ status: 'generated', document_hash: docHash, pdf_paths: pdfPaths } as never)
     .eq('id', reportId)
     .eq('status', 'approved');
   if (updateErr) throw new Error(`[generate_pdf] falha ao atualizar relatório: ${updateErr.message}`);
@@ -223,8 +236,9 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
     document_hash: docHash,
     storage_path: pdfPath,
     docx_path: docxPath,
+    version,
   });
-  console.log(`[generate_pdf] PDF (.docx nativo) gerado para ${reportId} (hash ${docHash.slice(0, 8)}…)`);
+  console.log(`[generate_pdf] PDF v${version} (.docx nativo) gerado para ${reportId} (hash ${docHash.slice(0, 8)}…)`);
 }
 
 async function auditLog(

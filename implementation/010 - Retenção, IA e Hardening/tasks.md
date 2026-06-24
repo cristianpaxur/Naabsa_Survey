@@ -2,7 +2,7 @@
 
 > **Implementação:** 010 - Retenção, IA e Hardening
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 3/13 tarefas concluídas (23%)
+> **Progresso:** 5/13 tarefas concluídas (38%)
 > **Última atualização:** 2026-06-24
 
 ---
@@ -44,14 +44,14 @@
 
 ### Fase 2: Regeneração de PDF (PRD T-25)
 
-- [ ] **T-004:** Action `regenerate` + extensão da máquina de estados
+- [x] **T-004:** Action `regenerate` + extensão da máquina de estados
   - **Descrição:** Em `generated`: transição auditada `generated → editing` (estender `state-machine.ts` da 005 conforme RF-30) mantendo `document_json`; botão "Regenerar" na barra do preview.
   - **Arquivos envolvidos:** `apps/web/lib/actions/regenerate.ts`, `apps/web/lib/state-machine.ts`
   - **Critério de conclusão:** Ciclo editar→aprovar reabre normalmente.
   - **Dependências:** Nenhuma
   - **Estimativa:** Média
 
-- [ ] **T-005:** PDF versionado `final-v{n}.pdf`
+- [x] **T-005:** PDF versionado `final-v{n}.pdf`
   - **Descrição:** Worker: nova geração adiciona `final-v{n}.pdf` em `pdf_paths[]` e atualiza `document_hash`; download oferece a versão mais recente.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/generatePdf.ts`
   - **Critério de conclusão:** `final-v2.pdf` criado com hash atualizado (CA-003).
@@ -130,8 +130,8 @@
 | T-001  | ✅ Concluída | 2026-06-24 | Job + cron 03:00; elegibilidade testada (unit) |
 | T-002  | ✅ Concluída | 2026-06-24 | Timeline do audit_log (`/reports/[id]/history`) |
 | T-003  | ✅ Concluída | 2026-06-24 | Link de histórico por linha no dashboard |
-| T-004  | ⬜ Pendente | — | — |
-| T-005  | ⬜ Pendente | — | — |
+| T-004  | ✅ Concluída | 2026-06-24 | generated→editing (state-machine + action regenerate); botão no preview |
+| T-005  | ✅ Concluída | 2026-06-24 | final-v{n}.pdf acumulado em pdf_paths; download = última versão |
 | T-006  | ⬜ Pendente | — | — |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |

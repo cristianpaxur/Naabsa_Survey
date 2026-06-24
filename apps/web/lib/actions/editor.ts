@@ -229,7 +229,8 @@ export async function getDownloadUrl(
   if (report.status !== 'generated') {
     return { error: 'O PDF ainda não está pronto.' };
   }
-  const path = report.pdf_paths?.[0];
+  // Versão mais recente (pdf_paths acumula final-v{n}.pdf — 010/T-005).
+  const path = report.pdf_paths?.[report.pdf_paths.length - 1];
   if (!path) return { error: 'PDF não encontrado.' };
 
   const svc = createServiceClient();
