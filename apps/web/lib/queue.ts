@@ -14,16 +14,20 @@ export const PREVIEW_PDF_QUEUE = 'preview_pdf';
 export const RENDER_SHEETS_QUEUE = 'render_sheets';
 export const AI_REVIEW_QUEUE = 'ai_review';
 
-let bossPromise: Promise<PgBoss> | null = null;
+// Persistir o singleton no globalThis evita VAZAMENTO de pools no HMR do Next dev:
+// sem isso, cada reload reavalia o módulo, recria o PgBoss e deixa o anterior com
+// conexões abertas — estourando o limite do pooler do Supabase (session mode ~15).
+const globalForBoss = globalThis as unknown as { __naabsaWebBoss?: Promise<PgBoss> };
 
 async function getBoss(): Promise<PgBoss> {
-  if (bossPromise) return bossPromise;
-  bossPromise = (async () => {
+  if (globalForBoss.__naabsaWebBoss) return globalForBoss.__naabsaWebBoss;
+  globalForBoss.__naabsaWebBoss = (async () => {
     const connectionString = process.env.DATABASE_URL ?? '';
     if (!connectionString) {
       throw new Error('DATABASE_URL ausente — não é possível enfileirar jobs.');
     }
-    const boss = new PgBoss({ connectionString });
+    // O web apenas ENVIA jobs → pool pequeno (o pooler do Supabase é limitado).
+    const boss = new PgBoss({ connectionString, max: 2 });
     boss.on('error', (err: Error) => {
       console.error('[web][pg-boss] erro:', err);
     });
@@ -46,7 +50,7 @@ async function getBoss(): Promise<PgBoss> {
     });
     return boss;
   })();
-  return bossPromise;
+  return globalForBoss.__naabsaWebBoss;
 }
 
 export interface ProcessPhotoPayload {
