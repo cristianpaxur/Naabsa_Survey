@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import ExcelJS from 'exceljs';
-import { runExtraction, type ReportSpec } from '@naabsa/core';
+import { runExtraction, resolveVariant, type ReportSpec } from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
@@ -90,7 +90,10 @@ export async function POST(
   const buffer = Buffer.from(await file.arrayBuffer());
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer as unknown as ArrayBuffer);
-  const { data, issues } = runExtraction(wb, spec, report.variant);
+  // Variante AUTORITATIVA da planilha (spec resolve de Capa!L4). Persistida abaixo
+  // para a coluna `variant` não ficar stale (UI/worker usam a mesma fonte).
+  const resolvedVariant = resolveVariant(wb, spec).variant ?? report.variant;
+  const { data, issues } = runExtraction(wb, spec, resolvedVariant);
 
   // Erro de aba/fingerprint (RF-09): não persiste, mantém draft para novo upload.
   const blocking = issues.find(
@@ -125,6 +128,7 @@ export async function POST(
       extraction_issues: issues,
       vessel_name: vessel,
       spreadsheet_path: path,
+      variant: resolvedVariant,
     } as never)
     .eq('id', id);
   if (updErr) {

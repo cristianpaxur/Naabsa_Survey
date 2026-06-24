@@ -77,14 +77,14 @@ export function PreviewPanel({
   }, [reportId]);
 
   useEffect(() => {
-    // Ao aprovar (autoApprove), o PDF FINAL é gerado pelo fluxo de aprovação;
-    // mostramos ele quando pronto (evita gerar duas vezes).
-    if (autoApprove) return;
+    // Só geramos preview ao estar EDITANDO um rascunho. Em approved/generated o
+    // PDF final já existe (ou está sendo gerado pela aprovação) → mostramos ele.
+    if (autoApprove || initialStatus !== 'editing') return;
     void runPreview();
     return () => {
       if (previewPollRef.current) clearTimeout(previewPollRef.current);
     };
-  }, [runPreview, autoApprove]);
+  }, [runPreview, autoApprove, initialStatus]);
 
   // Quando o PDF final fica pronto (generated), exibe-o no preview.
   useEffect(() => {

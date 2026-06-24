@@ -69,6 +69,12 @@ Paralelização possível: após 001, **002 e 003** podem andar em paralelo; ap�
 > `tests/fixtures/{planilhas,specs,reports}/draft_survey/`. O spec real (`draft_survey.v1.json`)
 > exigiu o **contrato v2 multi-aba** (lê 6 abas) — ver 003 §3.4.1 e tarefas 003/T-013..T-016 e
 > 004/T-011..T-014. Conteúdo do PDF em **inglês**; UI em pt-BR.
+>
+> **Pivot 2026-06-24 — geração de PDF via `.docx` nativo.** Para fidelidade ao modelo Word, a
+> 004 foi reescrita: o worker monta um `.docx` nativo (lib `docx`) e converte por LibreOffice,
+> com sumário clicável e variantes. Preview e abertura de `approved`/`generated` mostram o PDF
+> real (novo job `preview_pdf`); o caminho HTML (`/print`, `PrintDocument`) foi removido. O
+> TipTap segue como editor (não é mais a fonte do PDF). Ver o callout no [spec 004](./004%20-%20Document-Builder%20e%20Geração%20de%20PDF/spec.md).
 
 ---
 

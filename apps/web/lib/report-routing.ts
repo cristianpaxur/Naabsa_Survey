@@ -8,10 +8,10 @@ export function reportHref(id: string, status: ReportStatus): string {
     case 'in_review':
       return `/reports/${id}/review`;
     case 'editing':
-      return `/reports/${id}/edit`;
     case 'approved':
     case 'generated':
-      return `/reports/${id}/print`;
+      // O editor abre approved/generated em modo preview (PDF real); ver edit/page.tsx.
+      return `/reports/${id}/edit`;
     case 'purged':
       return `/reports/${id}/history`;
   }

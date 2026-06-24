@@ -1,11 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase/middleware';
 
-// Rotas públicas (não exigem sessão). A rota de impressão tem auth própria
-// (token de serviço / sessão — implementação 004).
+// Rotas públicas (não exigem sessão).
 function isPublic(pathname: string): boolean {
   if (pathname === '/login') return true;
-  if (/^\/reports\/[^/]+\/print$/.test(pathname)) return true;
   return false;
 }
 

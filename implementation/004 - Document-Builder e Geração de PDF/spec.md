@@ -17,6 +17,23 @@ Implementar a cadeia documento→PDF: o document-builder do primeiro tipo de rel
 (Playwright/Chromium singleton). Estabelece o princípio inviolável nº 5: **preview = PDF**,
 ambos derivados do mesmo JSON e do mesmo engine, validado por golden test.
 
+> **⚠️ Atualização 2026-06-24 — Pivot HTML→`.docx` nativo.** A geração de PDF foi
+> reescrita para atingir **fidelidade ao modelo Word do cliente** (o caminho HTML não
+> alcançava identidade visual). Em vez de renderizar `/reports/[id]/print` via Playwright,
+> o worker monta um **`.docx` nativo** (lib `docx` — `apps/worker/src/lib/buildDocx.ts`) e
+> converte para PDF via **LibreOffice headless** (`apps/worker/src/lib/soffice.ts`, macro UNO).
+> Consequências:
+> - `generate_pdf` monta a partir dos **dados efetivos** (extracted_data + overrides + variante
+>   da planilha + prints das abas + fotos), **não** do `document_json`. O TipTap continua como
+>   editor, mas deixa de ser a fonte do PDF (decisão de manter por ora).
+> - Numeração de seções (1–8) e subseções (4.1–7.3); **sumário clicável** com subseções
+>   (bookmarks + medição de páginas em 2 passes); variantes loading/discharge no texto.
+> - Novo job **`preview_pdf`** (núcleo `renderReportPdf` compartilhado): o preview do editor
+>   e a abertura de relatórios `approved`/`generated` mostram o **PDF real** (idêntico ao
+>   download) — "preview = PDF" agora é literal (mesmo `.docx`).
+> - **Removidos** (caminho HTML morto): rota `/reports/[id]/print`, `PrintDocument`, `print.css`,
+>   `print-resolve`. Imagens das fotos no editor TipTap continuam como placeholders.
+
 ## 2. Contexto e Motivação
 
 ### 2.1 Problema Atual
