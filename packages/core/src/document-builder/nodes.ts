@@ -73,6 +73,16 @@ export interface LeaderLineNode extends TipTapNode {
   attrs: { label: string; value: string; tocTarget: string | null };
 }
 
+/**
+ * Imagem de largura total (atom) — o "print da planilha" (aba do Excel
+ * renderizada via LibreOffice). `src` guarda o CAMINHO de Storage; a rota
+ * /print assina no render (como o photoFrame).
+ */
+export interface SheetImageNode extends TipTapNode {
+  type: 'sheetImage';
+  attrs: { src: string | null; alt: string };
+}
+
 // ── Construtores ─────────────────────────────────────────────────────────────
 
 /** Constói a mark `dataField` que vincula texto a um campo do spec. */
@@ -100,6 +110,11 @@ export function leaderLine(attrs: {
     type: 'leaderLine',
     attrs: { label: attrs.label, value: attrs.value ?? '', tocTarget: attrs.tocTarget ?? null },
   };
+}
+
+/** Constrói um node `sheetImage` (print da aba da planilha). */
+export function sheetImage(attrs: { src: string | null; alt?: string }): SheetImageNode {
+  return { type: 'sheetImage', attrs: { src: attrs.src, alt: attrs.alt ?? '' } };
 }
 
 // ── Helpers de texto ─────────────────────────────────────────────────────────

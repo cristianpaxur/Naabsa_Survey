@@ -36,6 +36,16 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 # --- runner: fonte + execução via tsx (core/db são TS, sem build) ---
 FROM deps AS runner
+
+# ┌─ impl "print da planilha" (render_sheets / LibreOffice) ───────────────────┐
+# │ O job render_sheets exporta as abas do Excel como PNG via LibreOffice       │
+# │ headless. Instalamos `libreoffice-calc` + `fonts-crosextra-carlito`         │
+# │ (Carlito = clone métrico do Calibri) para fidelidade tipográfica.           │
+# └────────────────────────────────────────────────────────────────────────────┘
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libreoffice-calc fonts-crosextra-carlito fonts-crosextra-caladea \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY packages ./packages
 COPY apps/worker ./apps/worker
 ENV NODE_ENV=production

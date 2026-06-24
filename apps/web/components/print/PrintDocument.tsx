@@ -20,6 +20,7 @@ import type {
   TipTapMark,
   PhotoFrameNode,
   DataTableNode,
+  SheetImageNode,
 } from '@naabsa/core';
 
 // ── Tipos locais ────────────────────────────────────────────────────────────
@@ -158,9 +159,26 @@ function BlockNode({ node }: { node: TipTapNode }) {
     case 'leaderLine':
       return <LeaderLine node={node} />;
 
+    case 'sheetImage':
+      return <SheetImage node={node as SheetImageNode} />;
+
     default:
       return null;
   }
+}
+
+// ── sheetImage (print pixel-perfeito da aba da planilha) ─────────────────────
+
+function SheetImage({ node }: { node: SheetImageNode }) {
+  const { src = null, alt = '' } = node.attrs ?? ({} as SheetImageNode['attrs']);
+  if (!src) {
+    return (
+      <div className="print-sheet-image print-sheet-image--missing">
+        Print da planilha não disponível
+      </div>
+    );
+  }
+  return <img className="print-sheet-image" src={src} alt={alt} />;
 }
 
 // ── leaderLine (Rótulo …… Valor) ────────────────────────────────────────────

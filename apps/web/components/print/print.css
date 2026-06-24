@@ -253,6 +253,26 @@
   color: var(--naabsa-navy);
 }
 
+/* ── sheetImage: print da aba da planilha (largura total) ────────────────── */
+.print-sheet-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 6pt 0 10pt;
+  break-inside: avoid;
+  border: 0.5pt solid var(--print-borda);
+}
+.print-sheet-image--missing {
+  border: 1pt dashed var(--print-borda);
+  background: #f0ede8;
+  color: var(--print-rocha);
+  font-size: 9pt;
+  font-style: italic;
+  padding: 16pt;
+  text-align: center;
+}
+
 /* ── photoFrame (centralizado) ───────────────────────────────────────────── */
 .print-photo-frame {
   break-inside: avoid;

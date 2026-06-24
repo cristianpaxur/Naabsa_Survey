@@ -25,6 +25,12 @@ export interface BuilderInput {
   /** Matrizes das tabelas range-based (v2) — usado pelas grades em T-012. */
   tables: Record<string, FieldValue[][]>;
   photos: PhotoAlloc[];
+  /**
+   * Imagens das abas da planilha (print pixel-perfeito via LibreOffice), por
+   * fase (`initial`/`intermediate`/`final`) → caminho de Storage. Quando
+   * presente, o "Draft details" embute a imagem; senão cai nas grades nativas.
+   */
+  sheetImages?: Record<string, string | null>;
 }
 
 /** Contrato que cada builder de tipo deve cumprir. */

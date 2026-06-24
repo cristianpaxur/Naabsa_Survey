@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
+import { enqueueRenderSheets } from '@/lib/queue';
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB (RF-04)
 const BUCKET = 'reports';
@@ -145,6 +146,15 @@ export async function POST(
     payload: { fields: Object.keys(data).length, errors, warnings },
   });
   await transition(supabase, id, 'draft', 'extracted', user.id);
+
+  // Renderiza as abas da planilha como imagem (print pixel-perfeito, LibreOffice)
+  // em background — disponíveis quando o operador chegar ao editor. Falha no
+  // enfileiramento não bloqueia o upload (cai nas grades nativas).
+  try {
+    await enqueueRenderSheets({ reportId: id });
+  } catch (err) {
+    console.error('[spreadsheet] falha ao enfileirar render_sheets:', err);
+  }
 
   return NextResponse.json({ ok: true, reportId: id, errors, warnings });
 }

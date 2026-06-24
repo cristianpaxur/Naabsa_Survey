@@ -82,6 +82,28 @@ export interface AssembleInput {
 }
 
 /**
+ * Caminhos das imagens das abas da planilha (print pixel-perfeito) por fase,
+ * geradas pelo worker (`render_sheets`) em `reports/{id}/sheets/{phase}.png`.
+ * Retorna null por fase ausente — o builder cai nas grades nativas.
+ */
+async function loadSheetImages(
+  reportId: string,
+): Promise<Record<string, string | null>> {
+  const out: Record<string, string | null> = { initial: null, intermediate: null, final: null };
+  try {
+    const svc = createServiceClient();
+    const { data } = await svc.storage.from('reports').list(`${reportId}/sheets`);
+    for (const f of data ?? []) {
+      const phase = f.name.replace(/\.png$/i, '');
+      if (phase in out) out[phase] = `${reportId}/sheets/${f.name}`;
+    }
+  } catch {
+    /* sem imagens — usa grades nativas */
+  }
+  return out;
+}
+
+/**
  * Re-extrai as tabelas range-based (grades, figures acting-as) a partir da
  * planilha guardada no Storage. As tabelas não são persistidas em `reports`
  * (só `extracted_data`), então as recalculamos aqui na montagem do documento.
@@ -140,6 +162,7 @@ export async function assembleDocument(
   );
   const photos = await loadAllocatedPhotos(supabase, reportId);
   const tables = await loadTables(supabase, reportId, input.spec, input.variant);
+  const sheetImages = await loadSheetImages(reportId);
 
-  return builder({ spec: input.spec, variant: input.variant, data, tables, photos });
+  return builder({ spec: input.spec, variant: input.variant, data, tables, photos, sheetImages });
 }

@@ -11,6 +11,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { PhotoFrame } from './nodes/photoFrame';
 import { DataTable } from './nodes/dataTable';
 import { LeaderLine } from './nodes/leaderLine';
+import { SheetImage } from './nodes/sheetImage';
 import { DataField } from './marks/dataField';
 import { LockGuard } from './lockGuard';
 import { buildDraftSurvey } from '@naabsa/core';
@@ -33,6 +34,7 @@ const schema = getSchema([
   PhotoFrame,
   DataTable,
   LeaderLine,
+  SheetImage,
   DataField,
   LockGuard,
 ]);

@@ -19,13 +19,18 @@ function isPath(src: unknown): src is string {
   return typeof src === 'string' && src.length > 0 && !/^https?:\/\//i.test(src);
 }
 
-/** Coleta os caminhos de Storage de todos os photoFrame do doc. */
+/** Nós cujo `attrs.src` é um caminho de Storage a assinar. */
+function hasResolvableSrc(node: TipTapNode): boolean {
+  return (
+    (node.type === 'photoFrame' || node.type === 'sheetImage') && isPath(node.attrs?.src)
+  );
+}
+
+/** Coleta os caminhos de Storage de photoFrame + sheetImage do doc. */
 function collectPhotoPaths(doc: TipTapDoc): Set<string> {
   const paths = new Set<string>();
   const visit = (node: TipTapNode): void => {
-    if (node.type === 'photoFrame' && isPath(node.attrs?.src)) {
-      paths.add(node.attrs!.src as string);
-    }
+    if (hasResolvableSrc(node)) paths.add(node.attrs!.src as string);
     node.content?.forEach(visit);
   };
   doc.content.forEach(visit);
@@ -35,7 +40,7 @@ function collectPhotoPaths(doc: TipTapDoc): Set<string> {
 /** Devolve uma cópia do node com src trocado conforme o mapa (recursivo). */
 function mapNode(node: TipTapNode, signed: Map<string, string>): TipTapNode {
   let next = node;
-  if (node.type === 'photoFrame' && isPath(node.attrs?.src)) {
+  if (hasResolvableSrc(node)) {
     const url = signed.get(node.attrs!.src as string);
     if (url) {
       next = { ...node, attrs: { ...node.attrs, src: url } };

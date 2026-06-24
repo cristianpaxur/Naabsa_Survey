@@ -193,6 +193,11 @@ html, body { margin: 0; padding: 0; background: white; color: var(--print-tinta)
 .print-data-table--grid tr:first-child td { background: #dce6f1; font-family: var(--font-sans);
   font-weight: 700; text-align: center; color: var(--naabsa-navy); }
 
+.print-sheet-image { display: block; width: 100%; max-width: 100%; height: auto; margin: 6pt 0 10pt;
+  break-inside: avoid; border: 0.5pt solid var(--print-borda); }
+.print-sheet-image--missing { border: 1pt dashed var(--print-borda); background: #f0ede8;
+  color: var(--print-rocha); font-size: 9pt; font-style: italic; padding: 16pt; text-align: center; }
+
 .print-photo-frame { break-inside: avoid; margin: 6pt auto 10pt; display: block; }
 .print-photo-frame img { display: block; object-fit: cover; width: 100%; height: 100%; }
 .print-photo-placeholder { display: flex; align-items: center; justify-content: center;

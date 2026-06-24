@@ -23,6 +23,7 @@ import {
   dataTable,
   photoFrame,
   leaderLine,
+  sheetImage,
 } from '../nodes';
 import type { BuilderInput } from '../types';
 import type { FieldValue } from '../../types';
@@ -206,10 +207,11 @@ const BALLAST_TEXT =
 // ── Builder principal ──────────────────────────────────────────────────────
 
 export function buildDraftSurveyContent(
-  input: Pick<BuilderInput, 'data' | 'photos' | 'tables'>,
+  input: Pick<BuilderInput, 'data' | 'photos' | 'tables' | 'sheetImages'>,
   variant: 'loading' | 'discharge',
 ): TipTapNode[] {
   const { data, photos, tables } = input;
+  const sheetImages = input.sheetImages ?? {};
   const V = VARIANT_TEXT[variant];
 
   const photoBySlot = new Map<string, (typeof photos)[number]>();
@@ -443,10 +445,15 @@ export function buildDraftSurveyContent(
       heading(3, [text(`${p.num}.4. Fuel R.O.B.`)]),
       paragraph([text(p.fuelText)]),
       heading(3, [text(`${p.num}.5. ${p.title} Draft details`)]),
-      ...gradeSection('Draft marks & corrections', `${x}_draft_marks`, tables[`${x}_draft_marks`]),
-      ...gradeSection('Displacement corrections', `${x}_displacement`, tables[`${x}_displacement`]),
-      ...gradeSection('Ballast water', `${x}_ballast`, tables[`${x}_ballast`]),
-      ...gradeSection('Fresh water & bunkers', `${x}_freshwater`, tables[`${x}_freshwater`]),
+      // Print pixel-perfeito da aba (LibreOffice) quando disponível; senão grades nativas.
+      ...(sheetImages[p.key]
+        ? [sheetImage({ src: sheetImages[p.key]!, alt: `${p.title} draft details` })]
+        : [
+            ...gradeSection('Draft marks & corrections', `${x}_draft_marks`, tables[`${x}_draft_marks`]),
+            ...gradeSection('Displacement corrections', `${x}_displacement`, tables[`${x}_displacement`]),
+            ...gradeSection('Ballast water', `${x}_ballast`, tables[`${x}_ballast`]),
+            ...gradeSection('Fresh water & bunkers', `${x}_freshwater`, tables[`${x}_freshwater`]),
+          ]),
     ];
   }
 

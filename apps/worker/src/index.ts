@@ -29,6 +29,13 @@ import {
   GENERATE_PDF_RETRY_LIMIT,
   type GeneratePdfPayload,
 } from './jobs/generatePdf';
+import {
+  renderSheets,
+  RENDER_SHEETS_QUEUE,
+  RENDER_SHEETS_CONCURRENCY,
+  RENDER_SHEETS_RETRY_LIMIT,
+  type RenderSheetsPayload,
+} from './jobs/renderSheets';
 import { closeBrowser } from './lib/browser';
 import { retentionPurge } from './jobs/retentionPurge';
 import { aiReview } from './jobs/aiReview';
@@ -37,6 +44,7 @@ import { aiReview } from './jobs/aiReview';
 const JOBS = {
   process_photo: processPhoto,
   generate_pdf: generatePdf,
+  render_sheets: renderSheets,
   retention_purge: retentionPurge,
   ai_review: aiReview,
 } as const;
@@ -103,6 +111,30 @@ async function registerJobs(): Promise<void> {
   );
   console.log(
     `[worker] consumindo '${GENERATE_PDF_QUEUE}' (localConcurrency ${GENERATE_PDF_CONCURRENCY})`,
+  );
+
+  // render_sheets — concorrência 1 (LibreOffice é pesado)
+  await boss.createQueue(RENDER_SHEETS_QUEUE, {
+    retryLimit: RENDER_SHEETS_RETRY_LIMIT,
+    retryDelay: 5,
+    retryBackoff: true,
+  });
+  await boss.work<RenderSheetsPayload>(
+    RENDER_SHEETS_QUEUE,
+    { localConcurrency: RENDER_SHEETS_CONCURRENCY, includeMetadata: true },
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await renderSheets(job.data);
+        } catch (err) {
+          console.error(`[worker][render_sheets] erro no job ${job.id}:`, err);
+          throw err;
+        }
+      }
+    },
+  );
+  console.log(
+    `[worker] consumindo '${RENDER_SHEETS_QUEUE}' (localConcurrency ${RENDER_SHEETS_CONCURRENCY})`,
   );
 }
 

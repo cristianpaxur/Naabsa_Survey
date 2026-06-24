@@ -8,7 +8,7 @@ import type { BuilderInput } from '../types';
 import { buildDraftSurveyContent } from './draft_survey.content';
 
 export function buildDraftLoadingContent(
-  input: Pick<BuilderInput, 'data' | 'photos' | 'tables'>,
+  input: Pick<BuilderInput, 'data' | 'photos' | 'tables' | 'sheetImages'>,
 ): TipTapNode[] {
   return buildDraftSurveyContent(input, 'loading');
 }

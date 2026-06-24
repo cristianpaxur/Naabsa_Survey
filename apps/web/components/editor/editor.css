@@ -373,3 +373,15 @@
   min-width: 16px;
 }
 .ed-leader__value { white-space: nowrap; }
+
+/* ── sheetImage (print da planilha) ────────────────────────────────────────── */
+.ed-sheet-image { margin: 8px 0; }
+.ed-sheet-image__ph {
+  border: 1px dashed #b9b4ac;
+  background: #f3f1ec;
+  color: #7d7468;
+  padding: 14px;
+  text-align: center;
+  font-style: italic;
+  border-radius: 4px;
+}
