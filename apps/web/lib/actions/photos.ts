@@ -279,3 +279,62 @@ export async function advance(reportId: string): Promise<ActionResult> {
   }
   return { ok: true };
 }
+
+/**
+ * Confirma a sugestão de IA de UMA foto (010/T-009, RF-37): zera `ai_suggested`
+ * e grava `confirmed_by` (a foto permanece no slot pré-alocado). Só em `in_review`.
+ */
+export async function confirmSuggestion(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+  if (report.status !== 'in_review') {
+    return { error: 'Sugestões só podem ser confirmadas durante a revisão.' };
+  }
+
+  const { error } = await supabase
+    .from('report_photos')
+    .update({ ai_suggested: false, confirmed_by: user.id } as never)
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .eq('ai_suggested', true);
+  if (error) return { error: 'Falha ao confirmar a sugestão.' };
+
+  await audit(supabase, { reportId, actor: user.id, action: 'photo_confirmed', payload: { photoId } });
+  return { ok: true };
+}
+
+/** Confirma TODAS as sugestões de IA pendentes do relatório (010/T-009). */
+export async function confirmAllSuggestions(reportId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+  if (report.status !== 'in_review') {
+    return { error: 'Sugestões só podem ser confirmadas durante a revisão.' };
+  }
+
+  const { data, error } = await supabase
+    .from('report_photos')
+    .update({ ai_suggested: false, confirmed_by: user.id } as never)
+    .eq('report_id', reportId)
+    .eq('ai_suggested', true)
+    .select('id');
+  if (error) return { error: 'Falha ao confirmar as sugestões.' };
+
+  const count = (data as { id: string }[] | null)?.length ?? 0;
+  await audit(supabase, { reportId, actor: user.id, action: 'photo_confirmed', payload: { count, all: true } });
+  return { ok: true };
+}

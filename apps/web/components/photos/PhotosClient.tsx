@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { PhotoSlot } from '@naabsa/core';
-import { allocate, saveCrop, advance, type Crop } from '@/lib/actions/photos';
+import { allocate, saveCrop, advance, confirmAllSuggestions, type Crop } from '@/lib/actions/photos';
 import { pendingRequiredSlots } from '@/lib/photo-gate';
 import { Gallery } from './Gallery';
 import { SlotList } from './SlotList';
 import { CropModal } from './CropModal';
+import { AiBanner } from './AiBanner';
 import type { UIPhoto } from './types';
 
 export interface PhotosClientProps {
@@ -39,7 +40,10 @@ export function PhotosClient({
   // Foto selecionada na galeria para o fallback por clique em "Alocar".
   const [picked, setPicked] = useState<string | null>(null);
   const [advancing, setAdvancing] = useState(false);
+  const [confirmingAi, setConfirmingAi] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const aiSuggestedCount = photos.filter((p) => p.aiSuggested).length;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -63,6 +67,18 @@ export function PhotosClient({
     }, 3000);
     return () => clearInterval(t);
   }, [hasPending, refresh]);
+
+  async function onConfirmAllAi() {
+    setConfirmingAi(true);
+    setError(null);
+    const res = await confirmAllSuggestions(reportId);
+    setConfirmingAi(false);
+    if ('error' in res) {
+      setError(res.error);
+      return;
+    }
+    await refresh();
+  }
 
   async function onUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -195,6 +211,8 @@ export function PhotosClient({
           completos.
         </div>
       </div>
+
+      <AiBanner count={aiSuggestedCount} busy={confirmingAi} onConfirmAll={() => void onConfirmAllAi()} />
 
       {error && (
         <div

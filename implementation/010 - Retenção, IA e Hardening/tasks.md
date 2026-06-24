@@ -2,7 +2,7 @@
 
 > **Implementação:** 010 - Retenção, IA e Hardening
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 5/13 tarefas concluídas (38%)
+> **Progresso:** 9/13 tarefas concluídas (69%)
 > **Última atualização:** 2026-06-24
 
 ---
@@ -60,28 +60,28 @@
 
 ### Fase 3: IA — flag AI_ENABLED (PRD T-26, T-27)
 
-- [ ] **T-006:** Cliente Anthropic com auditoria `ai_call`
+- [x] **T-006:** Cliente Anthropic com auditoria `ai_call`
   - **Descrição:** `apps/worker/src/lib/anthropic.ts`: chamadas com timeout curto, retry limitado, registro `ai_call` (finalidade, duração) em TODA chamada; nunca planilha bruta nem foto original (RF-38); modelo via env.
   - **Arquivos envolvidos:** `apps/worker/src/lib/anthropic.ts`
   - **Critério de conclusão:** CA-006 verificável por teste com cliente mockado.
   - **Dependências:** Nenhuma
   - **Estimativa:** Média
 
-- [ ] **T-007:** Job `ai_review` pós-extração
+- [x] **T-007:** Job `ai_review` pós-extração
   - **Descrição:** Se `AI_ENABLED`: enviar dados extraídos + metadados do spec; respostas viram warnings origem `ai` exibidos na revisão (006 já renderiza); falha/timeout não bloqueia (RNF-06); resposta malformada descartada com warning auditado.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/aiReview.ts`
   - **Critério de conclusão:** CA-004: off = fluxo idêntico; on = warnings na revisão.
   - **Dependências:** T-006
   - **Estimativa:** Grande
 
-- [ ] **T-008:** Classificação de fotos por visão
+- [x] **T-008:** Classificação de fotos por visão
   - **Descrição:** Pós-processamento do lote: classificar cada foto processada sugerindo `slot_id` + flags (`dark`, `blurry`, `possible_duplicate`); pré-alocar com `ai_suggested=true`; slot inexistente descartado.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/processPhoto.ts` (encadeamento), job novo
   - **Critério de conclusão:** Pré-alocações corretas com fixture; flags persistidas.
   - **Dependências:** T-006
   - **Estimativa:** Grande
 
-- [ ] **T-009:** Banner de sugestões na tela de fotos
+- [x] **T-009:** Banner de sugestões na tela de fotos
   - **Descrição:** Ligar na tela 05 (007) o banner navy do protótipo ("N fotos pré-alocadas pela IA", "Confirmar todas"), badge "sugestão IA" e "Confirmar sugestão" por slot; confirmação zera `ai_suggested` e grava `confirmed_by`.
   - **Arquivos envolvidos:** `apps/web/components/photos/AiBanner.tsx`, `SlotList.tsx`, actions
   - **Critério de conclusão:** CA-005 verde em E2E com IA mockada.
@@ -132,10 +132,10 @@
 | T-003  | ✅ Concluída | 2026-06-24 | Link de histórico por linha no dashboard |
 | T-004  | ✅ Concluída | 2026-06-24 | generated→editing (state-machine + action regenerate); botão no preview |
 | T-005  | ✅ Concluída | 2026-06-24 | final-v{n}.pdf acumulado em pdf_paths; download = última versão |
-| T-006  | ⬜ Pendente | — | — |
-| T-007  | ⬜ Pendente | — | — |
-| T-008  | ⬜ Pendente | — | — |
-| T-009  | ⬜ Pendente | — | — |
+| T-006  | ✅ Concluída | 2026-06-24 | lib/anthropic (fetch + ai_call sempre); deps injetáveis; testado |
+| T-007  | ✅ Concluída | 2026-06-24 | ai_review → warnings origem ai; descarta alucinação; off=no-op |
+| T-008  | ✅ Concluída | 2026-06-24 | classify_photos (visão) pré-aloca ai_suggested; gatilho pós-process |
+| T-009  | ✅ Concluída | 2026-06-24 | AiBanner + Confirmar todas; actions confirm(One/All)Suggestions |
 | T-010  | ⬜ Pendente | — | — |
 | T-011  | ⬜ Pendente | — | — |
 | T-012  | ⬜ Pendente | — | — |

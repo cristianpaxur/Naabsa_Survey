@@ -50,6 +50,12 @@ import {
   RETENTION_PURGE_CRON,
 } from './jobs/retentionPurge';
 import { aiReview, AI_REVIEW_QUEUE, type AiReviewPayload } from './jobs/aiReview';
+import {
+  classifyPhotos,
+  CLASSIFY_PHOTOS_QUEUE,
+  type ClassifyPhotosPayload,
+} from './jobs/classifyPhotos';
+import { isAiEnabled } from './lib/anthropic';
 
 /** Mapa nome-da-fila → handler. Apenas process_photo é consumido na impl 007. */
 const JOBS = {
@@ -59,6 +65,7 @@ const JOBS = {
   render_sheets: renderSheets,
   retention_purge: retentionPurge,
   ai_review: aiReview,
+  classify_photos: classifyPhotos,
 } as const;
 
 async function registerJobs(): Promise<void> {
@@ -80,6 +87,17 @@ async function registerJobs(): Promise<void> {
       for (const job of jobs) {
         try {
           await processPhoto(job.data);
+          // IA (010/T-008): pré-classificar fotos do lote — deduplicado por
+          // relatório (singletonKey + janela), só quando AI_ENABLED.
+          if (isAiEnabled()) {
+            await boss
+              .send(
+                CLASSIFY_PHOTOS_QUEUE,
+                { reportId: job.data.reportId },
+                { singletonKey: job.data.reportId, singletonSeconds: 20 },
+              )
+              .catch((e) => console.error('[worker] falha ao enfileirar classify_photos:', e));
+          }
         } catch (err) {
           // Última tentativa esgotada: marca a foto com erro recuperável e NÃO
           // relança (o lote segue). Caso contrário, propaga para o retry.
@@ -203,6 +221,23 @@ async function registerJobs(): Promise<void> {
     },
   );
   console.log(`[worker] consumindo '${AI_REVIEW_QUEUE}' (localConcurrency 2)`);
+
+  // classify_photos — sugestão de slot/qualidade por visão (010/T-008); no-op se off.
+  await boss.createQueue(CLASSIFY_PHOTOS_QUEUE, { retryLimit: 1 });
+  await boss.work<ClassifyPhotosPayload>(
+    CLASSIFY_PHOTOS_QUEUE,
+    { localConcurrency: 1, includeMetadata: true },
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await classifyPhotos(job.data);
+        } catch (err) {
+          console.error(`[worker][classify_photos] erro no job ${job.id}:`, err);
+        }
+      }
+    },
+  );
+  console.log(`[worker] consumindo '${CLASSIFY_PHOTOS_QUEUE}' (localConcurrency 1)`);
 }
 
 async function main(): Promise<void> {
