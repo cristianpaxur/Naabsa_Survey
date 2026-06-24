@@ -112,7 +112,7 @@ export async function loadReport(svc: ReturnType<typeof getServiceClient>, repor
 }
 
 /** Próxima versão do PDF a partir dos caminhos existentes (final-v{n}.pdf). */
-function nextPdfVersion(paths: string[]): number {
+export function nextPdfVersion(paths: string[]): number {
   let max = 0;
   for (const p of paths) {
     const m = /final-v(\d+)\.pdf$/.exec(p);

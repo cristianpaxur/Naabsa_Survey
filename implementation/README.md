@@ -19,7 +19,7 @@
 | [007](./007%20-%20Pipeline%20de%20Fotos/spec.md) | Pipeline de Fotos | T-15, T-16 | 🟢 Concluída | 11/11 |
 | [008](./008%20-%20Editor%20TipTap%20e%20Aprovação/spec.md) | Editor TipTap e Aprovação | T-17, T-18 | 🟢 Concluída | 12/12 |
 | [009](./009%20-%20Demais%20Relatórios%20e%20Admin%20de%20Specs/spec.md) | Demais Relatórios e Admin de Specs | T-19..T-23 | 🟡 Planejada | 0/12 |
-| [010](./010%20-%20Retençã o,%20IA%20e%20Hardening/spec.md) | Retenção, IA e Hardening | T-24..T-28 | 🟡 Planejada | 0/13 |
+| [010](./010%20-%20Retençã o,%20IA%20e%20Hardening/spec.md) | Retenção, IA e Hardening | T-24..T-28 | 🟢 Concluída (exceto deploy) | 12/13 |
 
 ---
 

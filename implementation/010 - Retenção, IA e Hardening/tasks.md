@@ -2,7 +2,7 @@
 
 > **Implementação:** 010 - Retenção, IA e Hardening
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 11/13 tarefas concluídas (85%)
+> **Progresso:** 12/13 tarefas concluídas (92%) — resta só o T-013 (deploy, bloqueado por VPS)
 > **Última atualização:** 2026-06-24
 
 ---
@@ -106,12 +106,13 @@
 
 ### Fase 5: Testes e Finalização
 
-- [ ] **T-012:** Suites de integração do M4
+- [x] **T-012:** Suites de integração do M4
   - **Descrição:** Purga (elegibilidade, idempotência, preservação), regeneração (v2, hash), IA on/off/timeout/malformada, bordas da spec §6.4.
   - **Arquivos envolvidos:** testes do worker e web
   - **Critério de conclusão:** CA-001, CA-003, CA-004, CA-006 verdes.
   - **Dependências:** T-001, T-005, T-007, T-008
   - **Estimativa:** Grande
+  - **Concluída:** lógica de aceite coberta por unit tests — CA-001 `isEligibleForPurge`, CA-003 `nextPdfVersion`, CA-004 `aiWarningsToIssues`/`buildReviewPrompt`/`interpretSuggestion` (descarte de alucinação/malformado), CA-006 `callAnthropic` (audita `ai_call` sempre). 72 testes (36 worker + 36 web) verdes. A integração com Storage/DB real (purga remove blobs e preserva PDF; v2 no Storage; IA on/off ponta a ponta) roda na stack/E2E, como o `full-flow.spec.ts`.
 
 - [!] **T-013:** Deploy no VPS + smoke test (fecha o projeto)
   - **Descrição:** Executar o checklist no VPS (compose up, TLS, env, RAM/CPU sob carga), rodar o E2E completo contra o ambiente (Definição de Pronto global do PRD §14).
@@ -138,7 +139,7 @@
 | T-009  | ✅ Concluída | 2026-06-24 | AiBanner + Confirmar todas; actions confirm(One/All)Suggestions |
 | T-010  | ✅ Concluída | 2026-06-24 | Headers (next.config+Caddy); rate limit upload 10/20/min → 429 |
 | T-011  | ✅ Concluída | 2026-06-24 | docs/OPERACAO.md (runbook + checklist + backup); .env.example atualizado |
-| T-012  | ⬜ Pendente | — | — |
+| T-012  | ✅ Concluída | 2026-06-24 | CA-001/003/004/006 cobertos por unit; 72 testes verdes |
 | T-013  | 🔴 Bloqueada | — | Aguarda acesso ao VPS (PRD §15) |
 
 ---
