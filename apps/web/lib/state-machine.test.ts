@@ -44,10 +44,13 @@ describe('máquina de estados (PRD §3.2, CA-003)', () => {
     expect(isValidTransition('purged', 'draft')).toBe(false);
   });
 
+  it('regenerar: generated → editing é válido (010/T-004, RF-30)', () => {
+    expect(isValidTransition('generated', 'editing')).toBe(true);
+  });
+
   it('transições inválidas rejeitadas', () => {
     expect(isValidTransition('draft', 'editing')).toBe(false);
     expect(isValidTransition('draft', 'in_review')).toBe(false);
-    expect(isValidTransition('generated', 'editing')).toBe(false); // regenerar = impl 010
     expect(isValidTransition('purged', 'extracted')).toBe(false);
     expect(isValidTransition('extracted', 'extracted')).toBe(false);
   });

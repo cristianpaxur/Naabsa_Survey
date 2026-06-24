@@ -12,7 +12,6 @@ const WORKER_ENV_VARS = [
   'SUPABASE_SERVICE_ROLE_KEY',
   'DATABASE_URL',
   'APP_BASE_URL',
-  'PRINT_SERVICE_TOKEN',
 ] as const;
 
 type WorkerEnvVar = (typeof WORKER_ENV_VARS)[number];

@@ -5,5 +5,17 @@
 #   um domínio → Caddy emite/renova TLS automaticamente (produção no VPS).
 {$APP_DOMAIN} {
 	encode gzip
+
+	# Headers de segurança no proxy (010/T-010, RNF-05) — defesa em profundidade
+	# (a app também os emite via next.config). HSTS só tem efeito sob HTTPS.
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		-Server
+	}
+
 	reverse_proxy app:3000
 }

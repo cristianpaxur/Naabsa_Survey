@@ -2,7 +2,7 @@
 
 > **Implementação:** 010 - Retenção, IA e Hardening
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 9/13 tarefas concluídas (69%)
+> **Progresso:** 11/13 tarefas concluídas (85%)
 > **Última atualização:** 2026-06-24
 
 ---
@@ -90,14 +90,14 @@
 
 ### Fase 4: Hardening e deploy (PRD T-28)
 
-- [ ] **T-010:** Rate limit e headers de segurança
+- [x] **T-010:** Rate limit e headers de segurança
   - **Descrição:** Rate limit nos endpoints de upload; headers (CSP, HSTS, X-Content-Type-Options etc.) via middleware/Caddy; 429 com mensagem pt-BR.
   - **Arquivos envolvidos:** `apps/web/middleware.ts`, `Caddyfile`
   - **Critério de conclusão:** Limites verificados por teste; headers presentes nas respostas.
   - **Dependências:** Nenhuma
   - **Estimativa:** Média
 
-- [ ] **T-011:** Backup check e README de operação
+- [x] **T-011:** Backup check e README de operação
   - **Descrição:** Verificação de backup (banco Supabase + estratégia de Storage), `docs/OPERACAO.md` com runbook (deploy, env, logs, restauração, rotação de tokens) e checklist de deploy.
   - **Arquivos envolvidos:** `docs/OPERACAO.md`
   - **Critério de conclusão:** Runbook revisado; checklist pronto para execução.
@@ -136,8 +136,8 @@
 | T-007  | ✅ Concluída | 2026-06-24 | ai_review → warnings origem ai; descarta alucinação; off=no-op |
 | T-008  | ✅ Concluída | 2026-06-24 | classify_photos (visão) pré-aloca ai_suggested; gatilho pós-process |
 | T-009  | ✅ Concluída | 2026-06-24 | AiBanner + Confirmar todas; actions confirm(One/All)Suggestions |
-| T-010  | ⬜ Pendente | — | — |
-| T-011  | ⬜ Pendente | — | — |
+| T-010  | ✅ Concluída | 2026-06-24 | Headers (next.config+Caddy); rate limit upload 10/20/min → 429 |
+| T-011  | ✅ Concluída | 2026-06-24 | docs/OPERACAO.md (runbook + checklist + backup); .env.example atualizado |
 | T-012  | ⬜ Pendente | — | — |
 | T-013  | 🔴 Bloqueada | — | Aguarda acesso ao VPS (PRD §15) |
 

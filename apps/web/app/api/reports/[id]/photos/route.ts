@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { enqueueProcessPhoto } from '@/lib/queue';
+import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB por foto (RF-15)
 const BUCKET = 'reports';
@@ -53,6 +54,15 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
+  }
+
+  // Rate limit de upload de fotos (RNF-05): 20 lotes/min por usuário.
+  const rl = rateLimit(`photos:${user.id}`, 20, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Muitas requisições. Aguarde alguns instantes e tente novamente.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
   }
 
   const { data: reportRow } = await supabase

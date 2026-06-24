@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
 import { enqueueRenderSheets, enqueueAiReview } from '@/lib/queue';
+import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB (RF-04)
 const BUCKET = 'reports';
@@ -29,6 +30,15 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
+  }
+
+  // Rate limit de upload (RNF-05): 10/min por usuário.
+  const rl = rateLimit(`spreadsheet:${user.id}`, 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Muitas requisições. Aguarde alguns instantes e tente novamente.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
   }
 
   const form = await req.formData();
