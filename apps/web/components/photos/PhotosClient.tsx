@@ -58,15 +58,19 @@ export function PhotosClient({
     setPhotos(json.photos);
   }, [reportId]);
 
-  // Polling enquanto houver foto em 'pending'.
-  const hasPending = photos.some((p) => p.status === 'pending');
+  // Polling em tempo real: enquanto houver foto PROCESSANDO ou dentro da janela
+  // pós-upload — a sugestão da IA acontece DEPOIS do processamento, então não basta
+  // parar quando tudo fica "pronto" (senão a pré-alocação só apareceria ao recarregar).
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  const pollUntilRef = useRef(0);
   useEffect(() => {
-    if (!hasPending) return;
     const t = setInterval(() => {
-      void refresh();
-    }, 3000);
+      const pending = photosRef.current.some((p) => p.status === 'pending');
+      if (pending || Date.now() < pollUntilRef.current) void refresh();
+    }, 2500);
     return () => clearInterval(t);
-  }, [hasPending, refresh]);
+  }, [refresh]);
 
   async function onConfirmAllAi() {
     setConfirmingAi(true);
@@ -104,6 +108,9 @@ export function PhotosClient({
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = '';
+    // Mantém o polling por ~60s para capturar o processamento + a sugestão da IA
+    // em tempo real (sem o usuário precisar recarregar).
+    pollUntilRef.current = Date.now() + 60_000;
     await refresh();
   }
 
