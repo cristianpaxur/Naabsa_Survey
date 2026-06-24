@@ -316,7 +316,6 @@ export function PhotosClient({
             <SlotList
               slots={slots}
               photosBySlot={photosBySlot}
-              pendingRequired={pending.length}
               onCrop={setCropPhotoId}
               onClickAllocate={onClickAllocate}
             />

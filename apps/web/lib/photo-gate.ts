@@ -1,17 +1,16 @@
 import type { PhotoSlot } from '@naabsa/core';
 
 /**
- * Gate de avanço (RF-19): retorna os slots `required` ainda não satisfeitos.
- * Slot obrigatório precisa de `min` (default 1) fotos alocadas. Função pura,
- * compartilhada entre a UI (habilitar o botão) e a Server Action (defesa dupla).
+ * Gate de avanço (RF-19 relaxado por política do cliente): as FOTOS NUNCA são
+ * obrigatórias — muitas vezes são ruins ou não cabem no documento — então nenhum
+ * slot bloqueia o avanço. Mantemos a assinatura (UI + Server Action usam) e
+ * retornamos sempre vazio. Os slots seguem existindo e aceitando fotos.
  */
 export function pendingRequiredSlots(
   slots: PhotoSlot[],
   counts: Record<string, number>,
 ): PhotoSlot[] {
-  return slots.filter((s) => {
-    if (!s.required) return false;
-    const need = s.min ?? 1;
-    return (counts[s.id] ?? 0) < need;
-  });
+  // Fotos nunca são obrigatórias → exigimos 0; nenhum slot fica pendente.
+  const REQUIRED = 0;
+  return slots.filter((slot) => (counts[slot.id] ?? 0) < REQUIRED);
 }

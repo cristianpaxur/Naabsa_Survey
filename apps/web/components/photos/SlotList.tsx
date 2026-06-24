@@ -3,14 +3,9 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { PhotoSlot, UIPhoto } from './types';
 
-/** Cor do contador have/max: verde se satisfeito, vermelho se pendente. */
-function counterColor(slot: PhotoSlot, have: number): string {
-  const need = slot.required ? (slot.min ?? 1) : (slot.min ?? 0);
-  return have >= need && have > 0
-    ? '#2f7d52'
-    : slot.required
-      ? 'var(--vermelho)'
-      : '#7d7468';
+/** Cor do contador have/max: verde se há fotos, neutro se vazio (fotos opcionais). */
+function counterColor(have: number): string {
+  return have > 0 ? '#2f7d52' : '#7d7468';
 }
 
 /** Miniatura alocada (clicável para abrir o crop). */
@@ -124,7 +119,7 @@ interface SlotRowProps {
 function SlotRow({ slot, photos, onCrop, onClickAllocate }: SlotRowProps) {
   const have = photos.length;
   const max = slot.max ?? '∞';
-  const color = counterColor(slot, have);
+  const color = counterColor(have);
   const slotFull = typeof slot.max === 'number' && have >= slot.max;
 
   return (
@@ -174,21 +169,19 @@ function SlotRow({ slot, photos, onCrop, onClickAllocate }: SlotRowProps) {
           >
             {slot.aspect}
           </span>
-          {slot.required && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--vermelho)',
-                background: '#fbeceb',
-                border: '1px solid #f0c4c2',
-                padding: '2px 7px',
-                borderRadius: 99,
-              }}
-            >
-              obrigatório
-            </span>
-          )}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: 'var(--rocha)',
+              background: '#f4f2ef',
+              border: '1px solid #e6e1d8',
+              padding: '2px 7px',
+              borderRadius: 99,
+            }}
+          >
+            opcional
+          </span>
         </div>
         <div
           style={{
@@ -232,20 +225,17 @@ export interface SlotListProps {
   slots: PhotoSlot[];
   /** Fotos alocadas por slot, já ordenadas por position. */
   photosBySlot: Record<string, UIPhoto[]>;
-  pendingRequired: number;
   onCrop: (photoId: string) => void;
   onClickAllocate: (slotId: string) => void;
 }
 
 /**
- * Lista de slots do spec (RF-17): label, chip de aspect, badge "obrigatório",
- * id mono, contador colorido have/max e dropzone "Alocar". Mostra o indicador
- * lateral "N slot obrigatório pendente".
+ * Lista de slots do spec (RF-17): label, chip de aspect, badge "opcional",
+ * id mono, contador have/max e dropzone "Alocar". Fotos nunca são obrigatórias.
  */
 export function SlotList({
   slots,
   photosBySlot,
-  pendingRequired,
   onCrop,
   onClickAllocate,
 }: SlotListProps) {
@@ -259,16 +249,8 @@ export function SlotList({
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 700 }}>Slots do relatório</div>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: pendingRequired > 0 ? 'var(--vermelho)' : '#2f7d52',
-          }}
-        >
-          {pendingRequired > 0
-            ? `${pendingRequired} slot obrigatório pendente`
-            : 'Slots obrigatórios completos'}
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--rocha)' }}>
+          Fotos opcionais
         </div>
       </div>
 
