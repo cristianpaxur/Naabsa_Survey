@@ -166,56 +166,65 @@ export default async function DashboardPage({
         </div>
 
         {rows.map((r) => (
-          <Link
+          <div
             key={r.id}
-            href={reportHref(r.id, r.status)}
             style={{
               display: 'grid',
               gridTemplateColumns: GRID,
               padding: '15px 20px',
               borderBottom: '1px solid #f2efe9',
               alignItems: 'center',
-              textDecoration: 'none',
-              color: 'inherit',
             }}
           >
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12.5,
-                color: 'var(--navy)',
-                fontWeight: 500,
-              }}
+            {/* Link principal (abre o relatório); display:contents para os filhos
+                participarem do grid sem aninhar âncora com o link de histórico. */}
+            <Link
+              href={reportHref(r.id, r.status)}
+              style={{ display: 'contents', textDecoration: 'none', color: 'inherit' }}
             >
-              {r.id.slice(0, 8)}
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1d' }}>
-              {r.vessel_name ?? '—'}
-            </div>
-            <div style={{ fontSize: 13.5, color: '#4a443c' }}>
-              {r.report_types?.name ?? '—'}{' '}
-              <span style={{ color: '#b5ab9d' }}>·</span>{' '}
-              <span style={{ color: 'var(--rocha)' }}>{r.variant ?? '—'}</span>
-            </div>
-            <div>
-              <StatusBadge status={r.status} />
-            </div>
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12.5,
-                color: '#6f675c',
-              }}
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12.5,
+                  color: 'var(--navy)',
+                  fontWeight: 500,
+                }}
+              >
+                {r.id.slice(0, 8)}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1d' }}>
+                {r.vessel_name ?? '—'}
+              </div>
+              <div style={{ fontSize: 13.5, color: '#4a443c' }}>
+                {r.report_types?.name ?? '—'}{' '}
+                <span style={{ color: '#b5ab9d' }}>·</span>{' '}
+                <span style={{ color: 'var(--rocha)' }}>{r.variant ?? '—'}</span>
+              </div>
+              <div>
+                <StatusBadge status={r.status} />
+              </div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12.5,
+                  color: '#6f675c',
+                }}
+              >
+                {fmtDate(r.created_at)}
+              </div>
+              <div style={{ fontSize: 13, color: '#4a443c' }}>
+                {authorMap.get(r.created_by) ?? '—'}
+              </div>
+            </Link>
+            <Link
+              href={`/reports/${r.id}/history`}
+              title="Ver histórico"
+              aria-label="Ver histórico"
+              style={{ textAlign: 'right', color: '#9a9082', textDecoration: 'none', fontSize: 15 }}
             >
-              {fmtDate(r.created_at)}
-            </div>
-            <div style={{ fontSize: 13, color: '#4a443c' }}>
-              {authorMap.get(r.created_by) ?? '—'}
-            </div>
-            <div style={{ color: '#c4bcb0', fontSize: 16, textAlign: 'right' }}>
-              ›
-            </div>
-          </Link>
+              🕘
+            </Link>
+          </div>
         ))}
 
         {rows.length === 0 && (

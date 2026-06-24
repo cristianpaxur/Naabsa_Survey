@@ -2,8 +2,8 @@
 
 > **Implementação:** 010 - Retenção, IA e Hardening
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 0/13 tarefas concluídas (0%)
-> **Última atualização:** 2026-06-11
+> **Progresso:** 3/13 tarefas concluídas (23%)
+> **Última atualização:** 2026-06-24
 
 ---
 
@@ -20,21 +20,22 @@
 
 ### Fase 1: Retenção e histórico (PRD T-24)
 
-- [ ] **T-001:** Job `retention_purge`
+- [x] **T-001:** Job `retention_purge`
   - **Descrição:** Cron diário pg-boss: `generated` > 30 dias (janela contada do último PDF) → apagar fotos (3 versões) e planilha do Storage, manter PDF(s)+dados, `purged`+`purged_at`, auditar; idempotente.
-  - **Arquivos envolvidos:** `apps/worker/src/jobs/retentionPurge.ts`
+  - **Arquivos envolvidos:** `apps/worker/src/jobs/retentionPurge.ts`, `apps/worker/src/index.ts` (cron)
   - **Critério de conclusão:** Fixture retroativa purga blobs e preserva PDF (CA-001).
   - **Dependências:** Nenhuma (008 concluída)
   - **Estimativa:** Média
+  - **Concluída:** elegibilidade pura testada (unit); purga remove fotos/planilha/sheets/preview, preserva final*.pdf + .docx; cron 03:00 via `boss.schedule`. CA-001 (storage) é integração — ver Fase 5.
 
-- [ ] **T-002:** Tela 08 — Histórico
+- [x] **T-002:** Tela 08 — Histórico
   - **Descrição:** `/reports/[id]/history` com timeline fiel ao protótipo (hora mono, ponto colorido por tipo de ação, ator em chip, detalhe mono); paginação simples se necessário.
   - **Arquivos envolvidos:** `apps/web/app/(app)/reports/[id]/history/page.tsx`
   - **Critério de conclusão:** Timeline completa de um relatório `generated` (CA-002).
   - **Dependências:** Nenhuma
   - **Estimativa:** Média
 
-- [ ] **T-003:** Acesso ao histórico pelo dashboard
+- [x] **T-003:** Acesso ao histórico pelo dashboard
   - **Descrição:** Ação por linha do dashboard (e/ou aba no relatório) levando ao histórico — decisão de UI validada com o usuário (spec §9).
   - **Arquivos envolvidos:** `apps/web/app/(app)/dashboard/page.tsx`
   - **Critério de conclusão:** Histórico alcançável para qualquer relatório, não só purgados.
@@ -126,9 +127,9 @@
 
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
-| T-001  | ⬜ Pendente | — | — |
-| T-002  | ⬜ Pendente | — | — |
-| T-003  | ⬜ Pendente | — | — |
+| T-001  | ✅ Concluída | 2026-06-24 | Job + cron 03:00; elegibilidade testada (unit) |
+| T-002  | ✅ Concluída | 2026-06-24 | Timeline do audit_log (`/reports/[id]/history`) |
+| T-003  | ✅ Concluída | 2026-06-24 | Link de histórico por linha no dashboard |
 | T-004  | ⬜ Pendente | — | — |
 | T-005  | ⬜ Pendente | — | — |
 | T-006  | ⬜ Pendente | — | — |

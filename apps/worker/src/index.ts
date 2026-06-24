@@ -44,7 +44,11 @@ import {
   type RenderSheetsPayload,
 } from './jobs/renderSheets';
 import { closeBrowser } from './lib/browser';
-import { retentionPurge } from './jobs/retentionPurge';
+import {
+  retentionPurge,
+  RETENTION_PURGE_QUEUE,
+  RETENTION_PURGE_CRON,
+} from './jobs/retentionPurge';
 import { aiReview } from './jobs/aiReview';
 
 /** Mapa nome-da-fila → handler. Apenas process_photo é consumido na impl 007. */
@@ -168,6 +172,19 @@ async function registerJobs(): Promise<void> {
   console.log(
     `[worker] consumindo '${RENDER_SHEETS_QUEUE}' (localConcurrency ${RENDER_SHEETS_CONCURRENCY})`,
   );
+
+  // retention_purge — cron diário (010/T-001): purga blobs de relatórios antigos.
+  await boss.createQueue(RETENTION_PURGE_QUEUE, { retryLimit: 1 });
+  await boss.work(RETENTION_PURGE_QUEUE, async () => {
+    try {
+      await retentionPurge();
+    } catch (err) {
+      console.error('[worker][retention_purge] erro:', err);
+      throw err;
+    }
+  });
+  await boss.schedule(RETENTION_PURGE_QUEUE, RETENTION_PURGE_CRON);
+  console.log(`[worker] cron '${RETENTION_PURGE_QUEUE}' agendado (${RETENTION_PURGE_CRON})`);
 }
 
 async function main(): Promise<void> {
