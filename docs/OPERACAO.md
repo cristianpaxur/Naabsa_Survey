@@ -29,8 +29,10 @@ Copie `.env.example` → `.env` e preencha. Nunca commitar o `.env`.
 | `SOFFICE_PATH` | worker | não | default detecta `soffice` no SO |
 | `LO_PROFILE_DIR` | worker | não | perfil do LibreOffice; container usa `/tmp/naabsa-lo` |
 | `AI_ENABLED` | worker | não | `false` por padrão; `true` liga a IA |
-| `ANTHROPIC_API_KEY` | worker | só se IA on | chave da API Anthropic |
-| `ANTHROPIC_MODEL` | worker | não | default `claude-sonnet-4-6` |
+| `AI_PROVIDER` | worker | não | `anthropic` (default) ou `openai` |
+| `AI_MODEL` | worker | não | override; default por provedor (anthropic `claude-sonnet-4-6`, openai `gpt-4o`) |
+| `ANTHROPIC_API_KEY` | worker | se `AI_PROVIDER=anthropic` | chave da API Anthropic |
+| `OPENAI_API_KEY` | worker | se `AI_PROVIDER=openai` | chave da API OpenAI |
 | `APP_DOMAIN` | caddy | prod | vazio = HTTP `:80` (local); domínio = TLS automático |
 | `CADDY_HTTP_PORT` / `CADDY_HTTPS_PORT` | caddy | não | portas publicadas no host |
 

@@ -8,7 +8,7 @@
  */
 import { getServiceClient } from '../lib/supabase';
 import type { ReportSpec, PhotoSlot } from '@naabsa/core';
-import { callAnthropic, isAiEnabled, parseJsonFromText, type AiDeps } from '../lib/anthropic';
+import { callLLM, isAiEnabled, parseJsonFromText, getAiProvider, getAiModel, type AiDeps } from '../lib/llm';
 
 export const CLASSIFY_PHOTOS_QUEUE = 'classify_photos';
 export interface ClassifyPhotosPayload {
@@ -67,7 +67,11 @@ export async function classifyPhotos(payload: ClassifyPhotosPayload, deps: AiDep
     .is('slot_id', null)
     .eq('ai_suggested', false);
   const photos = (photosRaw ?? []) as { id: string; processed_path: string | null }[];
-  if (photos.length === 0) return;
+  if (photos.length === 0) {
+    console.log(`[classify_photos] ${reportId}: nenhuma foto processada pendente de classificação.`);
+    return;
+  }
+  console.log(`[classify_photos] ${reportId}: ${photos.length} foto(s) a classificar via ${getAiProvider()}/${getAiModel()}.`);
 
   // Contagem atual por slot (respeita o max ao pré-alocar).
   const { data: allocRaw } = await svc
@@ -85,7 +89,7 @@ export async function classifyPhotos(payload: ClassifyPhotosPayload, deps: AiDep
     const { data: blob } = await svc.storage.from(BUCKET).download(ph.processed_path);
     if (!blob) continue;
     const b64 = Buffer.from(await blob.arrayBuffer()).toString('base64');
-    const text = await callAnthropic(
+    const text = await callLLM(
       {
         purpose: 'photo_classify',
         reportId,
@@ -97,6 +101,9 @@ export async function classifyPhotos(payload: ClassifyPhotosPayload, deps: AiDep
       },
       deps,
     );
+    if (!text) {
+      console.warn(`[classify_photos] ${reportId}: IA não respondeu p/ foto ${ph.id} (ver ai_call no audit_log — provável modelo/chave).`);
+    }
     const sug = interpretSuggestion(parseJsonFromText(text), validSlots);
 
     // Só pré-aloca se o slot tem espaço.

@@ -13,7 +13,7 @@ import {
   type FieldValue,
   type Issue,
 } from '@naabsa/core';
-import { callAnthropic, isAiEnabled, parseJsonFromText, type AiDeps } from '../lib/anthropic';
+import { callLLM, isAiEnabled, parseJsonFromText, type AiDeps } from '../lib/llm';
 
 export const AI_REVIEW_QUEUE = 'ai_review';
 export interface AiReviewPayload {
@@ -101,7 +101,7 @@ export async function aiReview(payload: AiReviewPayload, deps: AiDeps = {}): Pro
   if (!spec) return;
 
   const { system, userText } = buildReviewPrompt(spec, r.variant, r.extracted_data);
-  const text = await callAnthropic(
+  const text = await callLLM(
     { purpose: 'ai_review', reportId, system, content: [{ type: 'text', text: userText }], maxTokens: 1024 },
     deps,
   );

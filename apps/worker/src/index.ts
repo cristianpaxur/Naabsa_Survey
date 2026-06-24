@@ -55,7 +55,7 @@ import {
   CLASSIFY_PHOTOS_QUEUE,
   type ClassifyPhotosPayload,
 } from './jobs/classifyPhotos';
-import { isAiEnabled } from './lib/anthropic';
+import { isAiEnabled } from './lib/llm';
 
 /** Mapa nome-da-fila → handler. Apenas process_photo é consumido na impl 007. */
 const JOBS = {
@@ -90,13 +90,16 @@ async function registerJobs(): Promise<void> {
           // IA (010/T-008): pré-classificar fotos do lote — deduplicado por
           // relatório (singletonKey + janela), só quando AI_ENABLED.
           if (isAiEnabled()) {
-            await boss
-              .send(
+            try {
+              const cid = await boss.send(
                 CLASSIFY_PHOTOS_QUEUE,
                 { reportId: job.data.reportId },
                 { singletonKey: job.data.reportId, singletonSeconds: 20 },
-              )
-              .catch((e) => console.error('[worker] falha ao enfileirar classify_photos:', e));
+              );
+              console.log(`[worker] classify_photos enfileirado (${job.data.reportId}): ${cid ?? 'dedup/throttle'}`);
+            } catch (e) {
+              console.error('[worker] falha ao enfileirar classify_photos:', e);
+            }
           }
         } catch (err) {
           // Última tentativa esgotada: marca a foto com erro recuperável e NÃO
