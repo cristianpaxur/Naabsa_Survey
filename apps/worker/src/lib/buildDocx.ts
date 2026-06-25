@@ -356,7 +356,10 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
         const role = String(r[0] ?? '').trim();
         if (!role) return;
         const n = r.length > 8 ? Number(r[8]) : NaN;
-        const label = `${role.replace(/\s+surveyor$/i, '')}'s figures`.replace(/''s/, "'s");
+        const base = role.replace(/\s+surveyor$/i, '').trim();
+        // Evita o apóstrofo dobrado ("Terminal's's"): se o papel já é possessivo
+        // (termina em ' ou 's), só acrescenta " figures"; senão adiciona "'s figures".
+        const label = /['’]s?$/.test(base) ? `${base} figures` : `${base}'s figures`;
         out.push(leader(label, Number.isFinite(n) ? mt(n) : '—'));
       });
     }
