@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
-# Imagem do worker. Contexto de build = raiz do monorepo:
-#   docker build -f apps/worker/Dockerfile .
+# Imagem do worker. Fica na RAIZ do repo para que o contexto de build seja a raiz
+# (monorepo: copia pnpm-lock.yaml/packages/ da raiz). No EasyPanel: Source Path =
+# vazio/raiz, Dockerfile Path = Dockerfile.worker.
+#   docker build -f Dockerfile.worker .
 #
 # ┌─ generate_pdf (.docx nativo → PDF via LibreOffice) ───────────────────────┐
 # │ O job generate_pdf monta o relatório como .docx nativo (lib `docx`) e      │

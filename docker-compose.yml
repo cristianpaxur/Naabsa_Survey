@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: Dockerfile.web
     env_file:
       - path: .env
         required: false
@@ -31,7 +31,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: apps/worker/Dockerfile
+      dockerfile: Dockerfile.worker
     env_file:
       - path: .env
         required: false

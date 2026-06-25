@@ -13,7 +13,7 @@
 | Supabase (gerenciado) | nuvem | Postgres (+ pg-boss), Auth, Storage (bucket `reports`) |
 
 Tudo orquestrado por `docker-compose.yml`. O worker exige **LibreOffice** (Writer+Calc)
-— já instalado no `apps/worker/Dockerfile` — para gerar o `.docx`→PDF e os prints das abas.
+— já instalado no `Dockerfile.worker` — para gerar o `.docx`→PDF e os prints das abas.
 
 ## 2. Variáveis de ambiente (`.env`)
 

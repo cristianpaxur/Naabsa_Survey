@@ -11,12 +11,16 @@ repositório (monorepo), cada um com seu Dockerfile:
 
 | Serviço EasyPanel | Dockerfile | Domínio | Papel |
 |---|---|---|---|
-| **web** | `apps/web/Dockerfile` | sim (público) | Next.js — UI, API, server actions |
-| **worker** | `apps/worker/Dockerfile` | **não** | pg-boss — fotos, PDF, prints, IA, retenção |
+| **web** | `Dockerfile.web` (na raiz) | sim (público) | Next.js — UI, API, server actions |
+| **worker** | `Dockerfile.worker` (na raiz) | **não** | pg-boss — fotos, PDF, prints, IA, retenção |
 
 - **Supabase** (gerenciado, nuvem): Postgres (+ pg-boss), Auth, Storage. Não é serviço do EasyPanel.
 - **Proxy/TLS**: o **EasyPanel cuida** (Traefik + Let's Encrypt). **Não** use o `Caddyfile`/serviço Caddy aqui — ele é só para o deploy via `docker compose`.
-- **Contexto de build** dos dois Dockerfiles = **raiz do repositório** (eles copiam `pnpm-lock.yaml`, `packages/`, etc. a partir da raiz).
+- **Contexto de build = raiz do repositório.** Os Dockerfiles ficam **na raiz**
+  (`Dockerfile.web` / `Dockerfile.worker`) justamente por isso — eles copiam
+  `pnpm-lock.yaml`, `pnpm-workspace.yaml` e `packages/` a partir da raiz. ⚠️ No serviço,
+  deixe o **Source Path / subpasta VAZIO** (raiz). Se setar `apps/web`, o contexto vira
+  `apps/web` e o build falha com `COPY ... not found` (ver Troubleshooting).
 
 ---
 
@@ -32,8 +36,8 @@ repositório (monorepo), cada um com seu Dockerfile:
 
 **Create Service → App.**
 
-- **Source**: GitHub → seu repo → branch `main`. *Build Path* = `/` (raiz).
-- **Build**: Method = **Dockerfile**. *Dockerfile Path* = `apps/web/Dockerfile`.
+- **Source**: GitHub → seu repo → branch `main`. **Path/subpasta = VAZIO** (raiz — não `apps/web`!).
+- **Build**: Method = **Dockerfile**. *Dockerfile Path* = `Dockerfile.web`.
 - **Environment** (aba Environment):
   ```
   NEXT_PUBLIC_SUPABASE_URL=https://<projeto>.supabase.co
@@ -44,7 +48,7 @@ repositório (monorepo), cada um com seu Dockerfile:
   DATABASE_URL=postgresql://postgres.<ref>:<senha-URL-encodada>@<host>:5432/postgres
   ```
   > ⚠️ **`NEXT_PUBLIC_*` são build-time.** O Next inlina essas variáveis no bundle do
-  > browser **durante o build**. O `apps/web/Dockerfile` as declara como `ARG` e o
+  > browser **durante o build**. O `Dockerfile.web` as declara como `ARG` e o
   > EasyPanel passa as env do serviço como `--build-arg`. Se o login falhar com
   > "URL/key vazias", confirme que elas estão setadas **antes do build** (e refaça o deploy).
 - **Domains**: adicione o domínio → **Port `3000`**. TLS é automático.
@@ -58,8 +62,8 @@ repositório (monorepo), cada um com seu Dockerfile:
 
 **Create Service → App.**
 
-- **Source**: o mesmo repo/branch. *Build Path* = `/`.
-- **Build**: Method = **Dockerfile**. *Dockerfile Path* = `apps/worker/Dockerfile`.
+- **Source**: o mesmo repo/branch. **Path/subpasta = VAZIO** (raiz).
+- **Build**: Method = **Dockerfile**. *Dockerfile Path* = `Dockerfile.worker`.
   > O build instala **LibreOffice** (Writer+Calc) — é uma imagem maior e o build leva alguns minutos.
 - **Environment**:
   ```
@@ -162,8 +166,10 @@ terminar em `.../code` (raiz), **não** em `.../code/apps/web`.
 **Causa:** o **Path** (subpasta do app) do serviço foi setado como `apps/web` — isso vira
 o contexto. Os Dockerfiles são de **monorepo** e copiam `pnpm-lock.yaml`/`packages/` da raiz.
 
-**Correção:** no serviço → **Source → Path = vazio/`/`** (raiz) e **Build → Dockerfile Path =
-`apps/web/Dockerfile`** (caminho completo a partir da raiz). Idem worker: `apps/worker/Dockerfile`.
+**Correção:** no serviço → **Source → Path/subpasta = VAZIO** (raiz) e **Build → Dockerfile
+Path = `Dockerfile.web`** (o Dockerfile fica na raiz justamente por isso). Idem worker:
+`Dockerfile.worker`. Salve e **rebuild**. Confirme no log que o contexto (último argumento
+do `docker buildx build`) termina em `.../code`, não em `.../code/apps/web`.
 
 ### Login falha / Supabase "vazio" no browser depois do build
 
