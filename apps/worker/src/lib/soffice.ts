@@ -102,7 +102,9 @@ let installed = false;
 // soffice concorrentes sobre o mesmo perfil corrompem/travam. generate_pdf e
 // preview_pdf são filas distintas (poderiam rodar juntas) → mutex em processo.
 let loChain: Promise<unknown> = Promise.resolve();
-function withLoLock<T>(fn: () => Promise<T>): Promise<T> {
+/** Serializa qualquer chamada ao LibreOffice do worker (exportado p/ sheetImage.ts
+ *  usar o MESMO mutex — render_sheets (Calc) não pode rodar junto com generate_pdf). */
+export function withLoLock<T>(fn: () => Promise<T>): Promise<T> {
   const next = loChain.then(fn, fn);
   loChain = next.then(() => undefined, () => undefined);
   return next;

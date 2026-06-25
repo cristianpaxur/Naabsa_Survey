@@ -9,12 +9,12 @@
  * `libreoffice-calc` no PATH). Caminho configurável via SOFFICE_PATH.
  */
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import sharp from 'sharp';
+import { withLoLock, findSoffice } from './soffice';
 
 /** Índice de coluna (1-based) → letra(s) A1 (1→A, 28→AB). */
 function colLetter(n: number): string {
@@ -86,28 +86,29 @@ async function cropToColoredContent(png: Buffer): Promise<Buffer> {
   return sharp(png).extract({ left: cl, top: ct, width: cw, height: ch }).png().toBuffer();
 }
 
-function findSoffice(): string {
-  const fromEnv = process.env.SOFFICE_PATH;
-  if (fromEnv && existsSync(fromEnv)) return fromEnv;
-  const candidates = [
-    'C:\\Program Files\\LibreOffice\\program\\soffice.com',
-    'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.com',
-  ];
-  for (const c of candidates) if (existsSync(c)) return c;
-  return 'soffice'; // PATH (container Linux)
-}
-
-function runSoffice(args: string[]): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(findSoffice(), args);
-    let stderr = '';
-    proc.stdout.on('data', (d) => (stderr += d.toString()));
-    proc.stderr.on('data', (d) => (stderr += d.toString()));
-    proc.on('error', reject);
-    proc.on('close', (code) =>
-      code === 0 ? resolve() : reject(new Error(`soffice saiu com ${code}: ${stderr.slice(0, 300)}`)),
-    );
-  });
+/** Roda o soffice serializado pelo MESMO mutex de soffice.ts — evita 2 instâncias
+ *  concorrentes (render_sheets/Calc + generate_pdf/Writer) que fazem o headless do
+ *  Linux sair 0 sem gerar nada. HOME gravável: o LibreOffice toca o $HOME e, sem um
+ *  gravável, também sai 0 sem produzir o PNG. Retorna a saída para diagnóstico. */
+function runSoffice(args: string[], cwd: string): Promise<string> {
+  return withLoLock(
+    () =>
+      new Promise<string>((resolve, reject) => {
+        const proc = spawn(findSoffice(), args, {
+          env: { ...process.env, HOME: cwd },
+          windowsHide: process.platform === 'win32',
+        });
+        let out = '';
+        proc.stdout.on('data', (d) => (out += d.toString()));
+        proc.stderr.on('data', (d) => (out += d.toString()));
+        proc.on('error', reject);
+        proc.on('close', (code) =>
+          code === 0
+            ? resolve(out)
+            : reject(new Error(`soffice saiu com ${code}: ${out.slice(0, 400)}`)),
+        );
+      }),
+  );
 }
 
 /**
@@ -156,15 +157,22 @@ export async function renderSheetPng(
     const inPath = join(dir, 'in.xlsx');
     await wb.xlsx.writeFile(inPath);
     const profile = 'file:///' + join(dir, 'lo_profile').replace(/\\/g, '/');
-    await runSoffice([
+    const out = await runSoffice([
       '--headless', '--calc', '--nologo', '--norestore',
       `-env:UserInstallation=${profile}`,
       '--convert-to', 'png', '--outdir', dir, inPath,
-    ]);
+    ], dir);
 
-    const outPath = join(dir, 'in.png');
-    if (!existsSync(outPath)) throw new Error('LibreOffice não gerou o PNG.');
-    const raw = await readFile(outPath);
+    // O LibreOffice nomeia o PNG como in.png (ou in1.png se paginar) — varre por
+    // qualquer .png. Se nada saiu, erra com a saída do soffice + os arquivos do dir.
+    const files = await readdir(dir);
+    const pngName = files.find((f) => f.toLowerCase().endsWith('.png'));
+    if (!pngName) {
+      throw new Error(
+        `LibreOffice não gerou PNG (arquivos: ${files.join(', ') || 'nenhum'}). Saída: ${out.slice(0, 300)}`,
+      );
+    }
+    const raw = await readFile(join(dir, pngName));
 
     // Recorta para o conteúdo COLORIDO (template azul/rosa) + margem, e remove
     // as bordas brancas. O LibreOffice exporta a página inteira; o conteúdo
