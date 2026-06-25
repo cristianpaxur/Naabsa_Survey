@@ -85,7 +85,6 @@ function kvRow(label: string, value: string): TableRow {
   });
 }
 const THIN = { style: BorderStyle.SINGLE, size: 4, color: 'BFBFBF' } as const;
-const tableBorders = { top: THIN, bottom: THIN, left: THIN, right: THIN, insideHorizontal: THIN, insideVertical: THIN };
 const NONE_B = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const;
 /** Tabela sem linhas (alinhamento label:valor como o modelo Word). */
 const tableNoBorders = { top: NONE_B, bottom: NONE_B, left: NONE_B, right: NONE_B, insideHorizontal: NONE_B, insideVertical: NONE_B };
@@ -347,7 +346,9 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
     if (fp) {
       out.push(leader(`${V.officialFig} figures (Official)`, mt(data[`${fp}_fig_shore_scale`])));
       out.push(leader("NAABSA's surveyor figures", mt(data[`${fp}_fig_naabsa`])));
-      out.push(leader('Difference as per our figures', `${signedMt(data[`${fp}_fig_diff_mt`])} or ${signedPct(data[`${fp}_fig_diff_pct`])}`));
+      // MT na linha da Difference (alinha com os outros MT) e a % numa linha própria.
+      out.push(leader('Difference as per our figures', signedMt(data[`${fp}_fig_diff_mt`])));
+      out.push(leader('Percentage', signedPct(data[`${fp}_fig_diff_pct`])));
       out.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
       out.push(leader("Vessel's figures", mt(data[`${fp}_fig_vessel`])));
       // figures por parte (acting-as): coluna J = índice 8 do range. Guard de bounds/NaN.
@@ -387,19 +388,19 @@ function sideLabel(b: FieldValue | undefined): { berthed: string; opposite: stri
   return { berthed: v(b), opposite: '—' };
 }
 function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data): Table {
-  const heelLabel = x === 'init' ? 'Heel' : 'List';
   const heelField = x === 'init' ? 'init_heel' : x === 'int' ? 'int_list' : 'fin_list';
   const heelSide = x === 'init' ? 'init_heel_side' : x === 'int' ? 'int_list_side' : 'fin_list_side';
   const heelVal = data[heelField] != null ? `${num(data[heelField], 2)}° ${v(data[heelSide], '')}`.trim() : '—';
   const deflVal = data[`${x}_deflection`] != null ? `${num(data[`${x}_deflection`], 1)} cm ${v(data[`${x}_deflection_type`], '')}`.trim() : '—';
-  // Células vazias (espaçador entre os 2 blocos + 4ª linha) ficam SEM borda — só os
-  // dados formam grade. Padding generoso (era 0,5pt) e alinhamento vertical central.
-  const c = (t: string, bold = false) => new TableCell({ borders: t === '' ? tableNoBorders : tableBorders, margins: { top: 50, bottom: 50, left: 90, right: 90 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
-  // 4 linhas alinhadas (como o modelo): o bloco da direita começa na MESMA linha do
-  // cabeçalho — "Trim obs" alinha com "Draft Mark", "Deflection" com "Aft".
-  const head = new TableRow({ children: [c('Draft Mark', true), c('Means', true), c('Mean corrected', true), c('', false), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
-  const r1 = new TableRow({ children: [c('Fwd'), c(num(data[`${x}_fwd_mean`], 3)), c(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
-  const r2 = new TableRow({ children: [c('Ms'), c(num(data[`${x}_mid_mean`], 3)), c(num(data[`${x}_mid_corr`], 4)), c(''), c(heelLabel, true), c(heelVal)] });
-  const r3 = new TableRow({ children: [c('Aft'), c(num(data[`${x}_aft_mean`], 3)), c(num(data[`${x}_aft_corr`], 4)), c(''), c('Deflection', true), c(deflVal)] });
+  // Sem linhas de grade (pedido do cliente). `c` = célula padrão (esquerda); `L` =
+  // centralizada (bloco da esquerda: Draft Mark/Means/Mean corrected). Vertical central.
+  const c = (t: string, bold = false, center = false) => new TableCell({ borders: tableNoBorders, margins: { top: 30, bottom: 30, left: 80, right: 80 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: center ? AlignmentType.CENTER : undefined, spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
+  const L = (t: string, bold = false) => c(t, bold, true);
+  // 4 linhas alinhadas: o bloco da direita começa na linha do cabeçalho ("Trim obs"
+  // alinha com "Draft Mark"; "Deflection" com "Aft"). "List" (não "Heel") por pedido.
+  const head = new TableRow({ children: [L('Draft Mark', true), L('Means', true), L('Mean corrected', true), c(''), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
+  const r1 = new TableRow({ children: [L('Fwd'), L(num(data[`${x}_fwd_mean`], 3)), L(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
+  const r2 = new TableRow({ children: [L('Ms'), L(num(data[`${x}_mid_mean`], 3)), L(num(data[`${x}_mid_corr`], 4)), c(''), c('List', true), c(heelVal)] });
+  const r3 = new TableRow({ children: [L('Aft'), L(num(data[`${x}_aft_mean`], 3)), L(num(data[`${x}_aft_corr`], 4)), c(''), c('Deflection', true), c(deflVal)] });
   return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [head, r1, r2, r3] });
 }
