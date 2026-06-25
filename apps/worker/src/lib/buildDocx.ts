@@ -9,8 +9,11 @@ import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   Header, Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
   TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
-  Bookmark, InternalHyperlink, TableLayoutType,
+  Bookmark, InternalHyperlink, TableLayoutType, LineRuleType,
 } from 'docx';
+
+/** Entrelinha confortável (~1.15) para o texto corrido — ar entre as linhas. */
+const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
 import type { FieldValue } from '@naabsa/core';
 
 const NAVY = '002060';
@@ -65,7 +68,7 @@ const VARIANT = {
 const run = (text: string, opts: { bold?: boolean; size?: number; font?: string; color?: string } = {}) =>
   new TextRun({ text, bold: opts.bold, size: opts.size ?? 22, font: opts.font ?? SANS, color: opts.color });
 const para = (children: TextRun[], opts: { align?: (typeof AlignmentType)[keyof typeof AlignmentType]; spacing?: number } = {}) =>
-  new Paragraph({ children, alignment: opts.align, spacing: { after: opts.spacing ?? 80 } });
+  new Paragraph({ children, alignment: opts.align, spacing: { after: opts.spacing ?? 120, ...BODY_LINE } });
 
 // célula de tabela "label : valor" (sem fundo, como o Word)
 // Larguras absolutas (twips) — o LibreOffice não respeita % em tabela; DXA + FIXED sim.
@@ -356,8 +359,9 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   }
   // 4.1 Draft readings (bold lead-in numerado, com bookmark) + tabela
   const sides = sideLabel(data['berthing_side']);
-  out.push(new Paragraph({ spacing: { after: 80 }, children: [new Bookmark({ id: `s${num}_1`, children: [run(`${num}.1 Draft readings: `, { bold: true })] }), run(`${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`)] }));
+  out.push(new Paragraph({ spacing: { after: 100, ...BODY_LINE }, children: [new Bookmark({ id: `s${num}_1`, children: [run(`${num}.1 Draft readings: `, { bold: true })] }), run(`${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`)] }));
   out.push(draftReadingsTable(x, data));
+  out.push(new Paragraph({ spacing: { after: 60 }, children: [] })); // respiro após a tabela
   // 6.2/6.3 (Final) usam o MESMO texto de 4.2/4.3 e 5.2/5.3 (pedido do cliente).
   out.push(subLead(`s${num}_2`, `${num}.2 Sea water density: `, "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings."));
   out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
@@ -368,10 +372,10 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
 }
 
 function subLead(id: string, label: string, txt: string): Paragraph {
-  return new Paragraph({ spacing: { after: 80 }, children: [new Bookmark({ id, children: [run(label, { bold: true })] }), run(txt)] });
+  return new Paragraph({ spacing: { after: 120, ...BODY_LINE }, children: [new Bookmark({ id, children: [run(label, { bold: true })] }), run(txt)] });
 }
 function leader(label: string, value: string): Paragraph {
-  return new Paragraph({ spacing: { after: 20 }, tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX, leader: LeaderType.DOT }], children: [run(label, { size: 21 }), new TextRun({ text: '\t', size: 21 }), run(value, { size: 21 })] });
+  return new Paragraph({ spacing: { after: 40 }, tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX, leader: LeaderType.DOT }], children: [run(label, { size: 21 }), new TextRun({ text: '\t', size: 21 }), run(value, { size: 21 })] });
 }
 function sideLabel(b: FieldValue | undefined): { berthed: string; opposite: string } {
   const s = String(b ?? '').toLowerCase();
@@ -385,11 +389,13 @@ function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data): Table {
   const heelSide = x === 'init' ? 'init_heel_side' : x === 'int' ? 'int_list_side' : 'fin_list_side';
   const heelVal = data[heelField] != null ? `${num(data[heelField], 2)}° ${v(data[heelSide], '')}`.trim() : '—';
   const deflVal = data[`${x}_deflection`] != null ? `${num(data[`${x}_deflection`], 1)} cm ${v(data[`${x}_deflection_type`], '')}`.trim() : '—';
-  const c = (t: string, bold = false) => new TableCell({ borders: tableBorders, margins: { top: 10, bottom: 10, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
+  // Células vazias (espaçador entre os 2 blocos + 4ª linha) ficam SEM borda — só os
+  // dados formam grade. Padding generoso (era 0,5pt) e alinhamento vertical central.
+  const c = (t: string, bold = false) => new TableCell({ borders: t === '' ? tableNoBorders : tableBorders, margins: { top: 50, bottom: 50, left: 90, right: 90 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
   const head = new TableRow({ children: [c('Draft Mark', true), c('Means', true), c('Mean corrected', true), c('', false), c('', false), c('', false)] });
   const r1 = new TableRow({ children: [c('Fwd'), c(num(data[`${x}_fwd_mean`], 3)), c(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
   const r2 = new TableRow({ children: [c('Ms'), c(num(data[`${x}_mid_mean`], 3)), c(num(data[`${x}_mid_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
   const r3 = new TableRow({ children: [c('Aft'), c(num(data[`${x}_aft_mean`], 3)), c(num(data[`${x}_aft_corr`], 4)), c(''), c(heelLabel, true), c(heelVal)] });
   const r4 = new TableRow({ children: [c(''), c(''), c(''), c(''), c('Deflection', true), c(deflVal)] });
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableBorders, rows: [head, r1, r2, r3, r4] });
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [head, r1, r2, r3, r4] });
 }
