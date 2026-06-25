@@ -16,6 +16,16 @@ import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import sharp from 'sharp';
 
+/** Índice de coluna (1-based) → letra(s) A1 (1→A, 28→AB). */
+function colLetter(n: number): string {
+  let s = '';
+  while (n > 0) {
+    s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s || 'A';
+}
+
 /**
  * Recorta a imagem para o BLOCO principal de conteúdo (a tabela do template).
  * Detecta linhas com conteúdo (cor saturada azul/rosa OU pixel escuro de
@@ -121,6 +131,25 @@ export async function renderSheetPng(
   target.views = (target.views?.length ? target.views : [{}]).map(
     (v) => ({ ...v, showGridLines: false }) as never,
   );
+
+  // A aba de cálculo tem 4 blocos lado a lado (Draft Survey, Displacement,
+  // Ballast Water, Fresh Water/Bunker). O LibreOffice pagina a largura em várias
+  // páginas e o export PNG só rende a 1ª — cortando os blocos da direita. Forçar
+  // paisagem + "ajustar à largura" (fitToWidth=1) coloca TODAS as colunas em uma
+  // página, então o PNG sai com os 4 blocos. A área é a extensão real de dados
+  // (sobrescreve a print-area B:O do template, que esconde Ballast/Fresh).
+  const dim = target.dimensions as { right?: number; bottom?: number } | undefined;
+  const lastCol = colLetter(dim?.right ?? 28);
+  target.pageSetup = {
+    ...target.pageSetup,
+    printArea: `B2:${lastCol}${dim?.bottom ?? 60}`,
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    scale: undefined,
+    margins: { left: 0.1, right: 0.1, top: 0.1, bottom: 0.1, header: 0, footer: 0 },
+  } as never;
 
   const dir = await mkdtemp(join(tmpdir(), 'naabsa-sheet-'));
   try {
