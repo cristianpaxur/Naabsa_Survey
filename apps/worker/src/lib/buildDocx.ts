@@ -395,10 +395,10 @@ function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data): Table {
   const heelSide = x === 'init' ? 'init_heel_side' : x === 'int' ? 'int_list_side' : 'fin_list_side';
   const heelVal = data[heelField] != null ? `${num(data[heelField], 2)}° ${v(data[heelSide], '')}`.trim() : '—';
   const deflVal = data[`${x}_deflection`] != null ? `${num(data[`${x}_deflection`], 1)} cm ${v(data[`${x}_deflection_type`], '')}`.trim() : '—';
-  // Sem linhas de grade (pedido do cliente). `c` = célula padrão (esquerda); `L` =
-  // centralizada (bloco da esquerda: Draft Mark/Means/Mean corrected). Vertical central.
-  const c = (t: string, bold = false, center = false) => new TableCell({ borders: tableNoBorders, margins: { top: 30, bottom: 30, left: 80, right: 80 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: center ? AlignmentType.CENTER : undefined, spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
-  const L = (t: string, bold = false) => c(t, bold, true);
+  // Sem linhas de grade (pedido do cliente). Tudo à ESQUERDA — inclusive o bloco
+  // Draft Mark/Means/Mean corrected (pedido). Alinhamento vertical central.
+  const c = (t: string, bold = false) => new TableCell({ borders: tableNoBorders, margins: { top: 30, bottom: 30, left: 80, right: 80 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
+  const L = c;
   // 4 linhas alinhadas: o bloco da direita começa na linha do cabeçalho ("Trim obs"
   // alinha com "Draft Mark"; "Deflection" com "Aft"). "List" (não "Heel") por pedido.
   const head = new TableRow({ children: [L('Draft Mark', true), L('Means', true), L('Mean corrected', true), c(''), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
