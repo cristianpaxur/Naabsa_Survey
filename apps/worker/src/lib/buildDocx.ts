@@ -89,6 +89,9 @@ const tableBorders = { top: THIN, bottom: THIN, left: THIN, right: THIN, insideH
 const NONE_B = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const;
 /** Tabela sem linhas (alinhamento label:valor como o modelo Word). */
 const tableNoBorders = { top: NONE_B, bottom: NONE_B, left: NONE_B, right: NONE_B, insideHorizontal: NONE_B, insideVertical: NONE_B };
+/** Só linhas INTERNAS (entre as linhas e entre rótulo/valor), sem moldura externa —
+ *  pedido do cliente na tabela PERSON / COMPANIES CONTACTED. */
+const insideOnlyBorders = { top: NONE_B, bottom: NONE_B, left: NONE_B, right: NONE_B, insideHorizontal: THIN, insideVertical: THIN };
 
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 /** Lê largura/altura (px) de PNG ou JPEG direto do cabeçalho (sync, sem libs). */
@@ -215,7 +218,7 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
 
   // ── PERSON / COMPANIES CONTACTED — pertence à CAPA (página 1) ──
   body.push(plainTitle('PERSON / COMPANIES CONTACTED'));
-  body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableBorders, rows: [
+  body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: insideOnlyBorders, rows: [
     personRow('Client', [v(data['client']), v(data['operator'])]),
     personRow('Undersigned Surveyor', ['NAABSA Marine Surveyors', v(data['surveyor_name'], UNDERSIGNED_SURVEYOR)]),
     personRow("Vessel’s Command", ['Master / Chief Officer', `${v(data['captain'])} / ${v(data['chief_officer'])}`]),
