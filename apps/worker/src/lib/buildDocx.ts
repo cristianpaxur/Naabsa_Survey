@@ -402,5 +402,8 @@ function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data): Table {
   const r1 = new TableRow({ children: [L('Fwd'), L(num(data[`${x}_fwd_mean`], 3)), L(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
   const r2 = new TableRow({ children: [L('Ms'), L(num(data[`${x}_mid_mean`], 3)), L(num(data[`${x}_mid_corr`], 4)), c(''), c('List', true), c(heelVal)] });
   const r3 = new TableRow({ children: [L('Aft'), L(num(data[`${x}_aft_mean`], 3)), L(num(data[`${x}_aft_corr`], 4)), c(''), c('Deflection', true), c(deflVal)] });
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [head, r1, r2, r3] });
+  // Larguras fixas (twips): a coluna de VALOR da direita é larga o bastante para o
+  // List ("0.04° Starboard Side") caber em UMA linha, sem quebrar.
+  const COLS = [1200, 1200, 1700, 500, 1700, 3560] as const;
+  return new Table({ width: { size: 9860, type: WidthType.DXA }, columnWidths: [...COLS], layout: TableLayoutType.FIXED, borders: tableNoBorders, rows: [head, r1, r2, r3] });
 }
