@@ -254,7 +254,10 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
   body.push(sectionTitle('s3', numTitle(3, 'Draft Survey')));
 
   // ── 4/5/6. Fases ──
-  body.push(...phaseSection(initNum, 'Initial', 'init', data, V, input.sheetImages.initial, []));
+  // Initial lista as MESMAS partes citadas do Final (modelo aponta DS FINAL B49-B51):
+  // as partes do atendimento são as mesmas. A narrativa do Initial usa só os nomes
+  // (sem o bloco de "figures", que é exclusivo de Intermediate/Final).
+  body.push(...phaseSection(initNum, 'Initial', 'init', data, V, input.sheetImages.initial, input.acting.final ?? []));
   if (hasInter) body.push(...phaseSection(interNum, 'Intermediate', 'int', data, V, input.sheetImages.intermediate, input.acting.intermediate ?? []));
   body.push(...phaseSection(finalNum, 'Final', 'fin', data, V, input.sheetImages.final, input.acting.final ?? []));
 
