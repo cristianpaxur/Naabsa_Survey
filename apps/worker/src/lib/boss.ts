@@ -35,8 +35,10 @@ export async function getBoss(): Promise<PgBoss> {
     const boss = new PgBoss({
       connectionString: requireEnv('DATABASE_URL'),
       // Limita o pool: o pooler do Supabase (session mode :5432) aceita ~15
-      // clientes no total. Web (send) usa poucos; o worker (consome) fica em 8.
-      max: 8,
+      // clientes no total. Web (send) usa ~2; o worker (consome) fica em 6 — deixa
+      // margem para sobreposição de conexões durante o redeploy (container antigo
+      // drenando) e evita o EMAXCONNSESSION. pg-boss só atinge o teto sob carga.
+      max: 6,
     });
     boss.on('error', (err: Error) => {
       console.error('[worker][pg-boss] erro:', err);

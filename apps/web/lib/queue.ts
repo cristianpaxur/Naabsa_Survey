@@ -21,7 +21,7 @@ const globalForBoss = globalThis as unknown as { __naabsaWebBoss?: Promise<PgBos
 
 async function getBoss(): Promise<PgBoss> {
   if (globalForBoss.__naabsaWebBoss) return globalForBoss.__naabsaWebBoss;
-  globalForBoss.__naabsaWebBoss = (async () => {
+  const p = (async () => {
     const connectionString = process.env.DATABASE_URL ?? '';
     if (!connectionString) {
       throw new Error('DATABASE_URL ausente — não é possível enfileirar jobs.');
@@ -31,26 +31,28 @@ async function getBoss(): Promise<PgBoss> {
     boss.on('error', (err: Error) => {
       console.error('[web][pg-boss] erro:', err);
     });
-    await boss.start();
-    // Idempotente: garante as filas caso o worker ainda não as tenha criado.
-    await boss.createQueue(PROCESS_PHOTO_QUEUE).catch(() => {
-      /* já existe */
-    });
-    await boss.createQueue(GENERATE_PDF_QUEUE).catch(() => {
-      /* já existe */
-    });
-    await boss.createQueue(PREVIEW_PDF_QUEUE).catch(() => {
-      /* já existe */
-    });
-    await boss.createQueue(RENDER_SHEETS_QUEUE).catch(() => {
-      /* já existe */
-    });
-    await boss.createQueue(AI_REVIEW_QUEUE).catch(() => {
-      /* já existe */
-    });
-    return boss;
+    try {
+      await boss.start();
+      // Idempotente: garante as filas caso o worker ainda não as tenha criado.
+      for (const q of [PROCESS_PHOTO_QUEUE, GENERATE_PDF_QUEUE, PREVIEW_PDF_QUEUE, RENDER_SHEETS_QUEUE, AI_REVIEW_QUEUE]) {
+        await boss.createQueue(q).catch(() => {
+          /* já existe */
+        });
+      }
+      return boss;
+    } catch (err) {
+      // Se o start falhou (ex.: pooler cheio), LIBERA o pool — senão as conexões
+      // abertas vazam e pioram o limite. O cache é limpo abaixo para retentar.
+      await boss.stop({ graceful: false }).catch(() => {});
+      throw err;
+    }
   })();
-  return globalForBoss.__naabsaWebBoss;
+  globalForBoss.__naabsaWebBoss = p;
+  // Não cacheia falha: limpa o singleton para a próxima requisição tentar de novo.
+  p.catch(() => {
+    if (globalForBoss.__naabsaWebBoss === p) globalForBoss.__naabsaWebBoss = undefined;
+  });
+  return p;
 }
 
 export interface ProcessPhotoPayload {
