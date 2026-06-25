@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -38,25 +39,16 @@ export function Sidebar({
         flexDirection: 'column',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '4px 8px 20px',
-        }}
-      >
-        <Logo size={24} />
-        <span
-          style={{
-            fontWeight: 800,
-            fontSize: 15,
-            letterSpacing: '.13em',
-            color: 'var(--navy)',
-          }}
-        >
-          NAABSA
-        </span>
+      <div style={{ padding: '4px 8px 20px' }}>
+        <Image
+          src="/naabsa-logo.jpg"
+          alt="NAABSA"
+          width={140}
+          height={32}
+          priority
+          unoptimized
+          style={{ width: 140, height: 'auto' }}
+        />
       </div>
 
       <SectionLabel>Trabalho</SectionLabel>
@@ -211,29 +203,3 @@ function roleLabel(role: string): string {
   return role === 'admin' ? 'Admin' : 'Operador';
 }
 
-function Logo({ size }: { size: number }) {
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        background: 'var(--navy)',
-        borderRadius: 5,
-        position: 'relative',
-        flex: 'none',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          right: size * 0.21,
-          bottom: size * 0.21,
-          width: size * 0.29,
-          height: size * 0.29,
-          background: 'var(--vermelho)',
-          borderRadius: 2,
-        }}
-      />
-    </div>
-  );
-}
