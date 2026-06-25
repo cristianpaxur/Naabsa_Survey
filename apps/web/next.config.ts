@@ -22,6 +22,9 @@ const securityHeaders = [
             "script-src 'self' 'unsafe-inline'",
             "connect-src 'self' https:",
             "font-src 'self' data:",
+            // Preview do PDF é um <iframe> com URL assinada do Supabase Storage (https)
+            // e/ou blob — sem isto o CSP (default-src 'self') bloqueia o iframe.
+            "frame-src 'self' https: blob: data:",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",
