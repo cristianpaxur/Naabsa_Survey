@@ -52,6 +52,9 @@ COPY apps/worker ./apps/worker
 ENV NODE_ENV=production
 # node:22-slim já inclui o usuário não-root `node`.
 USER node
-# start:container = tsx direto (sem dotenv). As envs vêm da plataforma (EasyPanel)
-# ou do docker-compose (env_file), não de um .env dentro da imagem.
-CMD ["pnpm", "--filter", "@naabsa/worker", "start:container"]
+WORKDIR /app/apps/worker
+# Roda o tsx DIRETO (sem `pnpm run`). O `pnpm run` faz "verify-deps-before-run" no
+# start, que dispara um `pnpm install` — mas o store do pnpm é um cache de build
+# (ausente no runtime) e sem rede → falha com exit 243. `node --import tsx` dispensa
+# o pnpm. As envs vêm da plataforma (EasyPanel) / do compose (env_file).
+CMD ["node", "--import", "tsx", "src/index.ts"]
