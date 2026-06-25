@@ -4,6 +4,15 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Stepper } from './Wizard';
 
+/** Estágios mostrados durante a extração (progresso encenado: o servidor processa
+ *  em uma requisição só; os passos dão ao usuário noção do que está acontecendo). */
+const EXTRACT_STAGES = [
+  'Enviando planilha…',
+  'Extraindo campos…',
+  'Validando dados…',
+  'Preparando pré-visualização…',
+];
+
 /** Etapa 3 do wizard — upload da planilha + disparo da extração (T-009). */
 export function UploadStep({
   reportId,
@@ -21,24 +30,45 @@ export function UploadStep({
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [stage, setStage] = useState(0);
 
   async function extract() {
     if (!file) return;
     setBusy(true);
     setError(null);
+    setProgress(8);
+    setStage(0);
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch(`/api/reports/${reportId}/spreadsheet`, {
-      method: 'POST',
-      body: fd,
-    });
-    const json = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      setError(json.error ?? 'Falha na extração.');
+    // Avança os estágios enquanto o servidor processa; trava em ~90% até a resposta.
+    let s = 0;
+    const tick = setInterval(() => {
+      s = Math.min(s + 1, EXTRACT_STAGES.length - 1);
+      setStage(s);
+      setProgress((p) => Math.min(p + 20, 90));
+    }, 850);
+    try {
+      const res = await fetch(`/api/reports/${reportId}/spreadsheet`, {
+        method: 'POST',
+        body: fd,
+      });
+      const json = (await res.json()) as { error?: string };
+      clearInterval(tick);
+      if (!res.ok) {
+        setError(json.error ?? 'Falha na extração.');
+        setBusy(false);
+        setProgress(0);
+        return;
+      }
+      setProgress(100);
+      router.push(`/reports/${reportId}/review`);
+    } catch {
+      clearInterval(tick);
+      setError('Falha na extração. Tente novamente.');
       setBusy(false);
-      return;
+      setProgress(0);
     }
-    router.push(`/reports/${reportId}/review`);
   }
 
   return (
@@ -133,6 +163,41 @@ export function UploadStep({
             }}
           >
             {error}
+          </div>
+        )}
+
+        {busy && (
+          <div style={{ marginTop: 20 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 13,
+                color: 'var(--rocha)',
+                marginBottom: 7,
+              }}
+            >
+              <span>{EXTRACT_STAGES[stage]}</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>{progress}%</span>
+            </div>
+            <div
+              style={{
+                height: 8,
+                borderRadius: 99,
+                background: '#ece8e1',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${progress}%`,
+                  background: 'var(--navy)',
+                  borderRadius: 99,
+                  transition: 'width .45s ease',
+                }}
+              />
+            </div>
           </div>
         )}
 

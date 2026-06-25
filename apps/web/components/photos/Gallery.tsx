@@ -4,7 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import type { UIPhoto } from './types';
 
 /** Item arrastável da galeria (uma foto). */
-function GalleryItem({ photo }: { photo: UIPhoto }) {
+function GalleryItem({ photo, analyzing }: { photo: UIPhoto; analyzing?: boolean }) {
   const allocated = photo.slotId !== null;
   const draggable = photo.status === 'done';
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -52,6 +52,25 @@ function GalleryItem({ photo }: { photo: UIPhoto }) {
           </span>
         </div>
       )}
+
+      {/* IA classificando — após o processamento, enquanto a IA analisa a foto. */}
+      {analyzing &&
+        photo.status === 'done' &&
+        !photo.aiSuggested &&
+        photo.slotId === null && (
+          <div
+            style={{
+              ...overlayCenter,
+              background: 'rgba(22,41,77,.58)',
+              flexDirection: 'column',
+              gap: 5,
+            }}
+          >
+            <span className="naabsa-pulse" style={{ fontSize: 10.5, fontWeight: 700, color: '#fff' }}>
+              IA analisando…
+            </span>
+          </div>
+        )}
 
       {/* Estado erro */}
       {photo.status === 'error' && (
@@ -133,7 +152,13 @@ const overlayCenter = {
  * Galeria de fotos (RF-17): grid de thumbs com estado (processando/pronta/
  * alocada/erro). Fotos prontas são arrastáveis para os slots (dnd-kit).
  */
-export function Gallery({ photos }: { photos: UIPhoto[] }) {
+export function Gallery({
+  photos,
+  analyzing,
+}: {
+  photos: UIPhoto[];
+  analyzing?: boolean;
+}) {
   const allocated = photos.filter((p) => p.slotId !== null).length;
 
   return (
@@ -180,7 +205,7 @@ export function Gallery({ photos }: { photos: UIPhoto[] }) {
           }}
         >
           {photos.map((p) => (
-            <GalleryItem key={p.id} photo={p} />
+            <GalleryItem key={p.id} photo={p} analyzing={analyzing} />
           ))}
         </div>
       )}

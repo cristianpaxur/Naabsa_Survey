@@ -41,6 +41,9 @@ export function PhotosClient({
   const [picked, setPicked] = useState<string | null>(null);
   const [advancing, setAdvancing] = useState(false);
   const [confirmingAi, setConfirmingAi] = useState(false);
+  // Janela "IA analisando" — ligada no upload, desligada quando a IA responde
+  // (por foto) ou após ~45s (timeout). Mostra o overlay nas fotos da galeria.
+  const [aiActive, setAiActive] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const aiSuggestedCount = photos.filter((p) => p.aiSuggested).length;
@@ -64,12 +67,16 @@ export function PhotosClient({
   const photosRef = useRef(photos);
   photosRef.current = photos;
   const pollUntilRef = useRef(0);
+  const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const t = setInterval(() => {
       const pending = photosRef.current.some((p) => p.status === 'pending');
       if (pending || Date.now() < pollUntilRef.current) void refresh();
     }, 2500);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+    };
   }, [refresh]);
 
   async function onConfirmAllAi() {
@@ -111,6 +118,10 @@ export function PhotosClient({
     // Mantém o polling por ~60s para capturar o processamento + a sugestão da IA
     // em tempo real (sem o usuário precisar recarregar).
     pollUntilRef.current = Date.now() + 60_000;
+    // Liga o "IA analisando" e agenda o desligamento (a IA termina antes disso).
+    setAiActive(true);
+    if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+    aiTimeoutRef.current = setTimeout(() => setAiActive(false), 45_000);
     await refresh();
   }
 
@@ -313,6 +324,7 @@ export function PhotosClient({
               photos={photos}
               picked={picked}
               onPick={setPicked}
+              analyzing={aiActive}
             />
             {/* Realce visual da foto selecionada via borda na própria galeria
                 não é necessário aqui — a barra acima indica a seleção. */}
@@ -368,10 +380,12 @@ function GalleryPicker({
   photos,
   picked,
   onPick,
+  analyzing,
 }: {
   photos: UIPhoto[];
   picked: string | null;
   onPick: (id: string) => void;
+  analyzing?: boolean;
 }) {
   return (
     <div
@@ -383,7 +397,7 @@ function GalleryPicker({
       }}
     >
       <div style={{ outline: picked ? '0' : '0' }}>
-        <Gallery photos={photos} />
+        <Gallery photos={photos} analyzing={analyzing} />
       </div>
     </div>
   );

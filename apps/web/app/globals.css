@@ -38,3 +38,17 @@ input,
 button {
   font-family: inherit;
 }
+
+/* Pulso suave (ex.: "IA analisando…" no overlay da foto). */
+@keyframes naabsa-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.naabsa-pulse {
+  animation: naabsa-pulse 1.1s ease-in-out infinite;
+}
