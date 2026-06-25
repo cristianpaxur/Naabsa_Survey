@@ -11,7 +11,8 @@ const WORKER_ENV_VARS = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'DATABASE_URL',
-  'APP_BASE_URL',
+  // APP_BASE_URL deixou de ser obrigatória: o logo é empacotado no worker
+  // (apps/worker/assets) e lido do disco; APP_BASE_URL é só fallback opcional.
 ] as const;
 
 type WorkerEnvVar = (typeof WORKER_ENV_VARS)[number];

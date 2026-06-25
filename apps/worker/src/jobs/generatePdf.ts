@@ -18,8 +18,10 @@ import {
   runExtraction, collectFields, resolveFieldValue, resolveVariant,
   type ReportSpec, type FieldValue,
 } from '@naabsa/core';
+import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { getServiceClient } from '../lib/supabase';
-import { requireEnv } from '../lib/env';
 import { buildReportDocx, type DocxInput } from '../lib/buildDocx';
 import { convertDocxToPdf, measureBookmarkPages } from '../lib/soffice';
 
@@ -36,13 +38,21 @@ export const GENERATE_PDF_TIMEOUT_S = 300;
 
 const BUCKET = 'reports';
 
-/** Logo NAABSA (data do app), cacheado. Null se indisponível (header cai em texto). */
+/** Logo NAABSA, cacheado. Null se indisponível (header cai em texto). */
 let logoCache: Buffer | null | undefined;
 async function fetchLogo(): Promise<Buffer | null> {
   if (logoCache !== undefined) return logoCache;
   try {
-    const res = await fetch(`${requireEnv('APP_BASE_URL')}/naabsa-logo.jpg`);
-    logoCache = res.ok ? Buffer.from(await res.arrayBuffer()) : null;
+    // 1) Arquivo EMPACOTADO no worker — robusto, sem depender do web/APP_BASE_URL.
+    const localPath = join(import.meta.dirname, '../../assets/naabsa-logo.jpg');
+    if (existsSync(localPath)) {
+      logoCache = await readFile(localPath);
+      return logoCache;
+    }
+    // 2) Fallback: busca no web via APP_BASE_URL, se configurado.
+    const base = process.env['APP_BASE_URL'];
+    const res = base ? await fetch(`${base}/naabsa-logo.jpg`) : null;
+    logoCache = res?.ok ? Buffer.from(await res.arrayBuffer()) : null;
   } catch {
     logoCache = null;
   }
