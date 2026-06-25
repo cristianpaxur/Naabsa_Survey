@@ -38,6 +38,11 @@ Copie `.env.example` → `.env` e preencha. Nunca commitar o `.env`.
 
 ## 3. Deploy
 
+> **EasyPanel (GitHub + Dockerfile):** caminho recomendado — ver
+> [DEPLOY_EASYPANEL.md](./DEPLOY_EASYPANEL.md) (2 serviços App, sem Caddy; o EasyPanel
+> cuida do proxy/TLS). O passo a passo abaixo é o deploy **manual** via `docker compose`
+> (com Caddy) num VPS.
+
 ```bash
 # no VPS, na raiz do projeto, com .env preenchido:
 docker compose build

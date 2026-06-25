@@ -18,7 +18,14 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 # --- builder: copia o fonte e gera o build standalone do Next ---
+# As NEXT_PUBLIC_* são inlinadas no bundle do browser EM BUILD-TIME — precisam
+# existir AQUI (o EasyPanel passa as env do serviço como --build-arg). Sem isto, o
+# cliente Supabase do navegador fica com URL/chave vazias e o login não funciona.
 FROM deps AS builder
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 COPY . .
 RUN pnpm --filter @naabsa/web build
 

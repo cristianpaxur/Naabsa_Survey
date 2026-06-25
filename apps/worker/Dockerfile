@@ -50,4 +50,6 @@ COPY apps/worker ./apps/worker
 ENV NODE_ENV=production
 # node:22-slim já inclui o usuário não-root `node`.
 USER node
-CMD ["pnpm", "--filter", "@naabsa/worker", "start"]
+# start:container = tsx direto (sem dotenv). As envs vêm da plataforma (EasyPanel)
+# ou do docker-compose (env_file), não de um .env dentro da imagem.
+CMD ["pnpm", "--filter", "@naabsa/worker", "start:container"]
