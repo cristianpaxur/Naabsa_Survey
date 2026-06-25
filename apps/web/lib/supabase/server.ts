@@ -1,11 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@naabsa/db';
+import { serverSupabaseConfig } from './config';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 /**
  * Cliente Supabase para Server Components / Server Actions / Route Handlers,
@@ -16,7 +14,8 @@ export type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export async function createClient() {
   const cookieStore = await cookies();
-  return createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const { url, anonKey } = serverSupabaseConfig();
+  return createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

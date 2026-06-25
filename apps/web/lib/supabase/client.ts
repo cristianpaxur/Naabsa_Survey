@@ -1,12 +1,12 @@
 'use client';
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@naabsa/db';
+import { browserSupabaseConfig } from './config';
 
-// Cliente Supabase para Client Components (browser). As variáveis NEXT_PUBLIC_*
-// são embutidas pelo Next no bundle (a anon key é pública por design).
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-
+// Cliente Supabase para Client Components (browser). A config (URL + anon key,
+// públicas por design) é lida em RUNTIME — injetada pelo RootLayout no window —
+// para não depender das NEXT_PUBLIC_* serem inlinadas no build (ver config.ts).
 export function createClient() {
-  return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { url, anonKey } = browserSupabaseConfig();
+  return createBrowserClient<Database>(url, anonKey);
 }

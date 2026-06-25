@@ -38,19 +38,19 @@ repositório (monorepo), cada um com seu Dockerfile:
 
 - **Source**: GitHub → seu repo → branch `main`. **Path/subpasta = VAZIO** (raiz — não `apps/web`!).
 - **Build**: Method = **Dockerfile**. *Dockerfile Path* = `Dockerfile.web`.
-- **Environment** (aba Environment):
+- **Environment** (aba Environment) — variáveis de **runtime**:
   ```
-  NEXT_PUBLIC_SUPABASE_URL=https://<projeto>.supabase.co
-  NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
   SUPABASE_URL=https://<projeto>.supabase.co
   SUPABASE_ANON_KEY=<anon key>
   SUPABASE_SERVICE_ROLE_KEY=<service role key>
   DATABASE_URL=postgresql://postgres.<ref>:<senha-URL-encodada>@<host>:5432/postgres
   ```
-  > ⚠️ **`NEXT_PUBLIC_*` são build-time.** O Next inlina essas variáveis no bundle do
-  > browser **durante o build**. O `Dockerfile.web` as declara como `ARG` e o
-  > EasyPanel passa as env do serviço como `--build-arg`. Se o login falhar com
-  > "URL/key vazias", confirme que elas estão setadas **antes do build** (e refaça o deploy).
+  > ⚠️ Devem chegar ao **`process.env`** do container. No EasyPanel, **NÃO** use o modo
+  > "Create env file" (isso só grava um arquivo `.env`, que o app não lê) — deixe como
+  > variáveis de ambiente normais. Cole **só pares `CHAVE=valor`** (sem comentários).
+  >
+  > A config pública (URL + anon key) é lida em **runtime** e injetada no browser pelo
+  > próprio app (`lib/supabase/config.ts`) — **não** precisa de `NEXT_PUBLIC_*` nem de build-arg.
 - **Domains**: adicione o domínio → **Port `3000`**. TLS é automático.
 - **Health check** (se disponível): `GET /api/health` na porta `3000`.
 
@@ -92,10 +92,9 @@ repositório (monorepo), cada um com seu Dockerfile:
 
 | Variável | web | worker | Quando | Observação |
 |---|:---:|:---:|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | — | **build** + runtime | inlinada no bundle do browser |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | — | **build** + runtime | idem |
-| `SUPABASE_URL` | ✅ | ✅ | runtime | |
-| `SUPABASE_ANON_KEY` | ✅ | — | runtime | supabase server-side |
+| `SUPABASE_URL` | ✅ | ✅ | runtime | server-side + injetado no browser |
+| `SUPABASE_ANON_KEY` | ✅ | — | runtime | público; injetado no browser em runtime |
+| `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` | (opc) | — | dev | só conveniência no dev local; produção usa os de cima |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ✅ | runtime | admin; nunca no browser |
 | `DATABASE_URL` | ✅ | ✅ | runtime | pg-boss; ver **pooler/senha** abaixo |
 | `APP_BASE_URL` | — | ✅ | runtime | URL interna do `web` (logo) |
@@ -171,13 +170,16 @@ Path = `Dockerfile.web`** (o Dockerfile fica na raiz justamente por isso). Idem 
 `Dockerfile.worker`. Salve e **rebuild**. Confirme no log que o contexto (último argumento
 do `docker buildx build`) termina em `.../code`, não em `.../code/apps/web`.
 
-### Login falha / Supabase "vazio" no browser depois do build
+### `Your project's URL and Key are required` / `[env] variáveis ausentes` / login não abre
 
-As `NEXT_PUBLIC_*` não chegaram ao **build**. Garanta que estejam definidas **antes** do
-build. No log do build, confira se aparece `--build-arg NEXT_PUBLIC_SUPABASE_URL=...` (além
-do `GIT_SHA`). Se o EasyPanel não estiver repassando as env do serviço como build-arg, use o
-campo de **Build Args / variáveis de build** do serviço para informá-las explicitamente.
-Refaça o deploy (rebuild) após ajustar — não basta reiniciar.
+As envs **não chegaram ao `process.env`** do container (o app lê de lá em runtime). Causas:
+- **"Create env file" ligado** → só grava um arquivo `.env`, que o app **não** lê. Use
+  variáveis de ambiente normais (process.env), sem esse modo.
+- **Comentários/linhas inválidas** coladas junto → deixe só pares `CHAVE=valor`.
+- **Não redeployou** após salvar as envs → mudança de env exige **rebuild/restart**.
+
+Confirme `SUPABASE_URL` e `SUPABASE_ANON_KEY` setadas — o app injeta a config pública no
+browser sozinho (não precisa de `NEXT_PUBLIC_*` nem de build-arg).
 
 ## Por que **não** usar o Caddy aqui
 

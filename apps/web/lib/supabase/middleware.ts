@@ -1,11 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@naabsa/db';
+import { serverSupabaseConfig } from './config';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 /**
  * Cliente Supabase ligado ao request/response do middleware. Mantém a sessão
@@ -14,10 +12,11 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
  */
 export function createMiddlewareClient(request: NextRequest) {
   const response = NextResponse.next({ request });
+  const { url, anonKey } = serverSupabaseConfig();
 
   const supabase = createServerClient<Database>(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {
