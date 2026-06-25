@@ -151,6 +151,28 @@ blocos), reenvie a planilha no relatório — o job `render_sheets` regrava os P
 
 ---
 
+## Troubleshooting
+
+### `COPY ... "/pnpm-lock.yaml": not found` (ou `packages/...`, `apps/...`) no build
+
+O **contexto de build está errado** — apontando para `apps/web` em vez da raiz. Confirme
+na última linha do log: o argumento final do `docker buildx build` (o contexto) deve
+terminar em `.../code` (raiz), **não** em `.../code/apps/web`.
+
+**Causa:** o **Path** (subpasta do app) do serviço foi setado como `apps/web` — isso vira
+o contexto. Os Dockerfiles são de **monorepo** e copiam `pnpm-lock.yaml`/`packages/` da raiz.
+
+**Correção:** no serviço → **Source → Path = vazio/`/`** (raiz) e **Build → Dockerfile Path =
+`apps/web/Dockerfile`** (caminho completo a partir da raiz). Idem worker: `apps/worker/Dockerfile`.
+
+### Login falha / Supabase "vazio" no browser depois do build
+
+As `NEXT_PUBLIC_*` não chegaram ao **build**. Garanta que estejam definidas **antes** do
+build. No log do build, confira se aparece `--build-arg NEXT_PUBLIC_SUPABASE_URL=...` (além
+do `GIT_SHA`). Se o EasyPanel não estiver repassando as env do serviço como build-arg, use o
+campo de **Build Args / variáveis de build** do serviço para informá-las explicitamente.
+Refaça o deploy (rebuild) após ajustar — não basta reiniciar.
+
 ## Por que **não** usar o Caddy aqui
 
 O `Caddyfile` e o serviço `caddy` do `docker-compose.yml` existem para o deploy **manual**
