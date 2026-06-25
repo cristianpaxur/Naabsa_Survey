@@ -337,7 +337,7 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
 
   out.push(sectionTitle(`s${num}`, `${num}. ${title}`));
   if (x === 'init') {
-    out.push(para([run(`The initial Draft Survey was carried out on ${fmtDate(data[dateField])}, upon berthing at ${v(data['terminal'])} Terminal, shed ${v(data['shed'])} from ${v(data[startF])}h up to ${v(data[endF])}h local time jointly with ship's command${parties} and the undersigned surveyor.`)]));
+    out.push(para([run(`The initial Draft Survey was carried out on ${fmtDate(data[dateField])}, upon berthing at ${v(data['terminal'])} Terminal, shed ${v(data['shed'])} from ${v(data[startF])}h up to ${v(data[endF])}h local time jointly with ship's command${parties} and the undersigned surveyor.`)], { spacing: 40 }));
   } else {
     out.push(para([run(`The ${title.toLowerCase()} Draft Survey was carried out on ${fmtDate(data[dateField])}, from ${v(data[startF])} up to ${v(data[endF])} h local time jointly with ship's command${parties} and the undersigned surveyor to ascertain the total quantity of the cargo ${V.done} being the following figures disclosed:`)]));
     // figures
@@ -359,9 +359,8 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   }
   // 4.1 Draft readings (bold lead-in numerado, com bookmark) + tabela
   const sides = sideLabel(data['berthing_side']);
-  out.push(new Paragraph({ spacing: { after: 100, ...BODY_LINE }, children: [new Bookmark({ id: `s${num}_1`, children: [run(`${num}.1 Draft readings: `, { bold: true })] }), run(`${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`)] }));
+  out.push(new Paragraph({ spacing: { before: 180, after: 100, ...BODY_LINE }, children: [new Bookmark({ id: `s${num}_1`, children: [run(`${num}.1 Draft readings: `, { bold: true })] }), run(`${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`)] }));
   out.push(draftReadingsTable(x, data));
-  out.push(new Paragraph({ spacing: { after: 60 }, children: [] })); // respiro após a tabela
   // 6.2/6.3 (Final) usam o MESMO texto de 4.2/4.3 e 5.2/5.3 (pedido do cliente).
   out.push(subLead(`s${num}_2`, `${num}.2 Sea water density: `, "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings."));
   out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
@@ -372,7 +371,8 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
 }
 
 function subLead(id: string, label: string, txt: string): Paragraph {
-  return new Paragraph({ spacing: { after: 120, ...BODY_LINE }, children: [new Bookmark({ id, children: [run(label, { bold: true })] }), run(txt)] });
+  // before dá o respiro ACIMA do subtítulo; after 0 evita somar com o before do próximo.
+  return new Paragraph({ spacing: { before: 180, after: 0, ...BODY_LINE }, children: [new Bookmark({ id, children: [run(label, { bold: true })] }), run(txt)] });
 }
 function leader(label: string, value: string): Paragraph {
   return new Paragraph({ spacing: { after: 40 }, tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX, leader: LeaderType.DOT }], children: [run(label, { size: 21 }), new TextRun({ text: '\t', size: 21 }), run(value, { size: 21 })] });
@@ -392,10 +392,11 @@ function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data): Table {
   // Células vazias (espaçador entre os 2 blocos + 4ª linha) ficam SEM borda — só os
   // dados formam grade. Padding generoso (era 0,5pt) e alinhamento vertical central.
   const c = (t: string, bold = false) => new TableCell({ borders: t === '' ? tableNoBorders : tableBorders, margins: { top: 50, bottom: 50, left: 90, right: 90 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
-  const head = new TableRow({ children: [c('Draft Mark', true), c('Means', true), c('Mean corrected', true), c('', false), c('', false), c('', false)] });
-  const r1 = new TableRow({ children: [c('Fwd'), c(num(data[`${x}_fwd_mean`], 3)), c(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
-  const r2 = new TableRow({ children: [c('Ms'), c(num(data[`${x}_mid_mean`], 3)), c(num(data[`${x}_mid_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
-  const r3 = new TableRow({ children: [c('Aft'), c(num(data[`${x}_aft_mean`], 3)), c(num(data[`${x}_aft_corr`], 4)), c(''), c(heelLabel, true), c(heelVal)] });
-  const r4 = new TableRow({ children: [c(''), c(''), c(''), c(''), c('Deflection', true), c(deflVal)] });
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [head, r1, r2, r3, r4] });
+  // 4 linhas alinhadas (como o modelo): o bloco da direita começa na MESMA linha do
+  // cabeçalho — "Trim obs" alinha com "Draft Mark", "Deflection" com "Aft".
+  const head = new TableRow({ children: [c('Draft Mark', true), c('Means', true), c('Mean corrected', true), c('', false), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
+  const r1 = new TableRow({ children: [c('Fwd'), c(num(data[`${x}_fwd_mean`], 3)), c(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
+  const r2 = new TableRow({ children: [c('Ms'), c(num(data[`${x}_mid_mean`], 3)), c(num(data[`${x}_mid_corr`], 4)), c(''), c(heelLabel, true), c(heelVal)] });
+  const r3 = new TableRow({ children: [c('Aft'), c(num(data[`${x}_aft_mean`], 3)), c(num(data[`${x}_aft_corr`], 4)), c(''), c('Deflection', true), c(deflVal)] });
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: tableNoBorders, rows: [head, r1, r2, r3] });
 }
