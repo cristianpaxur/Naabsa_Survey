@@ -2,7 +2,7 @@
 
 > **Implementação:** 012 - Editor Nativo Collabora e Fluxo de Aprovação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 0/10 tarefas concluídas (0%)
+> **Progresso:** 4/10 tarefas concluídas (40%)
 > **Última atualização:** 2026-06-26
 
 ---
@@ -20,14 +20,14 @@
 
 ### Fase 1: Montagem do working.docx
 
-- [ ] **T-001:** Extrair `buildWorkingDocx` do `renderReportPdf`
+- [x] **T-001:** Extrair `buildWorkingDocx` do `renderReportPdf`
   - **Descrição:** Refatorar `generatePdf.ts` separando a parte que **monta o `.docx`** (dados+fotos+sheets+buildDocx, 1º/2º passe) da parte que **converte para PDF**. Expor `buildWorkingDocx(svc, reportId, row): Promise<Buffer>`.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/generatePdf.ts`
   - **Critério de conclusão:** Função reutilizável; testes existentes da 004 seguem verdes.
   - **Dependências:** Nenhuma (011 em paralelo)
   - **Estimativa:** Média
 
-- [ ] **T-002:** Job `build_working_docx`
+- [x] **T-002:** Job `build_working_docx`
   - **Descrição:** `jobs/buildWorkingDocx.ts` que chama `buildWorkingDocx`, sobe `working.docx` ao Storage e grava `reports.working_docx_path`. Registrar a fila no `index.ts` (concorrência 1) e `enqueueBuildWorkingDocx` no `web/lib/queue.ts`.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/buildWorkingDocx.ts`, `apps/worker/src/index.ts`, `apps/web/lib/queue.ts`
   - **Critério de conclusão:** Enfileirar gera o `working.docx` no Storage e popula a coluna.
@@ -52,14 +52,14 @@
 
 ### Fase 3: Preview e Aprovação a partir do working.docx
 
-- [ ] **T-005:** `preview_pdf` converte o `working.docx`
+- [x] **T-005:** `preview_pdf` converte o `working.docx`
   - **Descrição:** Ajustar `previewPdf.ts` para baixar o `working.docx` e `convertDocxToPdf` (sem reconstruir dos dados). Atualizar índices/TOC na conversão.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/previewPdf.ts`
   - **Critério de conclusão:** Preview reflete a edição do operador (CA-003).
   - **Dependências:** T-001
   - **Estimativa:** Média
 
-- [ ] **T-006:** `generate_pdf` converte o `working.docx`
+- [x] **T-006:** `generate_pdf` converte o `working.docx`
   - **Descrição:** Ajustar `generatePdf.ts` (caminho de aprovação): converter o `working.docx` editado → `final-v{n}.pdf` + `final.docx`; manter versionamento, `document_hash` (agora sobre o docx) e auditoria.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/generatePdf.ts`
   - **Critério de conclusão:** Uma edição manual aparece no PDF final (CA-004); versionamento ok (CA-005).
@@ -102,12 +102,12 @@
 
 | Tarefa | Status | Data de Conclusão | Observações |
 |--------|--------|-------------------|-------------|
-| T-001  | ⬜ Pendente | — | — |
-| T-002  | ⬜ Pendente | — | — |
+| T-001  | ✅ Concluída | 2026-06-26 | `buildWorkingDocx` extraído; `renderReportPdf` reusa; worker typecheck + 3 testes verdes (comportamento preservado) |
+| T-002  | ✅ Concluída | 2026-06-26 | job `build_working_docx` + fila registrada (conc. 1) + `enqueueBuildWorkingDocx` |
 | T-003  | ⬜ Pendente | — | — |
 | T-004  | ⬜ Pendente | — | — |
-| T-005  | ⬜ Pendente | — | — |
-| T-006  | ⬜ Pendente | — | — |
+| T-005  | ✅ Concluída | 2026-06-26 | `convertWorkingDocxToPdf` (download+convert, fallback build); `preview_pdf` usa |
+| T-006  | ✅ Concluída | 2026-06-26 | `generate_pdf` converte o `working.docx` editado; docHash = sha256 do .docx; worker typecheck+36 testes verdes |
 | T-007  | ⬜ Pendente | — | — |
 | T-008  | ⬜ Pendente | — | — |
 | T-009  | ⬜ Pendente | — | — |
