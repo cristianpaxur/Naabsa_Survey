@@ -7,9 +7,11 @@ import type { ReportStatus } from '@/lib/state-machine';
 import { PreviewPanel } from './PreviewPanel';
 
 /**
- * Tela 06 — Editor nativo Collabora (012/T-003). Substitui o TipTap: o canvas é o
- * LibreOffice no browser (iframe WOPI) editando o `working.docx` real. O Collabora
- * autossalva via WOPI; Preview/Aprovar reusam o PreviewPanel (PDF do .docx editado).
+ * Tela 06 — Editor nativo Collabora (012/T-003). O canvas é o LibreOffice no
+ * browser (iframe WOPI) editando o `working.docx` real.
+ *
+ * Antes de Preview/Aprovar, manda o Collabora SALVAR (Action_Save via postMessage)
+ * e só então converte — senão o PDF sairia do .docx ANTES da edição ser persistida.
  */
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -31,7 +33,9 @@ export function CollaboraEditor({
   const [url, setUrl] = useState<string | null>(null);
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const load = useCallback(() => {
     if (pollRef.current) clearTimeout(pollRef.current);
@@ -69,6 +73,50 @@ export function CollaboraEditor({
     };
   }, [view, load]);
 
+  // Habilita a comunicação postMessage com o Collabora (necessário p/ confirmar o save).
+  const onIframeLoad = useCallback(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (url && win) win.postMessage(JSON.stringify({ MessageId: 'Host_PostmessageReady' }), new URL(url).origin);
+  }, [url]);
+
+  // Manda o Collabora SALVAR (Action_Save → WOPI PutFile) e só então segue.
+  const saveAndThen = useCallback(
+    (next: () => void) => {
+      const win = iframeRef.current?.contentWindow;
+      if (!url || !win) {
+        next();
+        return;
+      }
+      const origin = new URL(url).origin;
+      let done = false;
+      const finish = (): void => {
+        if (done) return;
+        done = true;
+        window.removeEventListener('message', onResp);
+        setSaving(false);
+        next();
+      };
+      const onResp = (e: MessageEvent): void => {
+        if (e.origin !== origin) return;
+        try {
+          const m = JSON.parse(e.data as string) as { MessageId?: string };
+          if (m?.MessageId === 'Action_Save_Resp') finish();
+        } catch {
+          /* ignora mensagens não-JSON */
+        }
+      };
+      setSaving(true);
+      window.addEventListener('message', onResp);
+      win.postMessage(
+        JSON.stringify({ MessageId: 'Action_Save', Values: { Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: false } }),
+        origin,
+      );
+      // Fallback: segue mesmo sem a confirmação (o save já foi disparado).
+      setTimeout(finish, 4000);
+    },
+    [url],
+  );
+
   if (view === 'preview') {
     return (
       <PreviewPanel
@@ -84,6 +132,7 @@ export function CollaboraEditor({
   }
 
   const readOnly = initialStatus !== 'editing';
+  const busy = saving || state !== 'ready';
 
   return (
     <div className="ed-shell">
@@ -93,16 +142,25 @@ export function CollaboraEditor({
           <span className="ed-header__spec">{specLabel}</span>
         </div>
         <div className="ed-header__actions">
-          {state === 'ready' && (
+          {saving ? (
+            <span className="ed-savechip ed-savechip--saving">
+              <span className="ed-spinner" /> Salvando…
+            </span>
+          ) : state === 'ready' ? (
             <span className="ed-savechip ed-savechip--saved">✓ Edição nativa · salva automaticamente</span>
-          )}
-          <button className="ed-btn" onClick={() => { setAutoApprove(false); setView('preview'); }}>
+          ) : null}
+          <button
+            className="ed-btn"
+            disabled={busy}
+            onClick={() => saveAndThen(() => { setAutoApprove(false); setView('preview'); })}
+          >
             Preview
           </button>
           {!readOnly && (
             <button
               className="ed-btn ed-btn--primary"
-              onClick={() => { setAutoApprove(true); setView('preview'); }}
+              disabled={busy}
+              onClick={() => saveAndThen(() => { setAutoApprove(true); setView('preview'); })}
             >
               Aprovar e gerar PDF
             </button>
@@ -110,30 +168,36 @@ export function CollaboraEditor({
         </div>
       </header>
 
-      <div className="ed-canvas-scroll">
-        {state === 'ready' && url ? (
+      {state === 'ready' && url ? (
+        <div className="ed-collabora-area">
           <iframe
+            ref={iframeRef}
             className="ed-collabora"
             title="Editor do relatório (Collabora)"
             src={url}
+            onLoad={onIframeLoad}
             allow="clipboard-read; clipboard-write"
           />
-        ) : state === 'error' ? (
-          <div className="ed-preview__placeholder">
-            {error ?? 'Não foi possível abrir o editor.'}{' '}
-            <button
-              onClick={() => load()}
-              style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-            >
-              Tentar de novo
-            </button>
-          </div>
-        ) : (
-          <div className="ed-preview__placeholder">
-            <span className="ed-spinner" /> Preparando o documento… (montando o .docx do relatório)
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="ed-canvas-scroll">
+          {state === 'error' ? (
+            <div className="ed-preview__placeholder">
+              {error ?? 'Não foi possível abrir o editor.'}{' '}
+              <button
+                onClick={() => load()}
+                style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+              >
+                Tentar de novo
+              </button>
+            </div>
+          ) : (
+            <div className="ed-preview__placeholder">
+              <span className="ed-spinner" /> Preparando o documento… (montando o .docx do relatório)
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
