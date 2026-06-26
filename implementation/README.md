@@ -20,6 +20,8 @@
 | [008](./008%20-%20Editor%20TipTap%20e%20Aprovação/spec.md) | Editor TipTap e Aprovação | T-17, T-18 | 🟢 Concluída | 12/12 |
 | [009](./009%20-%20Demais%20Relatórios%20e%20Admin%20de%20Specs/spec.md) | Demais Relatórios e Admin de Specs | T-19..T-23 | 🟡 Planejada | 0/12 |
 | [010](./010%20-%20Retençã o,%20IA%20e%20Hardening/spec.md) | Retenção, IA e Hardening | T-24..T-28 | 🟢 Concluída (exceto deploy) | 12/13 |
+| [011](./011%20-%20Infraestrutura%20Collabora%20Online%20e%20WOPI%20Host/spec.md) | Infraestrutura Collabora Online e WOPI Host | pós-PRD | 🟢 Concluída | 9/9 |
+| [012](./012%20-%20Editor%20Nativo%20Collabora%20e%20Fluxo%20de%20Aprovação/spec.md) | Editor Nativo Collabora e Fluxo de Aprovação | subst. T-17/T-18 | 🟡 Planejada | 0/10 |
 
 ---
 
@@ -49,6 +51,8 @@ pendentes no atual).
 | 008 | 004, 006, 007 |
 | 009 | 004, 008 |
 | 010 | 008 |
+| 011 | 002, 004 |
+| 012 | 011, 004, 008 |
 
 Paralelização possível: após 001, **002 e 003** podem andar em paralelo; após 005,
 **006 e 007** podem andar em paralelo.
@@ -75,6 +79,15 @@ Paralelização possível: após 001, **002 e 003** podem andar em paralelo; ap�
 > com sumário clicável e variantes. Preview e abertura de `approved`/`generated` mostram o PDF
 > real (novo job `preview_pdf`); o caminho HTML (`/print`, `PrintDocument`) foi removido. O
 > TipTap segue como editor (não é mais a fonte do PDF). Ver o callout no [spec 004](./004%20-%20Document-Builder%20e%20Geração%20de%20PDF/spec.md).
+>
+> **Pivot 2026-06-26 — editor nativo via Collabora Online (011 + 012).** O TipTap diverge
+> visualmente do PDF (dois renderizadores) e o `document_json` nem alimenta a geração. Para
+> **fidelidade exata**, o editor passa a ser o **Collabora Online (CODE)** — LibreOffice no browser,
+> o **mesmo motor** do PDF — editando um `working.docx` por relatório (via WOPI). Modelo **híbrido**:
+> o pipeline gera o rascunho `.docx` (buildDocx), o operador edita nativamente, e na aprovação o
+> `working.docx` **editado** é convertido em PDF (LibreOffice) — sem reconstruir dos dados.
+> **011** entrega a infra (container + WOPI host); **012** substitui o editor e religa o fluxo.
+> Trade-off aceito: perde a trava de layout do TipTap; o `.docx` vira a fonte da verdade após a montagem.
 
 ---
 
