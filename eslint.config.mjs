@@ -73,6 +73,22 @@ export default tseslint.config(
     },
   },
 
+  // Scripts utilitários rodam no Node — expõe os globais do runtime.
+  {
+    files: ['scripts/**/*.{mjs,js,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        __dirname: 'readonly',
+      },
+    },
+  },
+
   // Desliga regras que conflitam com o Prettier (sempre por último).
   eslintConfigPrettier,
 );

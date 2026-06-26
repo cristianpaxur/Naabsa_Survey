@@ -2,7 +2,7 @@
 
 > **Implementação:** 012 - Editor Nativo Collabora e Fluxo de Aprovação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 4/10 tarefas concluídas (40%)
+> **Progresso:** 6/10 tarefas concluídas (60%)
 > **Última atualização:** 2026-06-26
 
 ---
@@ -36,14 +36,14 @@
 
 ### Fase 2: Editor embutido
 
-- [ ] **T-003:** Componente `<CollaboraEditor>`
+- [x] **T-003:** Componente `<CollaboraEditor>`
   - **Descrição:** Monta o iframe via discovery+WOPISrc+token (011), em `editing` com `canWrite=true`; `approved`/`generated` em leitura. Mantém a chrome (header, badge de status, botões Preview/Aprovar).
   - **Arquivos envolvidos:** `apps/web/components/editor/CollaboraEditor.tsx`
   - **Critério de conclusão:** O documento abre e edita dentro do app (CA-001/002).
   - **Dependências:** 011/T-006, 011/T-007
   - **Estimativa:** Média
 
-- [ ] **T-004:** Reescrever a entrada `/reports/[id]/edit`
+- [x] **T-004:** Reescrever a entrada `/reports/[id]/edit`
   - **Descrição:** Substituir a montagem do `document_json`/`EditorClient` por: se `working_docx_path` nulo → `enqueueBuildWorkingDocx` + aguardar (polling); renderizar `<CollaboraEditor>`. Manter o roteamento por status.
   - **Arquivos envolvidos:** `apps/web/app/(app)/reports/[id]/edit/page.tsx`
   - **Critério de conclusão:** Entrada em `editing` monta e abre o editor; entradas seguintes não remontam.
@@ -104,8 +104,8 @@
 |--------|--------|-------------------|-------------|
 | T-001  | ✅ Concluída | 2026-06-26 | `buildWorkingDocx` extraído; `renderReportPdf` reusa; worker typecheck + 3 testes verdes (comportamento preservado) |
 | T-002  | ✅ Concluída | 2026-06-26 | job `build_working_docx` + fila registrada (conc. 1) + `enqueueBuildWorkingDocx` |
-| T-003  | ⬜ Pendente | — | — |
-| T-004  | ⬜ Pendente | — | — |
+| T-003  | ✅ Concluída | 2026-06-26 | `CollaboraEditor` (iframe via `getEditorUrl`, polling do build) + action `getEditorUrl` |
+| T-004  | ✅ Concluída | 2026-06-26 | `/edit` enfileira `build_working_docx` na entrada e renderiza o `CollaboraEditor`; aprovação sem `document_json`; `EditorClient` removido |
 | T-005  | ✅ Concluída | 2026-06-26 | `convertWorkingDocxToPdf` (download+convert, fallback build); `preview_pdf` usa |
 | T-006  | ✅ Concluída | 2026-06-26 | `generate_pdf` converte o `working.docx` editado; docHash = sha256 do .docx; worker typecheck+36 testes verdes |
 | T-007  | ⬜ Pendente | — | — |

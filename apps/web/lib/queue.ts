@@ -89,12 +89,16 @@ export async function enqueuePreviewPdf(
   return boss.send(PREVIEW_PDF_QUEUE, payload);
 }
 
-/** Enfileira a montagem do `working.docx` editável (012/T-002) — entrada em `editing`. */
+/** Enfileira a montagem do `working.docx` editável (012/T-002) — entrada em `editing`.
+ * `singletonKey` por relatório dedupe builds em recarregamentos rápidos da página. */
 export async function enqueueBuildWorkingDocx(
   payload: GeneratePdfPayload,
 ): Promise<string | null> {
   const boss = await getBoss();
-  return boss.send(BUILD_WORKING_DOCX_QUEUE, payload);
+  return boss.send(BUILD_WORKING_DOCX_QUEUE, payload, {
+    singletonKey: payload.reportId,
+    singletonSeconds: 120,
+  });
 }
 
 export interface RenderSheetsPayload {
