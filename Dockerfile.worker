@@ -36,13 +36,16 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 FROM deps AS runner
 
 # ┌─ LibreOffice headless (render_sheets + generate_pdf) ──────────────────────┐
-# │ render_sheets exporta abas do Excel como PNG (`libreoffice-calc`).          │
+# │ render_sheets exporta abas do Excel como PNG: precisa de `libreoffice-calc` │
+# │ (abrir o .xlsx) E `libreoffice-draw` — o filtro de export gráfico PNG mora  │
+# │ no módulo Draw. SEM ele, o soffice sai 0 com "no export filter for .png     │
+# │ found" e nenhum print de aba é gerado (testado em node:22-slim).            │
 # │ generate_pdf monta o .docx nativo e converte para PDF via macro UNO         │
 # │ (`libreoffice-writer`). Fontes Carlito/Caladea = clones métricos de         │
 # │ Calibri/Cambria para fidelidade tipográfica.                                │
 # └────────────────────────────────────────────────────────────────────────────┘
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libreoffice-calc libreoffice-writer fonts-crosextra-carlito fonts-crosextra-caladea \
+      libreoffice-calc libreoffice-writer libreoffice-draw fonts-crosextra-carlito fonts-crosextra-caladea \
     && rm -rf /var/lib/apt/lists/*
 # Perfil do LibreOffice (macro de conversão) num caminho gravável pelo usuário node.
 ENV LO_PROFILE_DIR=/tmp/naabsa-lo
