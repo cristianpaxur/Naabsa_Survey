@@ -11,6 +11,7 @@ import { PgBoss } from 'pg-boss';
 export const PROCESS_PHOTO_QUEUE = 'process_photo';
 export const GENERATE_PDF_QUEUE = 'generate_pdf';
 export const PREVIEW_PDF_QUEUE = 'preview_pdf';
+export const BUILD_WORKING_DOCX_QUEUE = 'build_working_docx';
 export const RENDER_SHEETS_QUEUE = 'render_sheets';
 export const AI_REVIEW_QUEUE = 'ai_review';
 
@@ -34,7 +35,7 @@ async function getBoss(): Promise<PgBoss> {
     try {
       await boss.start();
       // Idempotente: garante as filas caso o worker ainda não as tenha criado.
-      for (const q of [PROCESS_PHOTO_QUEUE, GENERATE_PDF_QUEUE, PREVIEW_PDF_QUEUE, RENDER_SHEETS_QUEUE, AI_REVIEW_QUEUE]) {
+      for (const q of [PROCESS_PHOTO_QUEUE, GENERATE_PDF_QUEUE, PREVIEW_PDF_QUEUE, BUILD_WORKING_DOCX_QUEUE, RENDER_SHEETS_QUEUE, AI_REVIEW_QUEUE]) {
         await boss.createQueue(q).catch(() => {
           /* já existe */
         });
@@ -86,6 +87,18 @@ export async function enqueuePreviewPdf(
 ): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(PREVIEW_PDF_QUEUE, payload);
+}
+
+/** Enfileira a montagem do `working.docx` editável (012/T-002) — entrada em `editing`.
+ * `singletonKey` por relatório dedupe builds em recarregamentos rápidos da página. */
+export async function enqueueBuildWorkingDocx(
+  payload: GeneratePdfPayload,
+): Promise<string | null> {
+  const boss = await getBoss();
+  return boss.send(BUILD_WORKING_DOCX_QUEUE, payload, {
+    singletonKey: payload.reportId,
+    singletonSeconds: 120,
+  });
 }
 
 export interface RenderSheetsPayload {

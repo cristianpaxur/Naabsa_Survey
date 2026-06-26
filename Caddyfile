@@ -17,5 +17,9 @@
 		-Server
 	}
 
+	# Collabora Online (LibreOffice no browser) — impl. 011. Caddy faz upgrade de WS automático.
+	@collabora path /browser/* /hosting/* /cool/* /lool/*
+	reverse_proxy @collabora collabora:9980
+
 	reverse_proxy app:3000
 }

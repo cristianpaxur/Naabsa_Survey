@@ -7,7 +7,7 @@
  * generate_pdf (perfil de macro compartilhado).
  */
 import { getServiceClient } from '../lib/supabase';
-import { loadReport, renderReportPdf } from './generatePdf';
+import { loadReport, convertWorkingDocxToPdf } from './generatePdf';
 
 export interface PreviewPdfPayload {
   reportId: string;
@@ -26,7 +26,7 @@ export async function previewPdf(payload: PreviewPdfPayload): Promise<void> {
   const row = await loadReport(svc, reportId);
   if (!row) throw new Error(`[preview_pdf] relatório ${reportId} não encontrado.`);
 
-  const { pdf } = await renderReportPdf(svc, reportId, row);
+  const { pdf } = await convertWorkingDocxToPdf(svc, reportId, row);
   const { error } = await svc.storage
     .from(BUCKET)
     .upload(`${reportId}/preview.pdf`, pdf, { contentType: 'application/pdf', upsert: true });

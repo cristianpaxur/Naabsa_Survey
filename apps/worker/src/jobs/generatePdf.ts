@@ -132,15 +132,15 @@ export function nextPdfVersion(paths: string[]): number {
 }
 
 /**
- * Núcleo de geração (compartilhado por generate_pdf e preview_pdf): carrega
- * dados/planilha/imagens/fotos, monta o .docx (2 passes) e converte → PDF.
- * NÃO checa status nem transiciona — quem chama decide o que fazer com o PDF.
+ * Monta o `working.docx` a partir dos dados efetivos + planilha + fotos (2 passes:
+ * mede páginas dos bookmarks → sumário com nº reais). É o documento editável aberto
+ * no Collabora (012) e a base do PDF. NÃO converte nem persiste — quem chama decide.
  */
-export async function renderReportPdf(
+export async function buildWorkingDocx(
   svc: ReturnType<typeof getServiceClient>,
   reportId: string,
   row: ReportRow,
-): Promise<{ pdf: Buffer; docx: Buffer; docHash: string }> {
+): Promise<{ docx: Buffer; data: Record<string, FieldValue>; variant: 'loading' | 'discharge' }> {
   // Spec congelado.
   const { data: specRow } = await svc.from('report_specs').select('spec').eq('id', row.spec_id).single();
   const spec = (specRow as { spec: ReportSpec } | null)?.spec;
@@ -182,7 +182,7 @@ export async function renderReportPdf(
     if (buf) (bySlot[r.slot_id] ??= []).push(await applyCrop(buf, r.crop));
   }
 
-  // Monta o .docx (2 passes: mede páginas dos bookmarks → sumário) e converte → PDF.
+  // Monta o .docx em 2 passes (mede páginas dos bookmarks → sumário com nº reais).
   const base: DocxInput = {
     data,
     variant: variantStr,
@@ -202,8 +202,36 @@ export async function renderReportPdf(
   const pass1 = await buildReportDocx(base);
   const pages = await measureBookmarkPages(pass1);
   const docx = await buildReportDocx({ ...base, tocPages: pages });
+  return { docx, data, variant: variantStr };
+}
+
+/**
+ * Converte o `working.docx` EDITADO (no Collabora, 012) em PDF — é o documento que
+ * o operador finalizou, não um rebuild dos dados. Se ainda não existir (ex.: relatório
+ * antigo, ou 1ª geração sem passar pelo editor), monta-o on-the-fly e persiste.
+ * `docHash` = sha256 dos bytes do .docx (identidade do que virou PDF).
+ * NÃO checa status nem transiciona — quem chama decide o que fazer com o PDF.
+ */
+export async function convertWorkingDocxToPdf(
+  svc: ReturnType<typeof getServiceClient>,
+  reportId: string,
+  row: ReportRow,
+): Promise<{ pdf: Buffer; docx: Buffer; docHash: string }> {
+  const existing = await download(svc, `${reportId}/working.docx`);
+  let docx: Buffer;
+  if (existing) {
+    docx = existing;
+  } else {
+    // Fallback: monta dos dados e persiste, para o editor e as próximas gerações reusarem.
+    const built = await buildWorkingDocx(svc, reportId, row);
+    docx = built.docx;
+    await svc.storage.from(BUCKET).upload(`${reportId}/working.docx`, docx, {
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      upsert: true,
+    });
+  }
   const pdf = await convertDocxToPdf(docx);
-  const docHash = createHash('sha256').update(JSON.stringify({ data, variant: variantStr })).digest('hex');
+  const docHash = createHash('sha256').update(docx).digest('hex');
   return { pdf, docx, docHash };
 }
 
@@ -220,7 +248,7 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
     return;
   }
 
-  const { pdf, docx, docHash } = await renderReportPdf(svc, reportId, row);
+  const { pdf, docx, docHash } = await convertWorkingDocxToPdf(svc, reportId, row);
 
   // Upload: PDF VERSIONADO (final-v{n}.pdf, 010/T-005) + .docx editável (mais recente).
   const version = nextPdfVersion(row.pdf_paths ?? []);

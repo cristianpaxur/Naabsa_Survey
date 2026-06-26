@@ -37,6 +37,13 @@ import {
   type PreviewPdfPayload,
 } from './jobs/previewPdf';
 import {
+  buildWorkingDocx,
+  BUILD_WORKING_DOCX_QUEUE,
+  BUILD_WORKING_DOCX_CONCURRENCY,
+  BUILD_WORKING_DOCX_RETRY_LIMIT,
+  type BuildWorkingDocxPayload,
+} from './jobs/buildWorkingDocx';
+import {
   renderSheets,
   RENDER_SHEETS_QUEUE,
   RENDER_SHEETS_CONCURRENCY,
@@ -62,6 +69,7 @@ const JOBS = {
   process_photo: processPhoto,
   generate_pdf: generatePdf,
   preview_pdf: previewPdf,
+  build_working_docx: buildWorkingDocx,
   render_sheets: renderSheets,
   retention_purge: retentionPurge,
   ai_review: aiReview,
@@ -168,6 +176,30 @@ async function registerJobs(): Promise<void> {
   );
   console.log(
     `[worker] consumindo '${PREVIEW_PDF_QUEUE}' (localConcurrency ${PREVIEW_PDF_CONCURRENCY})`,
+  );
+
+  // build_working_docx — monta o .docx editável ao entrar em editing (012). Conc. 1 (LibreOffice no 2-pass).
+  await boss.createQueue(BUILD_WORKING_DOCX_QUEUE, {
+    retryLimit: BUILD_WORKING_DOCX_RETRY_LIMIT,
+    retryDelay: 5,
+    retryBackoff: true,
+  });
+  await boss.work<BuildWorkingDocxPayload>(
+    BUILD_WORKING_DOCX_QUEUE,
+    { localConcurrency: BUILD_WORKING_DOCX_CONCURRENCY, includeMetadata: true },
+    async (jobs) => {
+      for (const job of jobs) {
+        try {
+          await buildWorkingDocx(job.data);
+        } catch (err) {
+          console.error(`[worker][build_working_docx] erro no job ${job.id}:`, err);
+          throw err; // pg-boss faz retry
+        }
+      }
+    },
+  );
+  console.log(
+    `[worker] consumindo '${BUILD_WORKING_DOCX_QUEUE}' (localConcurrency ${BUILD_WORKING_DOCX_CONCURRENCY})`,
   );
 
   // render_sheets — concorrência 1 (LibreOffice é pesado)

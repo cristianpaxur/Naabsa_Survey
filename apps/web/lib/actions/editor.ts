@@ -7,6 +7,8 @@ import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { transition, type ReportStatus } from '@/lib/state-machine';
 import { enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
+import { signToken } from '@/lib/wopi/token';
+import { getEditorUrlSrc } from '@/lib/wopi/discovery';
 
 export type SaveResult =
   | { ok: true; savedAt: string }
@@ -83,10 +85,7 @@ export async function saveDocument(
  * transiciona `editing → approved`, enfileira `generate_pdf` e audita. Revalida
  * o status contra concorrência (a transição usa guarda otimista).
  */
-export async function approve(
-  reportId: string,
-  json: TipTapDoc,
-): Promise<ApproveResult> {
+export async function approve(reportId: string): Promise<ApproveResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -99,19 +98,13 @@ export async function approve(
     return { error: 'O relatório não está em edição.' };
   }
 
-  // Persiste a versão final + snapshot antes de transicionar.
-  const { error: saveErr } = await supabase
-    .from('reports')
-    .update({ document_json: json } as never)
-    .eq('id', reportId)
-    .eq('status', 'editing');
-  if (saveErr) return { error: 'Falha ao salvar antes de aprovar.' };
-
+  // O working.docx editado já está no Storage (salvo pelo Collabora via WOPI) — ele
+  // É o registro do documento. Audita a transição (snapshot do binário fica no Storage).
   await audit(supabase, {
     reportId,
     actor: user.id,
     action: 'document_snapshot',
-    payload: { document_json: json, reason: 'pré-aprovação' },
+    payload: { reason: 'pré-aprovação', source: 'working.docx' },
   });
 
   try {
@@ -143,6 +136,43 @@ export async function approve(
   }
 
   return { ok: true };
+}
+
+/**
+ * URL do editor Collabora embutido (012/T-003). Verifica o usuário, garante que o
+ * `working.docx` já existe (senão `pending` — o worker ainda está montando) e devolve
+ * a URL do iframe (discovery + WOPISrc + access_token). `canWrite` só em `editing`;
+ * approved/generated abrem em leitura.
+ */
+export async function getEditorUrl(
+  reportId: string,
+): Promise<{ url: string } | { pending: true } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const { data } = await supabase
+    .from('reports')
+    .select('status, working_docx_path')
+    .eq('id', reportId)
+    .maybeSingle();
+  const report = data as { status: string; working_docx_path: string | null } | null;
+  if (!report) return { error: 'Relatório não encontrado.' };
+
+  // O working.docx já foi montado? (o worker pode ainda estar processando o build)
+  const svc = createServiceClient();
+  const { data: files } = await svc.storage.from('reports').list(reportId, { search: 'working.docx' });
+  if (!(files ?? []).some((f) => f.name === 'working.docx')) return { pending: true };
+
+  const canWrite = report.status === 'editing';
+  const token = signToken({ reportId, userId: user.id, canWrite });
+  const urlsrc = await getEditorUrlSrc('docx');
+  const wopiSrc = `${process.env['WOPI_PUBLIC_URL'] ?? ''}/api/wopi/files/${reportId}`;
+  const sep = urlsrc.endsWith('?') || urlsrc.endsWith('&') ? '' : urlsrc.includes('?') ? '&' : '?';
+  const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${encodeURIComponent(token)}&lang=pt-BR`;
+  return { url };
 }
 
 /**

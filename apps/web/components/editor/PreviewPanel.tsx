@@ -9,7 +9,6 @@ import {
   getPreviewUrl,
 } from '@/lib/actions/editor';
 import { regenerate } from '@/lib/actions/regenerate';
-import type { TipTapDoc } from '@naabsa/core';
 import type { ReportStatus } from '@/lib/state-machine';
 
 /**
@@ -24,13 +23,11 @@ export function PreviewPanel({
   reportId,
   initialStatus,
   autoApprove = false,
-  getDoc,
   onBackToEdit,
 }: {
   reportId: string;
   initialStatus: ReportStatus;
   autoApprove?: boolean;
-  getDoc: () => TipTapDoc;
   onBackToEdit: () => void;
 }) {
   const [status, setStatus] = useState<ReportStatus>(initialStatus);
@@ -133,14 +130,14 @@ export function PreviewPanel({
   const onApprove = useCallback(async () => {
     setBusy(true);
     setError(null);
-    const res = await approveAction(reportId, getDoc());
+    const res = await approveAction(reportId);
     setBusy(false);
     if ('error' in res) {
       setError(res.error);
       return;
     }
     setStatus('approved');
-  }, [reportId, getDoc]);
+  }, [reportId]);
 
   useEffect(() => {
     if (autoApprove && !autoApprovedRef.current && status === 'editing') {

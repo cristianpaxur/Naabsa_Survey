@@ -55,6 +55,34 @@ services:
       - caddy_config:/config
     restart: unless-stopped
 
+  # Collabora Online (CODE) — LibreOffice no browser (impl. 011). Editor nativo via WOPI.
+  collabora:
+    image: collabora/code:latest
+    environment:
+      # Hosts WOPI permitidos (regex). Dev: host.docker.internal. Prod: domínio público.
+      aliasgroup1: "${COLLABORA_ALIASGROUP:-http://host.docker.internal:3000}"
+      username: "${COLLABORA_ADMIN_USER:-admin}"
+      password: "${COLLABORA_ADMIN_PASSWORD:-admin}"
+      # mount_namespaces=false: WSL2/Docker Desktop não permite CLONE_NEWUSER (EPERM)
+      # — cai no jail antigo via cap MKNOD/SYS_ADMIN.
+      # ssl.termination: DEV=false (acesso http direto → discovery anuncia http URLs);
+      # PROD=true (Caddy termina o TLS). Controlado por COLLABORA_SSL_TERMINATION.
+      extra_params: --o:ssl.enable=false --o:ssl.termination=${COLLABORA_SSL_TERMINATION:-false} --o:mount_namespaces=false
+      DONT_GEN_SSL_CERT: "true"
+    # SYS_ADMIN: o coolmount precisa de bind-mount no jail (WSL2 não permite user
+    # namespaces). seccomp/apparmor unconfined: liberam as syscalls de mount no dev.
+    cap_add:
+      - MKNOD
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    # Dev: publica a porta p/ o `next dev` (host) alcançar o /hosting/discovery.
+    # Prod: o Caddy faz o proxy (rota /browser, /hosting, /cool) — pode remover o mapeamento.
+    ports:
+      - "${COLLABORA_PORT:-9980}:9980"
+    restart: unless-stopped
+
 volumes:
   caddy_data:
   caddy_config:
