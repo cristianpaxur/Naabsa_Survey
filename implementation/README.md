@@ -21,7 +21,8 @@
 | [009](./009%20-%20Demais%20Relatórios%20e%20Admin%20de%20Specs/spec.md) | Demais Relatórios e Admin de Specs | T-19..T-23 | 🟡 Planejada | 0/12 |
 | [010](./010%20-%20Retençã o,%20IA%20e%20Hardening/spec.md) | Retenção, IA e Hardening | T-24..T-28 | 🟢 Concluída (exceto deploy) | 12/13 |
 | [011](./011%20-%20Infraestrutura%20Collabora%20Online%20e%20WOPI%20Host/spec.md) | Infraestrutura Collabora Online e WOPI Host | pós-PRD | 🟢 Concluída | 9/9 |
-| [012](./012%20-%20Editor%20Nativo%20Collabora%20e%20Fluxo%20de%20Aprovação/spec.md) | Editor Nativo Collabora e Fluxo de Aprovação | subst. T-17/T-18 | 🟡 Planejada | 0/10 |
+| [012](./012%20-%20Editor%20Nativo%20Collabora%20e%20Fluxo%20de%20Aprovação/spec.md) | Editor Nativo Collabora e Fluxo de Aprovação | subst. T-17/T-18 | 🟠 Em andamento | 9/10 (T-010: código pronto; rodar E2E c/ stack local) |
+| [013](./013%20-%20Gestão%20de%20Identidade%20e%20Acesso/spec.md) | Gestão de Identidade e Acesso (SSO Entra ID) | pós-PRD | 🟡 Planejada | 0/12 |
 
 ---
 
@@ -53,6 +54,7 @@ pendentes no atual).
 | 010 | 008 |
 | 011 | 002, 004 |
 | 012 | 011, 004, 008 |
+| 013 | 002, 005 |
 
 Paralelização possível: após 001, **002 e 003** podem andar em paralelo; após 005,
 **006 e 007** podem andar em paralelo.
@@ -68,6 +70,7 @@ Paralelização possível: após 001, **002 e 003** podem andar em paralelo; ap�
 | Planilha pré-moldada real (1º tipo) | Cliente | 003/T-011..T-016 (PRD T-07) | ✅ Recebido 2026-06-23 (`draft_survey.real.v1.xlsx`) |
 | Modelos Word + planilhas dos **demais** tipos | Cliente | 009 (PRD T-19..T-22) | 🔴 Pendente |
 | Chave PIX/recebimento e acesso ao VPS | Interno | 001 (deploy no VPS — dev local livre; PRD T-03) e 010 (PRD T-28) | 🔴 Pendente |
+| **App Registration no tenant Microsoft Entra ID** | Cliente (TI) | 013 (SSO — T-001; dev contra tenant de teste) | 🔴 Pendente |
 
 > **1º tipo (`draft_survey`) destravado em 2026-06-23.** Insumos versionados em
 > `tests/fixtures/{planilhas,specs,reports}/draft_survey/`. O spec real (`draft_survey.v1.json`)
