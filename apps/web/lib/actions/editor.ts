@@ -1,6 +1,5 @@
 'use server';
 
-import type { TipTapDoc } from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { ServerClient } from '@/lib/supabase/server';
@@ -9,10 +8,6 @@ import { transition, type ReportStatus } from '@/lib/state-machine';
 import { enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
 import { signToken } from '@/lib/wopi/token';
 import { getEditorUrlSrc } from '@/lib/wopi/discovery';
-
-export type SaveResult =
-  | { ok: true; savedAt: string }
-  | { error: string };
 
 export type ApproveResult = { ok: true } | { error: string };
 
@@ -40,50 +35,11 @@ async function loadReport(
 }
 
 /**
- * Autosave do documento (008/T-005, RF-24). Persiste `document_json` somente
- * quando o relatório está em `editing`. Quando `snapshot` é true, grava também
- * uma cópia integral no audit_log (RNF-07) — usado a cada ≤ 5 min de edição.
- */
-export async function saveDocument(
-  reportId: string,
-  json: TipTapDoc,
-  snapshot = false,
-): Promise<SaveResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: 'Sessão expirada.' };
-
-  const report = await loadReport(supabase, reportId);
-  if (!report) return { error: 'Relatório não encontrado.' };
-  if (report.status !== 'editing') {
-    return { error: 'O documento só pode ser editado no estado de edição.' };
-  }
-
-  const { error } = await supabase
-    .from('reports')
-    .update({ document_json: json } as never)
-    .eq('id', reportId)
-    .eq('status', 'editing'); // guarda otimista
-  if (error) return { error: 'Falha ao salvar o documento.' };
-
-  if (snapshot) {
-    await audit(supabase, {
-      reportId,
-      actor: user.id,
-      action: 'document_snapshot',
-      payload: { document_json: json },
-    });
-  }
-
-  return { ok: true, savedAt: new Date().toISOString() };
-}
-
-/**
- * Aprovação (008/T-008, RF-26). Persiste a última versão, grava snapshot final,
- * transiciona `editing → approved`, enfileira `generate_pdf` e audita. Revalida
- * o status contra concorrência (a transição usa guarda otimista).
+ * Aprovação (012/T-007, RF-26). O working.docx editado (salvo pelo Collabora via
+ * WOPI) É o documento. Transiciona `editing → approved` — a partir daí o WOPI
+ * rejeita PutFile, congelando o binário —, grava um snapshot (cópia do
+ * working.docx no Storage), enfileira `generate_pdf` e audita. Revalida o status
+ * contra concorrência (a transição usa guarda otimista).
  */
 export async function approve(reportId: string): Promise<ApproveResult> {
   const supabase = await createClient();
@@ -98,15 +54,6 @@ export async function approve(reportId: string): Promise<ApproveResult> {
     return { error: 'O relatório não está em edição.' };
   }
 
-  // O working.docx editado já está no Storage (salvo pelo Collabora via WOPI) — ele
-  // É o registro do documento. Audita a transição (snapshot do binário fica no Storage).
-  await audit(supabase, {
-    reportId,
-    actor: user.id,
-    action: 'document_snapshot',
-    payload: { reason: 'pré-aprovação', source: 'working.docx' },
-  });
-
   try {
     await transition(supabase, reportId, 'editing', 'approved', user.id);
   } catch (err) {
@@ -114,6 +61,23 @@ export async function approve(reportId: string): Promise<ApproveResult> {
       error: err instanceof Error ? err.message : 'Falha ao aprovar.',
     };
   }
+
+  // Snapshot pós-transição: com o PutFile bloqueado em `approved`, a cópia é
+  // exatamente o binário que o generate_pdf vai converter (RNF-07).
+  const svc = createServiceClient();
+  const version = (report.pdf_paths?.length ?? 0) + 1;
+  const snapshotPath = `${reportId}/snapshots/aprovacao-v${version}.docx`;
+  const { error: copyError } = await svc.storage
+    .from('reports')
+    .copy(`${reportId}/working.docx`, snapshotPath);
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'document_snapshot',
+    payload: copyError
+      ? { reason: 'pré-aprovação', source: 'working.docx', error: copyError.message }
+      : { reason: 'pré-aprovação', source: 'working.docx', snapshot_path: snapshotPath },
+  });
 
   // Enfileira a geração do PDF. Falha no enfileiramento é auditada mas não
   // reverte a aprovação — o operador pode re-enfileirar (re-aprovar).

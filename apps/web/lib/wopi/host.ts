@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { verifyToken, type WopiClaims } from './token';
 import type { WopiReport } from './lock';
 
-export { currentLock, lockDecision } from './lock';
+export { canPutFile, currentLock, lockDecision } from './lock';
 export type { WopiReport, LockOutcome } from './lock';
 
 /**
