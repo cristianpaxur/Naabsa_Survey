@@ -1,7 +1,7 @@
 # Recuperação de Erros e Resiliência Operacional
 
 > **ID:** 014
-> **Status:** 🟡 Planejada
+> **Status:** 🔵 Em Andamento (código completo em 2026-07-02; CA-001..004 aguardam verificação de aceite na stack local)
 > **Prioridade:** 🔴 Crítica
 > **Criada em:** 2026-07-02
 > **Última atualização:** 2026-07-02
@@ -159,8 +159,8 @@ Payload: `{ message, jobId?, queue }`.
 - [ ] **CA-002:** Com o worker parado, a entrada no editor mostra estado de espera; com `working_docx_failed` auditado, mostra o motivo e o botão re-enfileira.
 - [ ] **CA-003:** "Descartar" em `draft`/`extracted` (com confirmação) remove o relatório da lista, do banco e do Storage.
 - [ ] **CA-004:** "Enviar nova planilha" em `extracted`/`in_review` volta a `draft` (auditado), limpa overrides/artefatos e aceita novo upload no mesmo relatório; a nova extração substitui os dados.
-- [ ] **CA-005:** `preview_pdf` com `retryLimit: 2`; falha única transitória não mata o preview.
-- [ ] **CA-006:** `pnpm lint` e `pnpm test` verdes.
+- [x] **CA-005:** `preview_pdf` com `retryLimit: 2`; falha única transitória não mata o preview.
+- [x] **CA-006:** `pnpm lint` e `pnpm test` verdes. (2026-07-02: core 129 + web 62 + worker 47.)
 
 ## 6. Plano de Testes
 
