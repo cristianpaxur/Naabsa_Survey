@@ -17,6 +17,8 @@ import { validate, type Issue, type ReportSpec, type FieldValue } from '@naabsa/
 import { groupBySectionOrdered } from '@/lib/effective-values';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ReviewClient } from '@/components/review/ReviewClient';
+import { ReuploadPanel } from '@/components/review/ReuploadPanel';
+import { ResetToDraftButton } from '@/components/review/ResetToDraftButton';
 import { resolveFieldValue, collectFields } from '@naabsa/core';
 
 interface PageProps {
@@ -68,8 +70,35 @@ export default async function ReviewPage({ params }: PageProps) {
   const status = row.status;
 
   // Redirecionar se status incompatível
-  if (status !== 'extracted' && status !== 'in_review') {
+  if (status !== 'draft' && status !== 'extracted' && status !== 'in_review') {
     redirect('/dashboard');
+  }
+
+  // `draft`: relatório sem planilha (extração falhou/abandono, ou reenvio —
+  // 014/T-008). Renderiza o upload no MESMO relatório em vez de beco sem saída.
+  if (status === 'draft') {
+    return (
+      <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            marginBottom: 8,
+            paddingBottom: 20,
+            borderBottom: '1px solid var(--borda)',
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--tinta)' }}>
+              Aguardando planilha
+            </h1>
+          </div>
+          <StatusBadge status="draft" />
+        </div>
+        <ReuploadPanel reportId={id} />
+      </div>
+    );
   }
 
   // Transição extracted → in_review na primeira abertura
@@ -142,6 +171,7 @@ export default async function ReviewPage({ params }: PageProps) {
             </span>
           </p>
         </div>
+        <ResetToDraftButton reportId={id} />
         <StatusBadge status="in_review" />
       </div>
 

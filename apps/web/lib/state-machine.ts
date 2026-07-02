@@ -24,7 +24,7 @@ export const REPORT_STATUSES: ReportStatus[] = [
  * Grafo de transições (PRD §3.2). Além do fluxo linear, qualquer estado
  * (exceto generated/purged) pode voltar a `draft` (reiniciar com nova planilha).
  * `generated → editing` é a regeneração (RF-30, 010/T-004): reabre para editar
- * e gerar uma nova versão do PDF, mantendo `document_json`.
+ * e gerar uma nova versão do PDF, mantendo o `working.docx`.
  */
 export const NEXT_STATES: Record<ReportStatus, ReportStatus[]> = {
   draft: ['extracted'],

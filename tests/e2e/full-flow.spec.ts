@@ -4,14 +4,15 @@ import sharp from 'sharp';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * E2E do fluxo feliz COMPLETO (implementação 008 / T-018 / aceite do M2).
+ * E2E do fluxo feliz COMPLETO (012/T-010, CA-007 — substitui o editor da 008).
  *
- * criar → upload → revisar (corrigir erro) → fotos (alocar) → editar
- * (montagem RF-20, lockGuard, autosave) → aprovar → gerar PDF → baixar.
+ * criar → upload → revisar (corrigir erro) → fotos (alocar) → editar no
+ * COLLABORA (working.docx montado pelo worker + iframe WOPI) → aprovar
+ * (Action_Save → snapshot → generate_pdf) → PDF gerado e baixável.
  *
- * Requer a stack rodando: web (APP_BASE_URL) + worker (generate_pdf com
- * Chromium) + Supabase. A foto processada é semeada via service role para
- * isolar este teste do job process_photo (coberto em photos.spec).
+ * Requer a stack rodando: web (APP_BASE_URL) + worker (LibreOffice) +
+ * Supabase + Collabora (COLLABORA_BASE_URL/WOPI). A foto processada é semeada
+ * via service role para isolar este teste do job process_photo (photos.spec).
  */
 
 const OPERATOR = { email: 'operador@naabsa.dev', password: 'naabsa123' };
@@ -92,15 +93,29 @@ test.afterAll(async () => {
           .remove(data.map((f) => `${id}/photos/processed/${f.name}`));
       }
     });
-    await svc.storage.from(BUCKET).remove([`${id}/final.pdf`, `${id}/spreadsheet.xlsx`]);
+    await svc.storage.from(BUCKET).list(`${id}/snapshots`).then(async ({ data }) => {
+      if (data && data.length > 0) {
+        await svc.storage.from(BUCKET).remove(data.map((f) => `${id}/snapshots/${f.name}`));
+      }
+    });
+    await svc.storage
+      .from(BUCKET)
+      .remove([
+        `${id}/final.pdf`,
+        `${id}/final-v1.pdf`,
+        `${id}/final.docx`,
+        `${id}/working.docx`,
+        `${id}/preview.pdf`,
+        `${id}/spreadsheet.xlsx`,
+      ]);
     await svc.from('report_photos').delete().eq('report_id', id);
     await svc.from('audit_log').delete().eq('report_id', id);
     await svc.from('reports').delete().eq('id', id);
   }
 });
 
-test.describe('Fluxo feliz completo (M2 / T-18)', () => {
-  test('criar → revisar → fotos → editar → aprovar → PDF gerado e baixável', async ({
+test.describe('Fluxo feliz completo com Collabora (012/T-010, CA-007)', () => {
+  test('criar → revisar → fotos → editar no Collabora → aprovar → PDF gerado e baixável', async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -164,44 +179,35 @@ test.describe('Fluxo feliz completo (M2 / T-18)', () => {
       timeout: 20_000,
     });
 
-    // ── 4. Editor: montagem (RF-20), lockGuard, autosave ──────────────────
+    // ── 4. Editor nativo Collabora (012): build do working.docx + iframe ──
     await expect(page.getByRole('heading', { name: vessel })).toBeVisible({
       timeout: 20_000,
     });
-    // Nós custom montados.
-    await expect(page.getByText('photoFrame')).toBeVisible();
-    await expect(page.getByText('dataTable · travado').first()).toBeVisible();
-
-    // Edita texto livre no fim (cursor limpo) e confirma autosave (CA-002).
-    const marker = `OBSERVACAO ${Date.now()}`;
-    const canvas = page.locator('.ProseMirror');
-    await canvas.click();
-    await page.keyboard.press('Control+End');
-    await page.keyboard.type(` ${marker}`);
-    await expect(page.getByText(/Salvo/)).toBeVisible({ timeout: 10_000 });
-
-    // lockGuard (CA-001): select-all + delete NÃO remove os nós travados
-    // (transação rejeitada inteira; o texto livre também sobrevive).
-    await canvas.click();
-    await page.keyboard.press('Control+a');
-    await page.keyboard.press('Delete');
-    await expect(page.getByText('photoFrame')).toBeVisible();
-    await expect(page.getByText('dataTable · travado').first()).toBeVisible();
-
-    // Recarrega: o texto livre persistiu (autosave anterior à seleção).
-    await page.reload();
-    await expect(page.locator('.ProseMirror')).toContainText(marker, {
-      timeout: 20_000,
+    // O worker monta o working.docx (build_working_docx, com LibreOffice no
+    // 2º passe) e o CollaboraEditor abre o iframe WOPI quando ele existe.
+    await expect(page.locator('iframe.ed-collabora')).toBeVisible({
+      timeout: 120_000,
     });
+    await expect(page.getByText(/Edição nativa/)).toBeVisible();
 
-    // ── 5. Aprovar e gerar PDF ────────────────────────────────────────────
+    // working.docx persistido no Storage (012 RF-001).
+    const { data: wdFiles } = await svc.storage
+      .from(BUCKET)
+      .list(reportId, { search: 'working.docx' });
+    expect((wdFiles ?? []).some((f) => f.name === 'working.docx')).toBe(true);
+
+    // ── 5. Aprovar: Action_Save → editing→approved → snapshot → generate_pdf ──
     await page.getByRole('button', { name: 'Aprovar e gerar PDF' }).click();
-    // Preview com badge de geração.
+    // Preview com badge de geração (o Action_Save pode levar alguns segundos).
     await expect(page.getByText(/Gerando PDF|PDF pronto/)).toBeVisible({
-      timeout: 20_000,
+      timeout: 30_000,
     });
-    // Worker gera o PDF (generate_pdf) → badge "PDF pronto".
+    // Worker converte o working.docx EDITADO (generate_pdf) → badge "PDF pronto".
     await expect(page.getByText(/PDF pronto/)).toBeVisible({ timeout: 120_000 });
+
+    // Snapshot binário da aprovação no Storage (012/T-007).
+    const { data: snaps } = await svc.storage.from(BUCKET).list(`${reportId}/snapshots`);
+    expect((snaps ?? []).some((f) => /^aprovacao-v\d+\.docx$/.test(f.name))).toBe(true);
 
     const baixar = page.getByRole('button', { name: /Baixar PDF/ });
     await expect(baixar).toBeEnabled();
@@ -226,7 +232,9 @@ test.describe('Fluxo feliz completo (M2 / T-18)', () => {
       .select('action')
       .eq('report_id', reportId);
     const actions = (logs ?? []).map((l: { action: string }) => l.action);
-    expect(actions).toContain('document_assembled');
+    expect(actions).toContain('working_docx_enqueued');
+    expect(actions).toContain('document_snapshot');
+    expect(actions).toContain('pdf_enqueued');
     expect(actions).toContain('transition');
     expect(actions).toContain('pdf_generated');
   });

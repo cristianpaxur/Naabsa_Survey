@@ -1,6 +1,6 @@
 import 'server-only';
 import { type NextRequest, NextResponse } from 'next/server';
-import { authWopi, currentLock, workingDocxPath, BUCKET } from '@/lib/wopi/host';
+import { authWopi, canPutFile, currentLock, workingDocxPath, BUCKET } from '@/lib/wopi/host';
 
 /**
  * WOPI GetFile (GET) + PutFile (POST) — 011/T-007. Lê/grava o `working.docx` no
@@ -41,6 +41,16 @@ export async function POST(
   const { claims, svc, report } = a;
 
   if (!claims.canWrite) return new NextResponse(null, { status: 403 });
+
+  // Fora de `editing` o working.docx está congelado (é o registro do documento
+  // aprovado — 012/T-007). Rejeita PutFile tardio de sessão aberta antes da
+  // aprovação (o token dela ainda tem canWrite), senão o PDF divergiria do doc.
+  if (!canPutFile(report)) {
+    return new NextResponse(null, {
+      status: 409,
+      headers: { 'X-WOPI-Lock': currentLock(report) ?? '' },
+    });
+  }
 
   // O Collabora envia X-WOPI-Lock no PutFile; rejeita se o lock divergir.
   const lock = req.headers.get('x-wopi-lock') ?? '';

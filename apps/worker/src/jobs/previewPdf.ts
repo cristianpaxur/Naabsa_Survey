@@ -15,7 +15,8 @@ export interface PreviewPdfPayload {
 
 export const PREVIEW_PDF_QUEUE = 'preview_pdf';
 export const PREVIEW_PDF_CONCURRENCY = 1;
-export const PREVIEW_PDF_RETRY_LIMIT = 1;
+// 2 tolera falha transitória (rede/storage) sem matar o preview (014/RF-006).
+export const PREVIEW_PDF_RETRY_LIMIT = 2;
 
 const BUCKET = 'reports';
 

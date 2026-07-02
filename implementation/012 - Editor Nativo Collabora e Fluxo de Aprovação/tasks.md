@@ -2,8 +2,8 @@
 
 > **Implementação:** 012 - Editor Nativo Collabora e Fluxo de Aprovação
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 6/10 tarefas concluídas (60%)
-> **Última atualização:** 2026-06-26
+> **Progresso:** 9/10 tarefas concluídas (90%) — T-010 com código pronto, execução pendente (stack local)
+> **Última atualização:** 2026-07-02
 
 ---
 
@@ -66,7 +66,7 @@
   - **Dependências:** T-001
   - **Estimativa:** Média
 
-- [ ] **T-007:** Ajustar actions de aprovação/preview/snapshot
+- [x] **T-007:** Ajustar actions de aprovação/preview/snapshot
   - **Descrição:** `actions/editor.ts`: `approve` sem `document_json`; snapshot = cópia do `working.docx` no Storage; preview/download inalterados em assinatura. Regeneração reabre o `working.docx`.
   - **Arquivos envolvidos:** `apps/web/lib/actions/editor.ts`, `apps/web/lib/actions/regenerate.ts`
   - **Critério de conclusão:** Aprovar/regenerar funcionam com o novo modelo; auditoria preservada.
@@ -75,14 +75,14 @@
 
 ### Fase 4: Deprecação, testes e E2E
 
-- [ ] **T-008:** Deprecar o TipTap do fluxo `/edit`
+- [x] **T-008:** Deprecar o TipTap do fluxo `/edit`
   - **Descrição:** Remover o uso de `EditorClient`/nodes/marks TipTap na rota de edição (arquivos permanecem até limpeza dedicada). Garantir que `document_json` não é mais lido/escrito.
   - **Arquivos envolvidos:** `apps/web/components/editor/*` (referências), `edit/page.tsx`
   - **Critério de conclusão:** Nenhum caminho de produção depende do TipTap; build limpo.
   - **Dependências:** T-004
   - **Estimativa:** Pequena
 
-- [ ] **T-009:** Testes unitários e de integração
+- [x] **T-009:** Testes unitários e de integração
   - **Descrição:** `buildWorkingDocx`; `generatePdf`/`previewPdf` convertendo o `working.docx`; integração entrada→working.docx e aprovação refletindo edição (CA-004). `pnpm lint`/`pnpm test` verdes.
   - **Arquivos envolvidos:** `apps/worker/src/jobs/*.test.ts`, `apps/web/lib/actions/*.test.ts`
   - **Critério de conclusão:** Suítes 6.1/6.2 passam; lint limpo.
@@ -108,10 +108,10 @@
 | T-004  | ✅ Concluída | 2026-06-26 | `/edit` enfileira `build_working_docx` na entrada e renderiza o `CollaboraEditor`; aprovação sem `document_json`; `EditorClient` removido |
 | T-005  | ✅ Concluída | 2026-06-26 | `convertWorkingDocxToPdf` (download+convert, fallback build); `preview_pdf` usa |
 | T-006  | ✅ Concluída | 2026-06-26 | `generate_pdf` converte o `working.docx` editado; docHash = sha256 do .docx; worker typecheck+36 testes verdes |
-| T-007  | ⬜ Pendente | — | — |
-| T-008  | ⬜ Pendente | — | — |
-| T-009  | ⬜ Pendente | — | — |
-| T-010  | ⬜ Pendente | — | — |
+| T-007  | ✅ Concluída | 2026-07-02 | `approve` sem `document_json`; snapshot = cópia binária `snapshots/aprovacao-v{n}.docx` PÓS-transição; WOPI rejeita PutFile fora de `editing` (congela o doc aprovado — fecha a corrida autosave×aprovação); `Action_Save_Resp` com `success=false` aborta |
+| T-008  | ✅ Concluída | 2026-07-02 | `saveDocument`/`SaveResult` removidos (nenhum caminho de produção lê/escreve `document_json`); nodes/marks/Toolbar TipTap permanecem órfãos p/ limpeza dedicada; typecheck+lint limpos |
+| T-009  | ✅ Concluída | 2026-07-02 | Novos testes: jobs `buildWorkingDocx` e `previewPdf`; `convertWorkingDocxToPdf` usa o .docx EDITADO com hash sha256 do binário (CA-004); `canPutFile` (guarda WOPI). Web 56 + worker 43 verdes; lint ok |
+| T-010  | 🟨 Código pronto | — | `full-flow.spec.ts` reescrito p/ Collabora (iframe WOPI, snapshot de aprovação, auditoria `working_docx_enqueued`/`pdf_enqueued`). **Execução pendente**: exige stack local com Docker/Collabora (indisponível em 2026-07-02) |
 
 ---
 

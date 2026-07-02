@@ -2,7 +2,7 @@
 
 import './editor.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getEditorUrl } from '@/lib/actions/editor';
+import { getEditorUrl, retryBuildWorkingDocx } from '@/lib/actions/editor';
 import type { ReportStatus } from '@/lib/state-machine';
 import { PreviewPanel } from './PreviewPanel';
 
@@ -34,6 +34,8 @@ export function CollaboraEditor({
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [buildFailed, setBuildFailed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -41,6 +43,7 @@ export function CollaboraEditor({
     if (pollRef.current) clearTimeout(pollRef.current);
     setState('loading');
     setError(null);
+    setBuildFailed(false);
     let attempts = 0;
     const tick = async (): Promise<void> => {
       const res = await getEditorUrl(reportId);
@@ -50,6 +53,9 @@ export function CollaboraEditor({
         return;
       }
       if ('error' in res) {
+        // Build morto no dead-letter (014/T-005): sem polling cego — mostra o
+        // motivo e o "Tentar de novo" re-enfileira a montagem.
+        setBuildFailed('canRetry' in res && res.canRetry === true);
         setError(res.error);
         setState('error');
         return;
@@ -80,6 +86,8 @@ export function CollaboraEditor({
   }, [url]);
 
   // Manda o Collabora SALVAR (Action_Save → WOPI PutFile) e só então segue.
+  // Aborta se o Collabora reportar falha no save (success=false) — seguir
+  // adiante geraria o PDF de um .docx SEM a última edição do operador.
   const saveAndThen = useCallback(
     (next: () => void) => {
       const win = iframeRef.current?.contentWindow;
@@ -89,30 +97,39 @@ export function CollaboraEditor({
       }
       const origin = new URL(url).origin;
       let done = false;
-      const finish = (): void => {
+      const finish = (ok: boolean): void => {
         if (done) return;
         done = true;
         window.removeEventListener('message', onResp);
         setSaving(false);
-        next();
+        if (ok) {
+          next();
+        } else {
+          setSaveError('Não foi possível salvar a edição. Verifique o documento e tente de novo.');
+        }
       };
       const onResp = (e: MessageEvent): void => {
         if (e.origin !== origin) return;
         try {
-          const m = JSON.parse(e.data as string) as { MessageId?: string };
-          if (m?.MessageId === 'Action_Save_Resp') finish();
+          const m = JSON.parse(e.data as string) as {
+            MessageId?: string;
+            Values?: { success?: boolean };
+          };
+          if (m?.MessageId === 'Action_Save_Resp') finish(m.Values?.success !== false);
         } catch {
           /* ignora mensagens não-JSON */
         }
       };
       setSaving(true);
+      setSaveError(null);
       window.addEventListener('message', onResp);
       win.postMessage(
         JSON.stringify({ MessageId: 'Action_Save', Values: { Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: false } }),
         origin,
       );
-      // Fallback: segue mesmo sem a confirmação (o save já foi disparado).
-      setTimeout(finish, 4000);
+      // Fallback: sem confirmação em 8s, segue (o save já foi disparado e o
+      // Collabora nem sempre responde quando o doc não tem mudanças pendentes).
+      setTimeout(() => finish(true), 8000);
     },
     [url],
   );
@@ -168,6 +185,15 @@ export function CollaboraEditor({
         </div>
       </header>
 
+      {saveError && (
+        <div
+          role="alert"
+          style={{ background: '#fbeceb', color: '#9b2a2c', padding: '8px 24px', fontSize: 13 }}
+        >
+          {saveError}
+        </div>
+      )}
+
       {state === 'ready' && url ? (
         <div className="ed-collabora-area">
           <iframe
@@ -185,7 +211,17 @@ export function CollaboraEditor({
             <div className="ed-preview__placeholder">
               {error ?? 'Não foi possível abrir o editor.'}{' '}
               <button
-                onClick={() => load()}
+                onClick={() => {
+                  // Falha definitiva do build: re-enfileira antes de voltar ao polling.
+                  if (buildFailed) {
+                    void retryBuildWorkingDocx(reportId).then((r) => {
+                      if ('error' in r) setError(r.error);
+                      else load();
+                    });
+                  } else {
+                    load();
+                  }
+                }}
                 style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
               >
                 Tentar de novo

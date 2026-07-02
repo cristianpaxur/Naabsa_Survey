@@ -12,6 +12,16 @@ export interface WopiReport {
   wopi_lock_expires_at: string | null;
 }
 
+/**
+ * O PutFile só é aceito em `editing` (012/T-007). A partir da aprovação o
+ * working.docx é o registro do documento aprovado — um PutFile tardio (sessão
+ * do Collabora aberta antes da aprovação, token ainda com canWrite) faria o
+ * PDF divergir do documento congelado.
+ */
+export function canPutFile(report: Pick<WopiReport, 'status'>): boolean {
+  return report.status === 'editing';
+}
+
 /** Lock corrente, se ainda não expirou; senão `null`. */
 export function currentLock(report: WopiReport, now = Date.now()): string | null {
   if (!report.wopi_lock || !report.wopi_lock_expires_at) return null;

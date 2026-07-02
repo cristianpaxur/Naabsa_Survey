@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { currentLock, lockDecision, type WopiReport } from './lock';
+import { canPutFile, currentLock, lockDecision, type WopiReport } from './lock';
 
 function report(lock: string | null, expISO: string | null): WopiReport {
   return {
@@ -22,6 +22,17 @@ describe('wopi/lock currentLock', () => {
   });
   it('devolve o lock quando válido', () => {
     expect(currentLock(report('L', new Date(now + 60_000).toISOString()), now)).toBe('L');
+  });
+});
+
+describe('wopi/lock canPutFile (012/T-007)', () => {
+  it('aceita PutFile em editing', () => {
+    expect(canPutFile({ status: 'editing' })).toBe(true);
+  });
+  it('rejeita PutFile fora de editing (working.docx congelado)', () => {
+    for (const status of ['draft', 'extracted', 'in_review', 'approved', 'generated', 'purged']) {
+      expect(canPutFile({ status })).toBe(false);
+    }
   });
 });
 
