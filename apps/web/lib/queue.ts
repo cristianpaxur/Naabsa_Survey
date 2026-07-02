@@ -90,15 +90,20 @@ export async function enqueuePreviewPdf(
 }
 
 /** Enfileira a montagem do `working.docx` editável (012/T-002) — entrada em `editing`.
- * `singletonKey` por relatório dedupe builds em recarregamentos rápidos da página. */
+ * `singletonKey` por relatório dedupe builds em recarregamentos rápidos da página;
+ * `dedupe: false` (retentativa pós-falha, 014/T-005) força um job novo. */
 export async function enqueueBuildWorkingDocx(
   payload: GeneratePdfPayload,
+  opts: { dedupe?: boolean } = {},
 ): Promise<string | null> {
   const boss = await getBoss();
-  return boss.send(BUILD_WORKING_DOCX_QUEUE, payload, {
-    singletonKey: payload.reportId,
-    singletonSeconds: 120,
-  });
+  return boss.send(
+    BUILD_WORKING_DOCX_QUEUE,
+    payload,
+    opts.dedupe === false
+      ? {}
+      : { singletonKey: payload.reportId, singletonSeconds: 120 },
+  );
 }
 
 export interface RenderSheetsPayload {

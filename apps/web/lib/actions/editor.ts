@@ -5,7 +5,8 @@ import { createServiceClient } from '@/lib/supabase/service';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { transition, type ReportStatus } from '@/lib/state-machine';
-import { enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
+import { enqueueBuildWorkingDocx, enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
+import { latestJobOutcome, type AuditEventRow, type JobOutcome } from '@/lib/job-failure';
 import { signToken } from '@/lib/wopi/token';
 import { getEditorUrlSrc } from '@/lib/wopi/discovery';
 
@@ -14,6 +15,9 @@ export type ApproveResult = { ok: true } | { error: string };
 export interface PdfStatus {
   status: ReportStatus;
   hasPdf: boolean;
+  /** Falha DEFINITIVA do generate_pdf (dead-letter do worker — 014/RF-002). */
+  failed: boolean;
+  failReason?: string;
 }
 
 interface ReportRow {
@@ -103,14 +107,15 @@ export async function approve(reportId: string): Promise<ApproveResult> {
 }
 
 /**
- * URL do editor Collabora embutido (012/T-003). Verifica o usuário, garante que o
- * `working.docx` já existe (senão `pending` — o worker ainda está montando) e devolve
- * a URL do iframe (discovery + WOPISrc + access_token). `canWrite` só em `editing`;
- * approved/generated abrem em leitura.
+ * URL do editor Collabora embutido (012/T-003 + 014/T-005). Verifica o usuário e
+ * garante que o `working.docx` já existe. Se não existe: distingue build EM
+ * ANDAMENTO (`pending` — o polling continua) de build FALHADO no dead-letter
+ * (`error` + `canRetry` — a UI mostra o motivo e re-enfileira). `canWrite` só em
+ * `editing`; approved/generated abrem em leitura.
  */
 export async function getEditorUrl(
   reportId: string,
-): Promise<{ url: string } | { pending: true } | { error: string }> {
+): Promise<{ url: string } | { pending: true } | { error: string; canRetry?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -128,7 +133,20 @@ export async function getEditorUrl(
   // O working.docx já foi montado? (o worker pode ainda estar processando o build)
   const svc = createServiceClient();
   const { data: files } = await svc.storage.from('reports').list(reportId, { search: 'working.docx' });
-  if (!(files ?? []).some((f) => f.name === 'working.docx')) return { pending: true };
+  if (!(files ?? []).some((f) => f.name === 'working.docx')) {
+    const rows = await loadJobEvents(supabase, reportId, [
+      'working_docx_enqueued',
+      'working_docx_failed',
+    ]);
+    const outcome = latestJobOutcome(rows, 'working_docx_enqueued', 'working_docx_failed');
+    if (outcome.failed) {
+      return {
+        error: `Falha ao montar o documento${outcome.reason ? `: ${outcome.reason}` : '.'}`,
+        canRetry: true,
+      };
+    }
+    return { pending: true };
+  }
 
   const canWrite = report.status === 'editing';
   const token = signToken({ reportId, userId: user.id, canWrite });
@@ -188,7 +206,27 @@ export async function getPreviewUrl(
   return { url: data.signedUrl };
 }
 
-/** Status do PDF para o polling (008/T-009, RF-29). */
+/** Últimos eventos de um par enfileirado/falhou no audit_log (mais recente 1º). */
+async function loadJobEvents(
+  supabase: ServerClient,
+  reportId: string,
+  actions: [enqueued: string, failed: string],
+): Promise<AuditEventRow[]> {
+  const { data } = await supabase
+    .from('audit_log')
+    .select('action,payload')
+    .eq('report_id', reportId)
+    .in('action', actions)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  return (data ?? []) as AuditEventRow[];
+}
+
+/**
+ * Status do PDF para o polling (008/T-009, RF-29 + 014/T-003). Além do status,
+ * reporta falha DEFINITIVA do generate_pdf (dead-letter) para a UI oferecer a
+ * retentativa em vez de girar para sempre.
+ */
 export async function getPdfStatus(reportId: string): Promise<PdfStatus | { error: string }> {
   const supabase = await createClient();
   const {
@@ -199,10 +237,82 @@ export async function getPdfStatus(reportId: string): Promise<PdfStatus | { erro
   const report = await loadReport(supabase, reportId);
   if (!report) return { error: 'Relatório não encontrado.' };
 
+  let outcome: JobOutcome = { failed: false };
+  if (report.status === 'approved') {
+    const rows = await loadJobEvents(supabase, reportId, ['pdf_enqueued', 'pdf_generation_failed']);
+    outcome = latestJobOutcome(rows, 'pdf_enqueued', 'pdf_generation_failed');
+  }
+
   return {
     status: report.status as ReportStatus,
     hasPdf: (report.pdf_paths?.length ?? 0) > 0,
+    failed: outcome.failed,
+    ...(outcome.reason ? { failReason: outcome.reason } : {}),
   };
+}
+
+/**
+ * Retentativa da geração do PDF (014/T-004, RF-002). Em `approved` com o job
+ * morto no dead-letter, re-enfileira o generate_pdf e audita — o novo
+ * `pdf_enqueued` supera o `pdf_generation_failed` e o polling volta ao normal.
+ */
+export async function retryGeneratePdf(reportId: string): Promise<ApproveResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+  if (report.status !== 'approved') {
+    return { error: 'A retentativa só vale para relatórios aprovados aguardando PDF.' };
+  }
+
+  try {
+    await enqueueGeneratePdf({ reportId });
+  } catch {
+    return { error: 'Falha ao re-enfileirar o PDF. Tente novamente.' };
+  }
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'pdf_enqueued',
+    payload: { retry: true },
+  });
+  return { ok: true };
+}
+
+/**
+ * Retentativa da montagem do working.docx (014/T-005, RF-003). Em `editing` com
+ * o build morto no dead-letter, re-enfileira SEM dedupe (singleton bloquearia o
+ * job novo dentro da janela) e audita.
+ */
+export async function retryBuildWorkingDocx(reportId: string): Promise<ApproveResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+  if (report.status !== 'editing') {
+    return { error: 'O documento só é montado no estado de edição.' };
+  }
+
+  try {
+    await enqueueBuildWorkingDocx({ reportId }, { dedupe: false });
+  } catch {
+    return { error: 'Falha ao re-enfileirar a montagem. Tente novamente.' };
+  }
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'working_docx_enqueued',
+    payload: { retry: true },
+  });
+  return { ok: true };
 }
 
 /**

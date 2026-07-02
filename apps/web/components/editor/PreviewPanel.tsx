@@ -7,6 +7,7 @@ import {
   getDownloadUrl,
   generatePreview,
   getPreviewUrl,
+  retryGeneratePdf,
 } from '@/lib/actions/editor';
 import { regenerate } from '@/lib/actions/regenerate';
 import type { ReportStatus } from '@/lib/state-machine';
@@ -35,6 +36,8 @@ export function PreviewPanel({
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<PreviewState>('generating');
+  const [pdfFailed, setPdfFailed] = useState(false);
+  const [pdfRetryNonce, setPdfRetryNonce] = useState(0);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoApprovedRef = useRef(false);
@@ -117,6 +120,17 @@ export function PreviewPanel({
         setStatus('generated');
         return;
       }
+      // Dead-letter do generate_pdf (014/RF-002): para o polling e oferece a
+      // retentativa — sem isso o relatório ficava preso em `approved`.
+      if (res.failed) {
+        setPdfFailed(true);
+        setError(
+          res.failReason
+            ? `A geração do PDF falhou: ${res.failReason}`
+            : 'A geração do PDF falhou.',
+        );
+        return;
+      }
       delay = Math.min(delay + 500, 4000);
       pollRef.current = setTimeout(() => void tick(), delay);
     };
@@ -125,7 +139,21 @@ export function PreviewPanel({
       cancelled = true;
       if (pollRef.current) clearTimeout(pollRef.current);
     };
-  }, [status, reportId]);
+  }, [status, reportId, pdfRetryNonce]);
+
+  // Retentativa (014/T-004): re-enfileira e retoma o polling.
+  const onRetryPdf = useCallback(async () => {
+    setBusy(true);
+    const res = await retryGeneratePdf(reportId);
+    setBusy(false);
+    if ('error' in res) {
+      setError(res.error);
+      return;
+    }
+    setPdfFailed(false);
+    setError(null);
+    setPdfRetryNonce((n) => n + 1);
+  }, [reportId]);
 
   const onApprove = useCallback(async () => {
     setBusy(true);
@@ -172,7 +200,9 @@ export function PreviewPanel({
   }
 
   const badge =
-    status === 'approved' ? (
+    status === 'approved' && pdfFailed ? (
+      <span className="ed-preview__badge ed-preview__badge--generating">⚠ Falha na geração do PDF</span>
+    ) : status === 'approved' ? (
       <span className="ed-preview__badge ed-preview__badge--generating">
         <span className="ed-spinner" /> Gerando PDF final…
       </span>
@@ -252,12 +282,22 @@ export function PreviewPanel({
           style={{ background: '#fbeceb', color: '#9b2a2c', padding: '8px 24px', fontSize: 13 }}
         >
           {error}{' '}
-          <button
-            onClick={() => void runPreview()}
-            style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#9b2a2c', cursor: 'pointer' }}
-          >
-            Tentar de novo
-          </button>
+          {pdfFailed ? (
+            <button
+              onClick={() => void onRetryPdf()}
+              disabled={busy}
+              style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#9b2a2c', cursor: 'pointer' }}
+            >
+              Tentar gerar novamente
+            </button>
+          ) : (
+            <button
+              onClick={() => void runPreview()}
+              style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#9b2a2c', cursor: 'pointer' }}
+            >
+              Tentar de novo
+            </button>
+          )}
         </div>
       )}
 

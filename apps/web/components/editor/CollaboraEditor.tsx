@@ -2,7 +2,7 @@
 
 import './editor.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getEditorUrl } from '@/lib/actions/editor';
+import { getEditorUrl, retryBuildWorkingDocx } from '@/lib/actions/editor';
 import type { ReportStatus } from '@/lib/state-machine';
 import { PreviewPanel } from './PreviewPanel';
 
@@ -35,6 +35,7 @@ export function CollaboraEditor({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [buildFailed, setBuildFailed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -42,6 +43,7 @@ export function CollaboraEditor({
     if (pollRef.current) clearTimeout(pollRef.current);
     setState('loading');
     setError(null);
+    setBuildFailed(false);
     let attempts = 0;
     const tick = async (): Promise<void> => {
       const res = await getEditorUrl(reportId);
@@ -51,6 +53,9 @@ export function CollaboraEditor({
         return;
       }
       if ('error' in res) {
+        // Build morto no dead-letter (014/T-005): sem polling cego — mostra o
+        // motivo e o "Tentar de novo" re-enfileira a montagem.
+        setBuildFailed('canRetry' in res && res.canRetry === true);
         setError(res.error);
         setState('error');
         return;
@@ -206,7 +211,17 @@ export function CollaboraEditor({
             <div className="ed-preview__placeholder">
               {error ?? 'Não foi possível abrir o editor.'}{' '}
               <button
-                onClick={() => load()}
+                onClick={() => {
+                  // Falha definitiva do build: re-enfileira antes de voltar ao polling.
+                  if (buildFailed) {
+                    void retryBuildWorkingDocx(reportId).then((r) => {
+                      if ('error' in r) setError(r.error);
+                      else load();
+                    });
+                  } else {
+                    load();
+                  }
+                }}
                 style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
               >
                 Tentar de novo
