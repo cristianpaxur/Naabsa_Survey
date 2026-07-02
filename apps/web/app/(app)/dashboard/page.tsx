@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FilterBar, type TypeOption } from '@/components/dashboard/FilterBar';
+import { DiscardReportButton } from '@/components/dashboard/DiscardReportButton';
 import { reportHref } from '@/lib/report-routing';
 import type { ReportStatus } from '@/lib/state-machine';
 
@@ -89,7 +90,7 @@ export default async function DashboardPage({
     }
   }
 
-  const GRID = '108px 1.5fr 1.4fr 130px 110px 90px 30px';
+  const GRID = '108px 1.5fr 1.4fr 130px 110px 90px 56px';
 
   return (
     <div>
@@ -216,14 +217,20 @@ export default async function DashboardPage({
                 {authorMap.get(r.created_by) ?? '—'}
               </div>
             </Link>
-            <Link
-              href={`/reports/${r.id}/history`}
-              title="Ver histórico"
-              aria-label="Ver histórico"
-              style={{ textAlign: 'right', color: '#9a9082', textDecoration: 'none', fontSize: 15 }}
-            >
-              🕘
-            </Link>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              {/* Descartar só antes da revisão (014/RF-004). */}
+              {(r.status === 'draft' || r.status === 'extracted') && (
+                <DiscardReportButton reportId={r.id} vesselName={r.vessel_name} />
+              )}
+              <Link
+                href={`/reports/${r.id}/history`}
+                title="Ver histórico"
+                aria-label="Ver histórico"
+                style={{ color: '#9a9082', textDecoration: 'none', fontSize: 15 }}
+              >
+                🕘
+              </Link>
+            </div>
           </div>
         ))}
 
