@@ -51,6 +51,7 @@ import {
   type RenderSheetsPayload,
 } from './jobs/renderSheets';
 import { closeBrowser } from './lib/browser';
+import { auditJobFailure } from './lib/deadLetter';
 import {
   retentionPurge,
   RETENTION_PURGE_QUEUE,
@@ -145,7 +146,13 @@ async function registerJobs(): Promise<void> {
           await generatePdf(job.data);
         } catch (err) {
           console.error(`[worker][generate_pdf] erro no job ${job.id}:`, err);
-          throw err; // pg-boss faz retry
+          // Última tentativa: audita a falha (014/RF-001) — a UI em `approved`
+          // mostra o motivo e oferece "Tentar gerar novamente". Não relança.
+          if (job.retryCount >= job.retryLimit) {
+            await auditJobFailure('generate_pdf', job.data.reportId, err, job.id);
+          } else {
+            throw err; // pg-boss faz retry
+          }
         }
       }
     },
@@ -169,7 +176,11 @@ async function registerJobs(): Promise<void> {
           await previewPdf(job.data);
         } catch (err) {
           console.error(`[worker][preview_pdf] erro no job ${job.id}:`, err);
-          throw err;
+          if (job.retryCount >= job.retryLimit) {
+            await auditJobFailure('preview_pdf', job.data.reportId, err, job.id);
+          } else {
+            throw err;
+          }
         }
       }
     },
@@ -193,7 +204,13 @@ async function registerJobs(): Promise<void> {
           await buildWorkingDocx(job.data);
         } catch (err) {
           console.error(`[worker][build_working_docx] erro no job ${job.id}:`, err);
-          throw err; // pg-boss faz retry
+          // Última tentativa: audita (014/RF-001) — o editor sai do polling e
+          // mostra o motivo com "Tentar de novo" (re-enfileira). Não relança.
+          if (job.retryCount >= job.retryLimit) {
+            await auditJobFailure('build_working_docx', job.data.reportId, err, job.id);
+          } else {
+            throw err; // pg-boss faz retry
+          }
         }
       }
     },
