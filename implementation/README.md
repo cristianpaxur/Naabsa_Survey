@@ -23,6 +23,7 @@
 | [011](./011%20-%20Infraestrutura%20Collabora%20Online%20e%20WOPI%20Host/spec.md) | Infraestrutura Collabora Online e WOPI Host | pós-PRD | 🟢 Concluída | 9/9 |
 | [012](./012%20-%20Editor%20Nativo%20Collabora%20e%20Fluxo%20de%20Aprovação/spec.md) | Editor Nativo Collabora e Fluxo de Aprovação | subst. T-17/T-18 | 🟠 Em andamento | 9/10 (T-010: código pronto; rodar E2E c/ stack local) |
 | [013](./013%20-%20Gestão%20de%20Identidade%20e%20Acesso/spec.md) | Gestão de Identidade e Acesso (SSO Entra ID) | pós-PRD | 🟡 Planejada | 0/12 |
+| [014](./014%20-%20Recuperação%20de%20Erros%20e%20Resiliência%20Operacional/spec.md) | Recuperação de Erros e Resiliência Operacional | pós-PRD | 🟡 Planejada | 0/10 |
 
 ---
 
@@ -55,6 +56,7 @@ pendentes no atual).
 | 011 | 002, 004 |
 | 012 | 011, 004, 008 |
 | 013 | 002, 005 |
+| 014 | 010, 012 |
 
 Paralelização possível: após 001, **002 e 003** podem andar em paralelo; após 005,
 **006 e 007** podem andar em paralelo.
