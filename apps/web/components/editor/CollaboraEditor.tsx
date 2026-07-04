@@ -85,6 +85,29 @@ export function CollaboraEditor({
     if (url && win) win.postMessage(JSON.stringify({ MessageId: 'Host_PostmessageReady' }), new URL(url).origin);
   }, [url]);
 
+  // O onLoad do iframe é cedo demais para o Host_PostmessageReady (o Collabora
+  // ainda não escuta e DESCARTA mensagens do host — o Action_Save do Preview se
+  // perdia e o PDF saía SEM a última edição). Reenviamos o ready em resposta ao
+  // App_LoadingStatus, que é quando o Collabora sinaliza que está escutando.
+  useEffect(() => {
+    if (!url) return;
+    const origin = new URL(url).origin;
+    const onMsg = (e: MessageEvent): void => {
+      if (e.origin !== origin) return;
+      try {
+        const m = JSON.parse(e.data as string) as { MessageId?: string };
+        if (m?.MessageId === 'App_LoadingStatus') {
+          const win = iframeRef.current?.contentWindow;
+          if (win) win.postMessage(JSON.stringify({ MessageId: 'Host_PostmessageReady' }), origin);
+        }
+      } catch {
+        /* ignora mensagens não-JSON */
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [url]);
+
   // Manda o Collabora SALVAR (Action_Save → WOPI PutFile) e só então segue.
   // Aborta se o Collabora reportar falha no save (success=false) — seguir
   // adiante geraria o PDF de um .docx SEM a última edição do operador.
@@ -113,9 +136,13 @@ export function CollaboraEditor({
         try {
           const m = JSON.parse(e.data as string) as {
             MessageId?: string;
-            Values?: { success?: boolean };
+            Values?: { success?: boolean; Modified?: boolean };
           };
           if (m?.MessageId === 'Action_Save_Resp') finish(m.Values?.success !== false);
+          // Doc_ModifiedStatus Modified=false = save concluído (PutFile ok).
+          // Algumas versões do Collabora não emitem Action_Save_Resp — qualquer
+          // um dos dois sinais confirma que o .docx no Storage está atualizado.
+          if (m?.MessageId === 'Doc_ModifiedStatus' && m.Values?.Modified === false) finish(true);
         } catch {
           /* ignora mensagens não-JSON */
         }
