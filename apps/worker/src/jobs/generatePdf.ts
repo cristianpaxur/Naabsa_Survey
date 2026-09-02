@@ -23,6 +23,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { getServiceClient } from '../lib/supabase';
 import { buildReportDocx, type DocxInput } from '../lib/buildDocx';
+import type { DocxInputMsc, TimeLogRow } from '../lib/buildDocxMsc';
 import { convertDocxToPdf, measureBookmarkPages } from '../lib/soffice';
 
 export interface GeneratePdfPayload {
@@ -109,16 +110,19 @@ export interface ReportRow {
   spreadsheet_path: string | null;
   created_by: string | null;
   pdf_paths: string[] | null;
+  /** Slug do report_type — usado para escolher o builder (msc, draft_survey). */
+  type_slug?: string | null;
 }
 
 export async function loadReport(svc: ReturnType<typeof getServiceClient>, reportId: string): Promise<ReportRow | null> {
   const { data, error } = await svc
     .from('reports')
-    .select('status, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths')
+    .select('status, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths, report_types(slug)')
     .eq('id', reportId)
     .single();
   if (error || !data) return null;
-  return data as unknown as ReportRow;
+  const row = data as unknown as ReportRow & { report_types: { slug: string } | null };
+  return { ...row, type_slug: row.report_types?.slug ?? null };
 }
 
 /** Próxima versão do PDF a partir dos caminhos existentes (final-v{n}.pdf). */
@@ -131,16 +135,64 @@ export function nextPdfVersion(paths: string[]): number {
   return max + 1;
 }
 
+/** Converte um valor de célula ExcelJS para o formato usado pelo Time Log. */
+function excelDateToISO(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  // Tempo puro (1899-12-30) ⇒ não é data, só hora.
+  if (y === 1899 && m === '12' && day === '30') return '';
+  return `${y}-${m}-${day}`;
+}
+function excelDateToTime(d: Date | null | undefined): string {
+  if (!d) return '';
+  if (d.getUTCFullYear() !== 1899) return ''; // veio data, não hora
+  const h = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${h}:${mm}`;
+}
+
+/**
+ * Lê a aba `Time Log` crua do ExcelJS (B5:I16), convertendo Date → ISO.
+ * B = evento, F = data, G = hora, H = flag, I = hora fim.
+ */
+function readTimeLog(wb: ExcelJS.Workbook): { event: string; date: string; start: string; flag: string; end: string }[] {
+  const ws = wb.getWorksheet('Time Log');
+  if (!ws) return [];
+  const rows: { event: string; date: string; start: string; flag: string; end: string }[] = [];
+  for (let r = 5; r <= 16; r++) {
+    const event = String(ws.getCell(r, 2).value ?? '').trim();
+    if (!event) continue;
+    const dateRaw = ws.getCell(r, 6).value;
+    const startRaw = ws.getCell(r, 7).value;
+    const flag = String(ws.getCell(r, 8).value ?? '').trim();
+    const endRaw = ws.getCell(r, 9).value;
+    const date = dateRaw instanceof Date ? excelDateToISO(dateRaw) : (dateRaw == null ? '' : String(dateRaw));
+    const start = startRaw instanceof Date ? excelDateToTime(startRaw) : (startRaw == null ? '' : String(startRaw));
+    const end = endRaw instanceof Date ? excelDateToTime(endRaw) : (endRaw == null ? '' : String(endRaw));
+    rows.push({ event, date, start, flag, end });
+  }
+  return rows;
+}
+
 /**
  * Monta o `working.docx` a partir dos dados efetivos + planilha + fotos (2 passes:
  * mede páginas dos bookmarks → sumário com nº reais). É o documento editável aberto
  * no Collabora (012) e a base do PDF. NÃO converte nem persiste — quem chama decide.
+ *
+ * Despacha por `row.type_slug`: `msc` → buildReportDocxMsc (sem variante, sem phases);
+ * default → buildReportDocx (draft_survey, com fases Initial/Intermediate/Final).
  */
+export interface BuiltWorkingDocx {
+  docx: Buffer;
+  data: Record<string, FieldValue>;
+  variant: 'loading' | 'discharge' | null;
+}
 export async function buildWorkingDocx(
   svc: ReturnType<typeof getServiceClient>,
   reportId: string,
   row: ReportRow,
-): Promise<{ docx: Buffer; data: Record<string, FieldValue>; variant: 'loading' | 'discharge' }> {
+): Promise<BuiltWorkingDocx> {
   // Spec congelado.
   const { data: specRow } = await svc.from('report_specs').select('spec').eq('id', row.spec_id).single();
   const spec = (specRow as { spec: ReportSpec } | null)?.spec;
@@ -157,12 +209,46 @@ export async function buildWorkingDocx(
     }
   }
   const variant = (wb ? resolveVariant(wb, spec).variant : null) ?? row.variant;
-  const variantStr: 'loading' | 'discharge' = variant === 'discharge' ? 'discharge' : 'loading';
+  const variantStr: 'loading' | 'discharge' | null = variant === 'discharge' ? 'discharge' : variant === 'loading' ? 'loading' : null;
   const extracted = (row.extracted_data ?? {}) as unknown as Record<string, FieldValue>;
   const overrides = (row.operator_overrides ?? {}) as unknown as Record<string, FieldValue>;
   const data = effectiveData(spec, variant, extracted, overrides);
   const tables: Record<string, FieldValue[][]> = wb ? runExtraction(wb, spec, variant).tables : {};
 
+  const logo = await fetchLogo();
+
+  // ── MSC: builder dedicado (sem variantes, sem sheetImages, sem phases). ──
+  if (row.type_slug === 'msc') {
+    const { buildReportDocxMsc } = await import('../lib/buildDocxMsc');
+    const { data: photoRows } = await svc
+      .from('report_photos')
+      .select('slot_id, processed_path, position, crop')
+      .eq('report_id', reportId)
+      .not('slot_id', 'is', null)
+      .order('position', { ascending: true });
+    const photos: DocxInputMsc['photos'] = { vessel: [], engine_room: [], survey_attendance: [] };
+    for (const r of (photoRows ?? []) as { slot_id: string | null; processed_path: string | null; crop: Crop | null }[]) {
+      if (!r.slot_id || !r.processed_path) continue;
+      if (!['vessel', 'engine_room', 'survey_attendance'].includes(r.slot_id)) continue;
+      const buf = await download(svc, r.processed_path);
+      if (buf) (photos[r.slot_id as keyof typeof photos] ??= []).push(await applyCrop(buf, r.crop));
+    }
+    // Lê o Time Log direto da planilha (ExcelJS serializa Date com hora cheia;
+    // o extractTables do core trunca em YYYY-MM-DD e perderíamos G/I).
+    const timeLogRows: TimeLogRow[] = wb ? readTimeLog(wb) : [];
+    const base: DocxInputMsc = {
+      data,
+      logo,
+      photos,
+      timeLogRows,
+    };
+    const pass1 = await buildReportDocxMsc(base);
+    const pages = await measureBookmarkPages(pass1);
+    const docx = await buildReportDocxMsc({ ...base, tocPages: pages });
+    return { docx, data, variant: null };
+  }
+
+  // ── Default (draft_survey, e futuros tipos sem builder dedicado). ──
   // Prints das abas (render_sheets) + fotos por slot (com crop).
   const sheetImages = {
     initial: await download(svc, `${reportId}/sheets/initial.png`),
@@ -185,8 +271,8 @@ export async function buildWorkingDocx(
   // Monta o .docx em 2 passes (mede páginas dos bookmarks → sumário com nº reais).
   const base: DocxInput = {
     data,
-    variant: variantStr,
-    logo: await fetchLogo(),
+    variant: variantStr ?? 'loading',
+    logo,
     coverPhoto: bySlot['cover']?.[0] ?? null,
     sheetImages,
     phasePhotos: {
@@ -202,7 +288,7 @@ export async function buildWorkingDocx(
   const pass1 = await buildReportDocx(base);
   const pages = await measureBookmarkPages(pass1);
   const docx = await buildReportDocx({ ...base, tocPages: pages });
-  return { docx, data, variant: variantStr };
+  return { docx, data, variant: variantStr ?? 'loading' };
 }
 
 /**

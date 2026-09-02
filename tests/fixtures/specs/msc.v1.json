@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "authored": "2026-09-02",
+    "sources": [
+      "tests/fixtures/planilhas/msc/msc.real.v1.xlsx",
+      "MSC Report - revisado.docx (modelo Word do cliente, instruções em vermelho)"
+    ],
+    "targets_schema_contract": 2,
+    "notes": [
+      "Contrato v2 (multi-aba). Fingerprint: Summary!A5 = 'ATTENDANCE'.",
+      "Variantes vazias (msc é um tipo único, sem loading/discharge).",
+      "Planilha SABRINA tem 8 abas; só Summary/Time Log/Sludge/Qtt Sumary/LOG Audit estão no escopo da spec v1. LNG, VacuoAr, Vessel Ullage ficam em ignore_sheets (a tabela de Ullage é input do operador, não sai no relatório).",
+      "Time Log: cabeçalho em linha 4 (Date/Time/x/Time2), dados 5–16. Colunas usadas: B (evento), F (data), G (hora), H (flag), I (hora fim). Range: Time Log!B4:I16.",
+      "Qtt Sumary: células F11..F19 guardam totais por grade (R HS, R VLS, DISTILLATES). Para v1 o builder só lê os valores disponíveis; ausentes viram '—' no DOCX.",
+      "Foto slots: vessel / engine_room / survey_attendance (mín. 1 cada, obrigatórios). Capa não tem slot dedicado — vem do slot vessel[0] se presente."
+    ]
+  },
+
+  "report_type": "msc",
+  "version": 1,
+  "contract": 2,
+  "variants": [],
+
+  "source": {
+    "fingerprint": { "sheet": "Summary", "cell": "A5", "expect": "ATTENDANCE" },
+    "ignore_sheets": ["LOG Audit", "LNG", "VacuoAr", "Vessel Ullage"],
+
+    "common": {
+      "fields": {
+        "appointed_service": { "sheet": "Summary", "cell": "B6",  "type": "string", "label": "Serviço",                  "section": "Serviço" },
+        "vessel_name":        { "sheet": "Summary", "cell": "B7",  "type": "string", "required": true, "label": "Navio",  "section": "Identificação" },
+        "voy":                { "sheet": "Summary", "cell": "B8",  "type": "string", "label": "Viagem",                    "section": "Identificação" },
+
+        "grade_1":         { "sheet": "Summary", "cell": "B9",  "type": "string", "label": "Grade 1",   "section": "Cargas" },
+        "grade_1_present": { "sheet": "Summary", "cell": "C9",  "type": "enum",   "options": ["YES", "NO"], "label": "Grade 1 — presente?", "section": "Cargas" },
+        "grade_2":         { "sheet": "Summary", "cell": "B10", "type": "string", "label": "Grade 2",   "section": "Cargas" },
+        "grade_2_present": { "sheet": "Summary", "cell": "C10", "type": "enum",   "options": ["YES", "NO"], "label": "Grade 2 — presente?", "section": "Cargas" },
+        "grade_3":         { "sheet": "Summary", "cell": "B11", "type": "string", "label": "Grade 3",   "section": "Cargas" },
+        "grade_3_present": { "sheet": "Summary", "cell": "C11", "type": "enum",   "options": ["YES", "NO"], "label": "Grade 3 — presente?", "section": "Cargas" },
+        "grade_4":         { "sheet": "Summary", "cell": "B12", "type": "string", "label": "Grade 4",   "section": "Cargas" },
+        "grade_4_present": { "sheet": "Summary", "cell": "C12", "type": "enum",   "options": ["YES", "NO"], "label": "Grade 4 — presente?", "section": "Cargas" },
+
+        "terminal":        { "sheet": "Summary", "cell": "B13", "type": "string", "label": "Terminal",   "section": "Identificação" },
+        "port":            { "sheet": "Summary", "cell": "B14", "type": "string", "label": "Porto",      "section": "Identificação" },
+        "surveyors":       { "sheet": "Summary", "cell": "B15", "type": "string", "label": "Surveyors",  "section": "Identificação" },
+        "last_attendance": { "sheet": "Summary", "cell": "B16", "type": "enum",   "options": ["Yes", "No"], "label": "Last attendance?", "section": "Identificação" },
+
+        "berthing_date": { "sheet": "Summary", "cell": "B18", "type": "date", "format": "Month Do, YYYY", "label": "Berthing date", "section": "Prazos" },
+        "berthing_time": { "sheet": "Summary", "cell": "B19", "type": "time", "label": "Berthing time",                       "section": "Prazos" },
+
+        "imo":            { "sheet": "Summary", "cell": "B21", "type": "string", "label": "IMO",                       "section": "Navio" },
+        "flag":           { "sheet": "Summary", "cell": "B22", "type": "string", "label": "Bandeira",                  "section": "Navio" },
+        "port_registry":  { "sheet": "Summary", "cell": "B23", "type": "string", "label": "Porto de registro",         "section": "Navio" },
+        "gross_tonnage":  { "sheet": "Summary", "cell": "B24", "type": "number", "decimals": 3, "unit": "mt", "label": "GRT (mt)",      "section": "Navio" },
+        "net_tonnage":    { "sheet": "Summary", "cell": "B25", "type": "number", "decimals": 3, "unit": "mt", "label": "NET (mt)",      "section": "Navio" },
+        "delivered":      { "sheet": "Summary", "cell": "B26", "type": "number", "decimals": 0,                  "label": "Ano de entrega",            "section": "Navio" },
+        "owner":          { "sheet": "Summary", "cell": "B27", "type": "string", "label": "Owner",                     "section": "Navio" },
+        "manager":        { "sheet": "Summary", "cell": "B28", "type": "string", "label": "Manager",                   "section": "Navio" },
+        "call_sign":      { "sheet": "Summary", "cell": "B29", "type": "string", "label": "Call sign",                 "section": "Navio" },
+        "type":           { "sheet": "Summary", "cell": "B30", "type": "string", "label": "Tipo",                      "section": "Navio" },
+        "loa":            { "sheet": "Summary", "cell": "B31", "type": "number", "decimals": 2, "unit": "m", "label": "LOA (m)",       "section": "Navio" },
+        "lbp":            { "sheet": "Summary", "cell": "B32", "type": "number", "decimals": 2, "unit": "m", "label": "LBP (m)",       "section": "Navio" },
+        "breadth":        { "sheet": "Summary", "cell": "B33", "type": "number", "decimals": 2, "unit": "m", "label": "Boca (m)",      "section": "Navio" },
+        "depth":          { "sheet": "Summary", "cell": "B34", "type": "number", "decimals": 2, "unit": "m", "label": "Pontal (m)",    "section": "Navio" },
+        "light_ship":     { "sheet": "Summary", "cell": "B35", "type": "number", "decimals": 2, "unit": "t", "label": "Light ship (t)","section": "Navio" },
+
+        "captain":        { "sheet": "Summary", "cell": "B37", "type": "string", "label": "Capitão",          "section": "Comando" },
+        "chief_engineer": { "sheet": "Summary", "cell": "B38", "type": "string", "label": "Chefe de máquinas","section": "Comando" },
+        "surveyed_by":    { "sheet": "Summary", "cell": "B39", "type": "string", "label": "Quem sondou",      "section": "Comando" },
+
+        "purifier_temp":      { "sheet": "Sludge", "cell": "K29", "type": "number", "decimals": 0, "unit": "°C", "label": "Temperatura purificador (°C)", "section": "Purificadores" },
+        "purifier_flow":      { "sheet": "Sludge", "cell": "K30", "type": "string",                       "label": "Fluxo por purificador",         "section": "Purificadores" },
+        "purifier_bowl_freq": { "sheet": "Sludge", "cell": "K31", "type": "number", "decimals": 0, "unit": "min","label": "Frequência de descarga (min)",  "section": "Purificadores" },
+
+        "temp_storage_infrared": { "sheet": "Time Log", "cell": "C36", "type": "string", "label": "FO Storage (IR)",   "section": "Temperaturas" },
+        "temp_service":          { "sheet": "Time Log", "cell": "C37", "type": "string", "label": "Service tanks",     "section": "Temperaturas" },
+        "temp_do":               { "sheet": "Time Log", "cell": "C38", "type": "string", "label": "DO storage",        "section": "Temperaturas" },
+        "temp_engine_room":      { "sheet": "Time Log", "cell": "C39", "type": "number", "decimals": 0, "unit": "°C", "label": "Engine room (°C)", "section": "Temperaturas" },
+        "temp_sea_water":        { "sheet": "Time Log", "cell": "C40", "type": "number", "decimals": 0, "unit": "°C", "label": "Sea water (°C)",   "section": "Temperaturas" }
+      }
+    },
+
+    "tables": [
+      { "id": "time_log",            "label": "Time Log",                 "sheet": "Time Log", "range": "B4:I16" },
+      { "id": "sludge_misc",         "label": "Sludge — miscellaneous",   "sheet": "Sludge",   "range": "B11:L13" },
+      { "id": "sludge_tanks_before", "label": "Sludge tanks (before)",    "sheet": "Sludge",   "range": "B16:I23" },
+      { "id": "sludge_tanks_after",  "label": "Sludge tanks (after)",     "sheet": "Sludge",   "range": "H16:I23" }
+    ]
+  },
+
+  "validations": [
+    { "rule": "range", "field": "loa",           "min": 50,   "max": 400,   "level": "warning", "message": "LOA fora do intervalo usual (50–400 m) — confira Summary!B31." },
+    { "rule": "range", "field": "gross_tonnage", "min": 0,    "max": 300000, "level": "warning", "message": "GRT fora do intervalo usual — confira Summary!B24." }
+  ],
+
+  "photo_slots": [
+    { "id": "vessel",            "label": "Vessel (capa)",         "aspect": "4:3", "required": true, "min": 1 },
+    { "id": "engine_room",       "label": "Engine room",           "aspect": "4:3", "required": true, "min": 1 },
+    { "id": "survey_attendance", "label": "Survey attendance",     "aspect": "4:3", "required": true, "min": 1 }
+  ]
+}
