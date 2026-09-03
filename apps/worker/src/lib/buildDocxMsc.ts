@@ -19,6 +19,7 @@ import {
   TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
   Bookmark, InternalHyperlink, TableLayoutType, LineRuleType,
 } from 'docx';
+import { draftDetailsTable } from './draftDetailsTable';
 
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
 import type { FieldValue } from '@naabsa/core';
@@ -361,6 +362,9 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   // ── 3. Gross volume — m³ ──
   body.push(sectionTitle('s3', toc.find((e) => e.id === 's3')!.label));
   body.push(para([run('Calculated according to the ship’s tanks sounding table provided by Chief Engineer at time of survey. All corrections were applied accordingly.')]));
+  // Tabela completa de cálculos (DENSITY / TRIM / LIST / DISPLACEMENT / BALLAST /
+  // FUEL / ROB / SF / FINAL DRAFT) — operador preenche no Collabora.
+  body.push(draftDetailsTable());
   body.push(para([run('After calculations, the logbook and VRS were updated according to the figures disclosed by surveyor.')]));
 
   // Tabela de time log (eventos) — vem pré-normalizada de generatePdf.
