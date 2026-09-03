@@ -72,15 +72,15 @@ const para = (children: TextRun[], opts: { align?: (typeof AlignmentType)[keyof 
 
 // célula de tabela "label : valor" (sem fundo, como o Word)
 // Larguras absolutas (twips) — o LibreOffice não respeita % em tabela; DXA + FIXED sim.
-const KV_COLS = [2000, 250, 7610] as const; // rótulo | ":" | valor (≈ largura útil A4)
+// `:` vai colado no label (sem coluna dedicada) — fica mais perto da borda esquerda do valor.
+const KV_COLS = [1700, 8160] as const; // rótulo (com ":" no fim) | valor (≈ largura útil A4)
 function kvRow(label: string, value: string): TableRow {
   const cell = (children: Paragraph[], w: number) =>
     new TableCell({ children, width: { size: w, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 20, bottom: 20, left: 80, right: 80 } });
   return new TableRow({
     children: [
-      cell([new Paragraph({ children: [run(label, { bold: true })] })], KV_COLS[0]),
-      cell([new Paragraph({ children: [run(':', { bold: true })] })], KV_COLS[1]),
-      cell([new Paragraph({ children: [run(value)] })], KV_COLS[2]),
+      cell([new Paragraph({ children: [run(`${label}:`, { bold: true })] })], KV_COLS[0]),
+      cell([new Paragraph({ children: [run(value)] })], KV_COLS[1]),
     ],
   });
 }
@@ -134,22 +134,18 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
   const V = VARIANT[input.variant];
   const hasInter = data['intermediate_date'] != null;
 
-  // Numeração de seções (igual ao modelo; sem Intermediate, desloca Final/Photo/Attach).
+  // Numeração de seções. Photographic Report não é mais seção própria: cada fase
+  // (Initial/Intermediate/Final) ganha um subitem "Photographic Report" no fim
+  // com as fotos daquela fase. Attachment vira o próximo nº depois das fases.
   const initNum = 4, interNum = 5;
   const finalNum = hasInter ? 6 : 5;
-  const photoNum = hasInter ? 7 : 6;
-  const attachNum = hasInter ? 8 : 7;
+  const attachNum = hasInter ? 7 : 6;
   const numTitle = (n: number, label: string) => `${n}. ${label}`;
-  // Subseções de fotos (numeração condicional ao Intermediate).
-  const photoSubs: { m: number; label: string; key: 'initial' | 'intermediate' | 'final' }[] = [
-    { m: 1, label: 'Initial', key: 'initial' },
-    ...(hasInter ? [{ m: 2, label: 'Intermediate', key: 'intermediate' as const }] : []),
-    { m: hasInter ? 3 : 2, label: 'Final', key: 'final' },
-  ];
+  const numSub = (n: number, m: number, label: string) => `${n}.${m} ${label}`;
   // Modelo do sumário (id de bookmark + rótulo + nível). Fonte única p/ Contents e corpo.
   const toc: { id: string; label: string; level: 1 | 2 }[] = [];
   const sec = (n: number, label: string) => toc.push({ id: `s${n}`, label: numTitle(n, label), level: 1 });
-  const sub = (n: number, m: number, label: string) => toc.push({ id: `s${n}_${m}`, label: `${n}.${m} ${label}`, level: 2 });
+  const sub = (n: number, m: number, label: string) => toc.push({ id: `s${n}_${m}`, label: numSub(n, m, label), level: 2 });
   sec(1, 'Background');
   sec(2, "Ship's Particulars");
   sec(3, 'Draft Survey');
@@ -159,9 +155,8 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
     sub(n, 1, 'Draft readings'); sub(n, 2, 'Sea water density');
     sub(n, 3, 'Ballast water and fresh water'); sub(n, 4, 'Fuel R.O.B.');
     sub(n, 5, `${label} Draft details`);
+    sub(n, 6, 'Photographic Report');
   }
-  sec(photoNum, 'Photographic Report');
-  for (const p of photoSubs) sub(photoNum, p.m, p.label);
   sec(attachNum, 'Attachment');
 
   // ── Cabeçalho (logo + tagline + régua) ──
@@ -262,19 +257,11 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
   // Initial lista as MESMAS partes citadas do Final (modelo aponta DS FINAL B49-B51):
   // as partes do atendimento são as mesmas. A narrativa do Initial usa só os nomes
   // (sem o bloco de "figures", que é exclusivo de Intermediate/Final).
-  body.push(...phaseSection(initNum, 'Initial', 'init', data, V, input.sheetImages.initial, input.acting.final ?? []));
-  if (hasInter) body.push(...phaseSection(interNum, 'Intermediate', 'int', data, V, input.sheetImages.intermediate, input.acting.intermediate ?? []));
-  body.push(...phaseSection(finalNum, 'Final', 'fin', data, V, input.sheetImages.final, input.acting.final ?? []));
+  body.push(...phaseSection(initNum, 'Initial', 'init', data, V, input.sheetImages.initial, input.acting.final ?? [], input.phasePhotos.initial ?? []));
+  if (hasInter) body.push(...phaseSection(interNum, 'Intermediate', 'int', data, V, input.sheetImages.intermediate, input.acting.intermediate ?? [], input.phasePhotos.intermediate ?? []));
+  body.push(...phaseSection(finalNum, 'Final', 'fin', data, V, input.sheetImages.final, input.acting.final ?? [], input.phasePhotos.final ?? []));
 
-  // ── 7. Photographic Report (nova página) ──
-  body.push(new Paragraph({ children: [new PageBreak()] }));
-  body.push(sectionTitle(`s${photoNum}`, numTitle(photoNum, 'Photographic Report')));
-  for (const p of photoSubs) {
-    body.push(subTitle(`s${photoNum}_${p.m}`, `${photoNum}.${p.m} ${p.label}`));
-    for (const ph of input.phasePhotos[p.key] ?? []) body.push(img(ph, 150));
-  }
-
-  // ── 8. Attachment ──
+  // ── Attachment ──
   body.push(sectionTitle(`s${attachNum}`, numTitle(attachNum, 'Attachment')));
   ['Draft Survey Certificates issued by undersigned surveyor', 'Draft Survey Certificate issued by vessel', 'Draft Survey Certificate issued by Terminal’s surveyor']
     .forEach((t) => body.push(para([run(t)])));
@@ -328,7 +315,7 @@ function personRow(label: string, lines: string[]): TableRow {
   ] });
 }
 
-function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', data: Data, V: (typeof VARIANT)[keyof typeof VARIANT], image: Buffer | null | undefined, acting: string[][]): (Paragraph | Table)[] {
+function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', data: Data, V: (typeof VARIANT)[keyof typeof VARIANT], image: Buffer | null | undefined, acting: string[][], phasePhotos: Buffer[]): (Paragraph | Table)[] {
   const out: (Paragraph | Table)[] = [];
   const fp = x === 'int' ? 'int' : x === 'fin' ? 'fin' : null;
   const dateField = x === 'init' ? 'initial_date' : x === 'int' ? 'intermediate_date' : 'final_date';
@@ -374,6 +361,13 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   out.push(subLead(`s${num}_4`, `${num}.4 Fuel R.O.B.: `, x === 'init' ? 'According to the logbook – FWE.' : 'Declared by Ch/Eng at time of survey.'));
   out.push(subTitle(`s${num}_5`, `${num}.5 ${title} Draft details`));
   if (image) out.push(img(image, 165));
+  // Subitem final: Photographic Report desta fase (substitui a seção Photographic Report do modelo antigo).
+  out.push(subTitle(`s${num}_6`, `${num}.6 Photographic Report`));
+  if (phasePhotos.length > 0) {
+    for (const ph of phasePhotos) out.push(img(ph, 150));
+  } else {
+    out.push(para([run('—', { color: GREY })]));
+  }
   return out;
 }
 

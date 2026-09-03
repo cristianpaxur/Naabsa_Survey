@@ -133,15 +133,17 @@ const run = (text: string, opts: { bold?: boolean; size?: number; font?: string;
 const para = (children: TextRun[], opts: { align?: (typeof AlignmentType)[keyof typeof AlignmentType]; spacing?: number } = {}) =>
   new Paragraph({ children, alignment: opts.align, spacing: { after: opts.spacing ?? 120, ...BODY_LINE } });
 
-const KV_COLS = [2000, 250, 7610] as const;
+// célula de tabela "label : valor" (sem fundo, como o Word)
+// Larguras absolutas (twips) — o LibreOffice não respeita % em tabela; DXA + FIXED sim.
+// `:` vai colado no label (sem coluna dedicada) — fica mais perto da borda esquerda do valor.
+const KV_COLS = [1700, 8160] as const; // rótulo (com ":" no fim) | valor (≈ largura útil A4)
 function kvRow(label: string, value: string): TableRow {
   const cell = (children: Paragraph[], w: number) =>
     new TableCell({ children, width: { size: w, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 20, bottom: 20, left: 80, right: 80 } });
   return new TableRow({
     children: [
-      cell([new Paragraph({ children: [run(label, { bold: true })] })], KV_COLS[0]),
-      cell([new Paragraph({ children: [run(':', { bold: true })] })], KV_COLS[1]),
-      cell([new Paragraph({ children: [run(value)] })], KV_COLS[2]),
+      cell([new Paragraph({ children: [run(`${label}:`, { bold: true })] })], KV_COLS[0]),
+      cell([new Paragraph({ children: [run(value)] })], KV_COLS[1]),
     ],
   });
 }
@@ -200,12 +202,12 @@ const SLOT_LABELS: Record<keyof DocxInputMsc['photos'], string> = {
 
 export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   const { data, logo } = input;
-  const photoSubs = (['vessel', 'engine_room', 'survey_attendance'] as const)
-    .filter((k) => (input.photos[k] ?? []).length > 0);
-
-  // Numero de secoes (sem fase Intermediate — MSC tem apenas 1 evento de atracacao).
-  const photoNum = 4;
-  const attachNum = 5;
+  // Cada slot de foto vira uma secao propria (4. Vessel / 5. Engine Room / 6. Survey attendance),
+  // cada uma com subitem "Photographic Report" no fim. A antiga secao "4. Photographic Report"
+  // deixa de existir no sumario.
+  const photoSlots = (['vessel', 'engine_room', 'survey_attendance'] as const);
+  const firstPhotoSec = 4;
+  const attachNum = firstPhotoSec + photoSlots.length;
 
   // Sumario (id de bookmark + rotulo + nivel). Fonte unica para Contents e corpo.
   const toc: { id: string; label: string; level: 1 | 2 }[] = [];
@@ -219,8 +221,10 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   sub(2, 4, 'Specific Gravities');
   sub(2, 5, 'Time log');
   sec(3, 'Gross volume — m³');
-  sec(photoNum, 'Photographic Report');
-  for (const [i, key] of photoSubs.entries()) sub(photoNum, i + 1, SLOT_LABELS[key]);
+  for (const [i, key] of photoSlots.entries()) {
+    sec(firstPhotoSec + i, SLOT_LABELS[key]);
+    sub(firstPhotoSec + i, 1, 'Photographic Report');
+  }
   sec(attachNum, 'Attachment');
 
   // ── Cabecalho (logo + tagline + regua) ──
@@ -365,21 +369,21 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
     body.push(timeLogTable(input.timeLogRows!));
   }
 
-  // ── 4. Photographic Report ──
-  body.push(new Paragraph({ children: [new PageBreak()] }));
-  body.push(sectionTitle(`s${photoNum}`, toc.find((e) => e.id === `s${photoNum}`)!.label));
-  for (const [i, key] of photoSubs.entries()) {
-    body.push(subTitle(`s${photoNum}_${i + 1}`, `${photoNum}.${i + 1} ${SLOT_LABELS[key]}`));
-    for (const ph of input.photos[key] ?? []) body.push(img(ph, 150));
-  }
-  // Se nao ha fotos em nenhum slot, ainda lista as 3 secoes com placeholder.
-  if (photoSubs.length === 0) {
-    body.push(subTitle(`s${photoNum}_1`, `${photoNum}.1 Vessel`));
-    body.push(subTitle(`s${photoNum}_2`, `${photoNum}.2 Engine Room`));
-    body.push(subTitle(`s${photoNum}_3`, `${photoNum}.3 Survey attendance`));
+  // ── 4/5/6. Seções de fotos (cada slot vira seção própria com subitem Photographic Report) ──
+  for (const [i, key] of photoSlots.entries()) {
+    const n = firstPhotoSec + i;
+    body.push(new Paragraph({ children: [new PageBreak()] }));
+    body.push(sectionTitle(`s${n}`, toc.find((e) => e.id === `s${n}`)!.label));
+    body.push(subTitle(`s${n}_1`, `${n}.1 Photographic Report`));
+    const photos = input.photos[key] ?? [];
+    if (photos.length > 0) {
+      for (const ph of photos) body.push(img(ph, 150));
+    } else {
+      body.push(para([run('—', { color: GREY })]));
+    }
   }
 
-  // ── 5. Attachment ──
+  // ── Attachment ──
   body.push(sectionTitle(`s${attachNum}`, toc.find((e) => e.id === `s${attachNum}`)!.label));
   body.push(para([run('Sludge removal certificates.')]));
   body.push(para([run('Sludge disposal receipts.')]));
