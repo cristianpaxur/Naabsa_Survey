@@ -11,7 +11,6 @@ import {
   TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
   Bookmark, InternalHyperlink, TableLayoutType, LineRuleType,
 } from 'docx';
-import { draftDetailsTable } from './draftDetailsTable';
 
 /** Entrelinha confortável (~1.15) para o texto corrido — ar entre as linhas. */
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
@@ -361,8 +360,7 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
   out.push(subLead(`s${num}_4`, `${num}.4 Fuel R.O.B.: `, x === 'init' ? 'According to the logbook – FWE.' : 'Declared by Ch/Eng at time of survey.'));
   out.push(subTitle(`s${num}_5`, `${num}.5 ${title} Draft details`));
-  // Tabela completa do "Draft details" — operador preenche no Collabora.
-  out.push(draftDetailsTable());
+  if (image) out.push(img(image, 165));
   // Subitem final: Photographic Report desta fase (substitui a seção Photographic Report do modelo antigo).
   out.push(subTitle(`s${num}_6`, `${num}.6 Photographic Report`));
   if (phasePhotos.length > 0) {
