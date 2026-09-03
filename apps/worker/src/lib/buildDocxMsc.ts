@@ -15,18 +15,24 @@
  */
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
-  Header, Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
+  Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
   TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
   Bookmark, InternalHyperlink, TableLayoutType, LineRuleType,
 } from 'docx';
+import {
+  createNaabsaHeader,
+  NAABSA_BODY_FONT,
+  NAABSA_BODY_WIDTH,
+  NAABSA_CONTACT_COLUMNS,
+  NAABSA_PAGE_MARGINS,
+} from './naabsaDocumentLayout';
 
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
 import type { FieldValue } from '@naabsa/core';
 
 const NAVY = '002060';
 const GREY = '7F7F7F';
-const SLAB = 'Rockwell';
-const SANS = 'Calibri';
+const SANS = NAABSA_BODY_FONT;
 const TITLE_FONT = 'Tahoma';
 // Mesmo surveyor que assina o draft_survey (manter consistencia institucional).
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
@@ -74,7 +80,6 @@ function grp(n: number, dec: number): string {
   const neg = n < 0; const f = Math.abs(n).toFixed(dec); const [i, d] = f.split('.');
   return `${neg ? '-' : ''}${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${d ? '.' + d : ''}`;
 }
-const mt = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 3)} MT` : v(x));
 const ton = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 0)} mt` : v(x));
 const meters = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${x.toFixed(2)} m` : v(x));
 const num = (x: FieldValue | undefined, d: number): string => (typeof x === 'number' ? x.toFixed(d) : v(x));
@@ -109,23 +114,6 @@ function fmtTime(x: unknown): string {
   if (s === '1899-12-30') return '—';
   const m = /^(\d{1,2}):(\d{2})/.exec(s);
   return m ? `${m[1]}:${m[2]}` : s;
-}
-
-/** Converte uma célula de tabela (Date/string/number) para string ISO curta (YYYY-MM-DD). */
-function cellToDateString(c: unknown): string {
-  if (c == null) return '';
-  if (c instanceof Date) {
-    // Date em epoch (1899-12-30) => tempo puro.
-    if (c.getUTCFullYear() === 1899 && c.getUTCMonth() === 11 && c.getUTCDate() === 30) {
-      return `1899-12-30T${String(c.getUTCHours()).padStart(2, '0')}:${String(c.getUTCMinutes()).padStart(2, '0')}:00`;
-    }
-    return `${c.getUTCFullYear()}-${String(c.getUTCMonth() + 1).padStart(2, '0')}-${String(c.getUTCDate()).padStart(2, '0')}`;
-  }
-  return String(c);
-}
-function dateMatrix(m: unknown): string[][] {
-  if (!Array.isArray(m)) return [];
-  return (m as unknown[][]).map((r) => r.map(cellToDateString));
 }
 
 const run = (text: string, opts: { bold?: boolean; size?: number; font?: string; color?: string } = {}) =>
@@ -228,43 +216,29 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   sec(attachNum, 'Attachment');
 
   // ── Cabecalho (logo + tagline + regua) ──
-  const header = new Header({
-    children: [
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.SINGLE, size: 6, color: NAVY }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
-        rows: [new TableRow({ children: [
-          new TableCell({ width: { size: 28, type: WidthType.PERCENTAGE }, borders: noBorders(), verticalAlign: VerticalAlign.BOTTOM, children: [
-            logo
-              ? new Paragraph({ children: [new ImageRun({ type: 'jpg', data: logo, transformation: { width: 150, height: 34 } })] })
-              : new Paragraph({ children: [run('NAABSA', { bold: true, size: 32, color: 'BF2C30' })] }),
-          ] }),
-          new TableCell({ width: { size: 72, type: WidthType.PERCENTAGE }, borders: noBorders(), verticalAlign: VerticalAlign.BOTTOM, children: [
-            new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 0 }, children: [run('MARINE SURVEYORS & CONSULTANTS', { font: SLAB, color: NAVY, size: 22, bold: true })] }),
-            new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 0 }, children: [run('Main Brazilian Ports', { font: SLAB, color: NAVY, size: 18 })] }),
-          ] }),
-        ] })],
-      }),
-    ],
-  });
+  const header = createNaabsaHeader(logo, 'default');
+  const firstPageHeader = createNaabsaHeader(logo, 'first');
+  const evenPageHeader = createNaabsaHeader(logo, 'default');
 
   // ── Rodape (e-mail | url + no de pagina) ──
-  const footer = new Footer({
+  const createFooter = () => new Footer({
     children: [new Paragraph({
       alignment: AlignmentType.RIGHT, border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'auto' } },
       tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
       children: [run('surveyors@naabsa.com.br | www.naabsa.com', { color: GREY, size: 16 }), new TextRun({ text: '\t', size: 16 }), new TextRun({ children: [PageNumber.CURRENT], size: 16, color: GREY, font: SANS })],
     })],
   });
+  const footer = createFooter();
+  const evenPageFooter = createFooter();
 
   const body: (Paragraph | Table)[] = [];
 
   // ── Capa: bloco de endereco (2 colunas) ──
   body.push(new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+    width: { size: NAABSA_BODY_WIDTH, type: WidthType.DXA }, columnWidths: [...NAABSA_CONTACT_COLUMNS], layout: TableLayoutType.FIXED, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
     rows: [new TableRow({ children: [
-      new TableCell({ borders: noBorders(), width: { size: 50, type: WidthType.PERCENTAGE }, children: ['433 Ana Costa Avenue', 'Suite 184 - Santos/Brazil', '11060-003'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(t, { size: 19 })] })) }),
-      new TableCell({ borders: noBorders(), width: { size: 50, type: WidthType.PERCENTAGE }, children: ['Telephone: +55 13 33940655', 'email: surveyors@naabsa.com', 'www.naabsa.com'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(t, { size: 19 })] })) }),
+      new TableCell({ borders: noBorders(), width: { size: NAABSA_CONTACT_COLUMNS[0], type: WidthType.DXA }, children: ['433 Ana Costa Avenue', 'Suite 184 - Santos/Brazil', '11060-003'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 }, children: [run(t, { size: 18 })] })) }),
+      new TableCell({ borders: noBorders(), width: { size: NAABSA_CONTACT_COLUMNS[1], type: WidthType.DXA }, children: ['Telephone: +55 13 33940655', 'email: surveyors@naabsa.com', 'www.naabsa.com'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 }, children: [run(t, { size: 18 })] })) }),
     ] })],
   }));
   body.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
@@ -391,6 +365,7 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   body.push(para([run('Calibration certificates (flowmeters).')]));
 
   const doc = new Document({
+    evenAndOddHeaderAndFooters: true,
     styles: {
       default: { document: { run: { font: SANS, size: 22 } } },
       paragraphStyles: [
@@ -399,8 +374,8 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
       ],
     },
     sections: [{
-      properties: { page: { margin: { top: 1440, bottom: 1080, left: 1020, right: 1020 } } },
-      headers: { default: header }, footers: { default: footer },
+      properties: { page: { margin: NAABSA_PAGE_MARGINS }, titlePage: true },
+      headers: { default: header, first: firstPageHeader, even: evenPageHeader }, footers: { default: footer, even: evenPageFooter },
       children: body,
     }],
   });

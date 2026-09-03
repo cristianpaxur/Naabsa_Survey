@@ -7,10 +7,17 @@
  */
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
-  Header, Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
+  Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
   TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
   Bookmark, InternalHyperlink, TableLayoutType, LineRuleType,
 } from 'docx';
+import {
+  createNaabsaHeader,
+  NAABSA_BODY_FONT,
+  NAABSA_BODY_WIDTH,
+  NAABSA_CONTACT_COLUMNS,
+  NAABSA_PAGE_MARGINS,
+} from './naabsaDocumentLayout';
 
 /** Entrelinha confortável (~1.15) para o texto corrido — ar entre as linhas. */
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
@@ -18,8 +25,7 @@ import type { FieldValue } from '@naabsa/core';
 
 const NAVY = '002060';
 const GREY = '7F7F7F';
-const SLAB = 'Rockwell';      // aprox. do GeoSlab703 do modelo
-const SANS = 'Calibri';
+const SANS = NAABSA_BODY_FONT;
 const TITLE_FONT = 'Tahoma';
 // Nome do surveyor que assina (1ª página). Fixo por ora; pode virar config/perfil.
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
@@ -160,43 +166,29 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
   sec(attachNum, 'Attachment');
 
   // ── Cabeçalho (logo + tagline + régua) ──
-  const header = new Header({
-    children: [
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.SINGLE, size: 6, color: NAVY }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
-        rows: [new TableRow({ children: [
-          new TableCell({ width: { size: 28, type: WidthType.PERCENTAGE }, borders: noBorders(), verticalAlign: VerticalAlign.BOTTOM, children: [
-            logo
-              ? new Paragraph({ children: [new ImageRun({ type: 'jpg', data: logo, transformation: { width: 150, height: 34 } })] })
-              : new Paragraph({ children: [run('NAABSA', { bold: true, size: 32, color: 'BF2C30' })] }),
-          ] }),
-          new TableCell({ width: { size: 72, type: WidthType.PERCENTAGE }, borders: noBorders(), verticalAlign: VerticalAlign.BOTTOM, children: [
-            new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 0 }, children: [run('MARINE SURVEYORS & CONSULTANTS', { font: SLAB, color: NAVY, size: 22, bold: true })] }),
-            new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 0 }, children: [run('Main Brazilian Ports', { font: SLAB, color: NAVY, size: 18 })] }),
-          ] }),
-        ] })],
-      }),
-    ],
-  });
+  const header = createNaabsaHeader(logo, 'default');
+  const firstPageHeader = createNaabsaHeader(logo, 'first');
+  const evenPageHeader = createNaabsaHeader(logo, 'default');
 
   // ── Rodapé (e-mail | url + nº de página) ──
-  const footer = new Footer({
+  const createFooter = () => new Footer({
     children: [new Paragraph({
       alignment: AlignmentType.RIGHT, border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'auto' } },
       tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
       children: [run('surveyors@naabsa.com.br | www.naabsa.com', { color: GREY, size: 16 }), new TextRun({ text: '\t', size: 16 }), new TextRun({ children: [PageNumber.CURRENT], size: 16, color: GREY, font: SANS })],
     })],
   });
+  const footer = createFooter();
+  const evenPageFooter = createFooter();
 
   const body: (Paragraph | Table)[] = [];
 
   // ── Capa: bloco de endereço (2 colunas) ──
   body.push(new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+    width: { size: NAABSA_BODY_WIDTH, type: WidthType.DXA }, columnWidths: [...NAABSA_CONTACT_COLUMNS], layout: TableLayoutType.FIXED, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
     rows: [new TableRow({ children: [
-      new TableCell({ borders: noBorders(), width: { size: 50, type: WidthType.PERCENTAGE }, children: ['433 Ana Costa Avenue', 'Suite 184 - Santos/Brazil', '11060-003'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(t, { size: 19 })] })) }),
-      new TableCell({ borders: noBorders(), width: { size: 50, type: WidthType.PERCENTAGE }, children: ['Telephone: +55 13 33940655', 'email: surveyors@naabsa.com', 'www.naabsa.com'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(t, { size: 19 })] })) }),
+      new TableCell({ borders: noBorders(), width: { size: NAABSA_CONTACT_COLUMNS[0], type: WidthType.DXA }, children: ['433 Ana Costa Avenue', 'Suite 184 - Santos/Brazil', '11060-003'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 }, children: [run(t, { size: 18 })] })) }),
+      new TableCell({ borders: noBorders(), width: { size: NAABSA_CONTACT_COLUMNS[1], type: WidthType.DXA }, children: ['Telephone: +55 13 33940655', 'email: surveyors@naabsa.com', 'www.naabsa.com'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 }, children: [run(t, { size: 18 })] })) }),
     ] })],
   }));
   body.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
@@ -267,6 +259,7 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
     .forEach((t) => body.push(para([run(t)])));
 
   const doc = new Document({
+    evenAndOddHeaderAndFooters: true,
     styles: {
       default: { document: { run: { font: SANS, size: 22 } } },
       paragraphStyles: [
@@ -275,8 +268,8 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
       ],
     },
     sections: [{
-      properties: { page: { margin: { top: 1440, bottom: 1080, left: 1020, right: 1020 } } },
-      headers: { default: header }, footers: { default: footer },
+      properties: { page: { margin: NAABSA_PAGE_MARGINS }, titlePage: true },
+      headers: { default: header, first: firstPageHeader, even: evenPageHeader }, footers: { default: footer, even: evenPageFooter },
       children: body,
     }],
   });
@@ -359,6 +352,7 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   out.push(subLead(`s${num}_2`, `${num}.2 Sea water density: `, "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings."));
   out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
   out.push(subLead(`s${num}_4`, `${num}.4 Fuel R.O.B.: `, x === 'init' ? 'According to the logbook – FWE.' : 'Declared by Ch/Eng at time of survey.'));
+  out.push(new Paragraph({ children: [new PageBreak()] }));
   out.push(subTitle(`s${num}_5`, `${num}.5 ${title} Draft details`));
   if (image) out.push(img(image, 165));
   // Subitem final: Photographic Report desta fase (substitui a seção Photographic Report do modelo antigo).
