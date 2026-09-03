@@ -17,6 +17,10 @@ export function isUserStatus(value: string): value is UserStatus {
   return value === 'active' || value === 'inactive';
 }
 
+export function isValidPassword(value: string): boolean {
+  return value.length >= 8;
+}
+
 export function wouldRemoveLastActiveAdmin(input: {
   currentRole: UserRole;
   currentStatus: string;

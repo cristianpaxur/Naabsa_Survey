@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isValidEmail,
+  isValidPassword,
   normalizeEmail,
   wouldRemoveLastActiveAdmin,
 } from './rules';
@@ -10,6 +11,11 @@ describe('regras de usuários', () => {
     expect(normalizeEmail(' Admin@Naabsa.COM ')).toBe('admin@naabsa.com');
     expect(isValidEmail('admin@naabsa.com')).toBe(true);
     expect(isValidEmail('email-invalido')).toBe(false);
+  });
+
+  it('exige senha com pelo menos oito caracteres', () => {
+    expect(isValidPassword('12345678')).toBe(true);
+    expect(isValidPassword('1234567')).toBe(false);
   });
 
   it('impede remover o último admin ativo', () => {

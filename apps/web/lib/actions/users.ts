@@ -8,6 +8,7 @@ import {
   isUserRole,
   isUserStatus,
   isValidEmail,
+  isValidPassword,
   normalizeEmail,
   wouldRemoveLastActiveAdmin,
   type UserRole,
@@ -56,9 +57,12 @@ export async function createUserAccess(formData: FormData) {
   const email = normalizeEmail(String(formData.get('email') ?? ''));
   const displayName = String(formData.get('display_name') ?? '').trim();
   const role = String(formData.get('role') ?? 'operator');
+  const password = String(formData.get('password') ?? '');
   if (!isValidEmail(email)) go('Informe um e-mail válido.', 'error');
   if (displayName.length < 2) go('Informe o nome do usuário.', 'error');
   if (!isUserRole(role)) go('Papel de usuário inválido.', 'error');
+  if (!isValidPassword(password))
+    go('A senha deve ter pelo menos 8 caracteres.', 'error');
 
   const { data: duplicate } = await service
     .from('user_access')
@@ -67,8 +71,7 @@ export async function createUserAccess(formData: FormData) {
     .maybeSingle();
   if (duplicate) go('Já existe um usuário com esse e-mail.', 'error');
 
-  // O convite mantém o fluxo atual por e-mail/senha utilizável e também deixa
-  // a allowlist pronta para o futuro login Microsoft (Entra).
+  // Cria a conta já confirmada para não depender de SMTP ou convite por e-mail.
   const { data: authUsers, error: listError } =
     await service.auth.admin.listUsers({ perPage: 1000 });
   if (listError) go('Não foi possível consultar as contas de acesso.', 'error');
@@ -77,18 +80,25 @@ export async function createUserAccess(formData: FormData) {
   );
   let createdAuthUser = false;
   if (!authUser) {
-    const { data: invited, error: inviteError } =
-      await service.auth.admin.inviteUserByEmail(email, {
-        data: { display_name: displayName },
+    const { data: created, error: createError } =
+      await service.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: displayName },
       });
-    if (inviteError || !invited.user) {
-      go(
-        'Não foi possível enviar o convite. Verifique a configuração de e-mail do Supabase.',
-        'error',
-      );
+    if (createError || !created.user) {
+      go('Não foi possível criar a conta de acesso.', 'error');
     }
-    authUser = invited.user;
+    authUser = created.user;
     createdAuthUser = true;
+  } else {
+    const { error: passwordError } = await service.auth.admin.updateUserById(
+      authUser.id,
+      { password },
+    );
+    if (passwordError)
+      go('Não foi possível definir a senha da conta.', 'error');
   }
 
   const { error } = await service.from('user_access').insert({
@@ -124,8 +134,8 @@ export async function createUserAccess(formData: FormData) {
   revalidatePath('/admin/users');
   go(
     createdAuthUser
-      ? 'Usuário cadastrado e convite enviado por e-mail.'
-      : 'Usuário cadastrado e conta existente vinculada.',
+      ? 'Usuário cadastrado e pronto para acessar.'
+      : 'Usuário cadastrado e conta existente vinculada com a nova senha.',
   );
 }
 
@@ -160,8 +170,11 @@ export async function updateUserAccess(formData: FormData) {
   const displayName = String(formData.get('display_name') ?? '').trim();
   const role = String(formData.get('role') ?? '');
   const status = String(formData.get('status') ?? '');
+  const password = String(formData.get('password') ?? '');
   if (!isUserRole(role) || !isUserStatus(status) || displayName.length < 2)
     go('Dados do usuário inválidos.', 'error');
+  if (password && !isValidPassword(password))
+    go('A nova senha deve ter pelo menos 8 caracteres.', 'error');
   const { row, activeAdminCount, actorId, service } = await getAccess(email);
   if (
     wouldRemoveLastActiveAdmin({
@@ -192,6 +205,21 @@ export async function updateUserAccess(formData: FormData) {
       .from('profiles')
       .update({ display_name: displayName, role, status } as never)
       .eq('user_id', row.linked_user_id);
+    if (password) {
+      const { error: passwordError } = await service.auth.admin.updateUserById(
+        row.linked_user_id,
+        {
+          password,
+        },
+      );
+      if (passwordError)
+        go(
+          'Os dados foram salvos, mas não foi possível alterar a senha.',
+          'error',
+        );
+    }
+  } else if (password) {
+    go('O usuário ainda não possui uma conta vinculada.', 'error');
   }
   await auditUser(actorId, 'user_updated', { email, role, status });
   revalidatePath('/admin/users');

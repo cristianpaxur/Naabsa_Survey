@@ -109,7 +109,7 @@ export default async function AdminUsersPage({
           action={createUserAccess}
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.1fr 1.3fr 160px auto',
+            gridTemplateColumns: '1.1fr 1.3fr 180px 150px auto',
             gap: 10,
           }}
         >
@@ -119,6 +119,16 @@ export default async function AdminUsersPage({
             placeholder="Nome completo"
             required
             minLength={2}
+            style={inputStyle}
+          />
+          <input
+            name="password"
+            aria-label="Senha inicial"
+            placeholder="Senha inicial"
+            required
+            type="password"
+            minLength={8}
+            autoComplete="new-password"
             style={inputStyle}
           />
           <input
@@ -172,7 +182,7 @@ export default async function AdminUsersPage({
             action={updateUserAccess}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.1fr 1.35fr 145px 130px 120px auto',
+              gridTemplateColumns: '1.05fr 1.2fr 135px 120px 150px 110px auto',
               gap: 10,
               alignItems: 'center',
               padding: '13px 18px',
@@ -223,6 +233,15 @@ export default async function AdminUsersPage({
               <option value="active">Ativo</option>
               <option value="inactive">Inativo</option>
             </select>
+            <input
+              name="password"
+              aria-label={`Nova senha de ${item.email}`}
+              placeholder="Nova senha (opcional)"
+              type="password"
+              minLength={8}
+              autoComplete="new-password"
+              style={inputStyle}
+            />
             <div style={{ fontSize: 12, color: 'var(--rocha)' }}>
               {item.last_login_at
                 ? new Intl.DateTimeFormat('pt-BR').format(
