@@ -28,14 +28,14 @@ function colLetter(n: number): string {
 
 /**
  * Recorta a imagem para o BLOCO principal de conteúdo (a tabela do template).
- * Detecta linhas com conteúdo (cor saturada azul/rosa OU pixel escuro de
- * texto/borda) e para no primeiro GAP grande de linhas brancas — assim ignora
- * células soltas (ex.: marcadores amarelos) muito abaixo da tabela impressa.
+ * Detecta linhas com conteúdo (cor saturada azul/rosa) e para no primeiro GAP
+ * grande de linhas brancas (GAP=80) — assim ignora bordas brancas e blocos
+ * secundários abaixo do conteúdo principal.
  */
 async function cropToColoredContent(png: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
-  const GAP = 50; // px de linhas vazias que encerram o bloco
+  const GAP = 80; // px de linhas vazias que encerram o bloco
   const M = 6; // margem
 
   const isContent = (i: number): boolean => {
@@ -124,26 +124,59 @@ export async function renderSheetPng(
   const target = wb.getWorksheet(sheetName);
   if (!target) throw new Error(`Aba '${sheetName}' não encontrada na planilha.`);
 
+  // Reordena: põe a aba alvo em primeiro lugar via `orderNo`. O LibreOffice
+  // `--convert-to png` renderiza a PRIMEIRA aba do workbook (ignora
+  // `activeTab` e respeita mal `state="hidden"`). `splice/unshift` na
+  // `wb.worksheets` não persiste no XML — só `orderNo` funciona.
+  for (const ws of wb.worksheets) {
+    (ws as unknown as { orderNo?: number }).orderNo = ws.name === sheetName ? 1 : 99;
+  }
+
   // Só a aba alvo visível (as demais ocultas continuam resolvendo fórmulas).
   for (const ws of wb.worksheets) {
     ws.state = ws.name === sheetName ? 'visible' : 'hidden';
   }
-  // Sem gridlines: o "mar" de células vazias abaixo do conteúdo sai branco.
+  // Gridlines ativas: o print do Excel mostra a grade cinza-fina entre as
+  // células, que é o estilo "spreadsheet" usado na capa do relatório.
+  // O `showGridLines: true` (default) deixa a grade visível; o template tem
+  // cores de fundo (azul/rosa/branco) que continuam delimitando os blocos.
   target.views = (target.views?.length ? target.views : [{}]).map(
-    (v) => ({ ...v, showGridLines: false }) as never,
+    (v) => ({ ...v, showGridLines: true }) as never,
   );
 
+  // Remove bordas CUSTOMIZADAS das células: o template define bordas pretas
+  // grossas em todas as células, o que sobrepõe as gridlines finas. Mantendo
+  // só as gridlines (cinza-claro) e os fills coloridos, o print fica
+  // parecido com a visualização normal do Excel.
+  for (let r = 1; r <= target.rowCount; r++) {
+    const row = target.getRow(r);
+    for (let c = 1; c <= target.columnCount; c++) {
+      const cell = row.getCell(c);
+      const none = 'none' as unknown as never;
+      cell.border = {
+        top: { style: none },
+        left: { style: none },
+        bottom: { style: none },
+        right: { style: none },
+        diagonal: { style: none },
+      };
+    }
+  }
+
   // A aba de cálculo tem 4 blocos lado a lado (Draft Survey, Displacement,
-  // Ballast Water, Fresh Water/Bunker). O LibreOffice pagina a largura em várias
-  // páginas e o export PNG só rende a 1ª — cortando os blocos da direita. Forçar
-  // paisagem + "ajustar à largura" (fitToWidth=1) coloca TODAS as colunas em uma
-  // página, então o PNG sai com os 4 blocos. A área é a extensão real de dados
-  // (sobrescreve a print-area B:O do template, que esconde Ballast/Fresh).
+  // Ballast Water, Fresh Water/Bunker). Renderiza em paisagem com
+  // fitToWidth=1 para caber todos os blocos na mesma página.
+  //
+  // Limites: o printArea vai de B2 até a última coluna/linha USADAS pela aba
+  // (incluindo linhas só com formatação). O `cropToColoredContent` depois
+  // recorta para o bloco de tabelas empilhadas (Draft Marks + Displacement +
+  // Ballast Water) parando no primeiro gap visual.
   const dim = target.dimensions as { right?: number; bottom?: number } | undefined;
-  const lastCol = colLetter(dim?.right ?? 28);
+  const lastCol = colLetter(Math.max(dim?.right ?? 28, target.columnCount));
+  const lastRow = Math.max(dim?.bottom ?? 60, target.rowCount);
   target.pageSetup = {
     ...target.pageSetup,
-    printArea: `B2:${lastCol}${dim?.bottom ?? 60}`,
+    printArea: `B2:${lastCol}${lastRow}`,
     orientation: 'landscape',
     fitToPage: true,
     fitToWidth: 1,
@@ -176,9 +209,14 @@ export async function renderSheetPng(
 
     // Recorta para o conteúdo COLORIDO (template azul/rosa) + margem, e remove
     // as bordas brancas. O LibreOffice exporta a página inteira; o conteúdo
-    // impresso é a região colorida — abaixo dela é branco.
+    // impresso é a região colorida — abaixo dela é branco. O `cropToColoredContent`
+    // usa GAP=80 entre linhas para detectar o fim do bloco — ele para no
+    // primeiro gap visual grande entre tabelas ou no fim do conteúdo.
+    //
+    // NOTA: NÃO usar sharp.trim() — ele remove os gaps brancos entre tabelas
+    // (cortando conteúdo do meio). O extract do crop já remove as bordas externas.
     const cropped = await cropToColoredContent(raw);
-    return await sharp(cropped).trim({ threshold: 12 }).png({ compressionLevel: 9 }).toBuffer();
+    return await sharp(cropped).png({ compressionLevel: 9 }).toBuffer();
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
