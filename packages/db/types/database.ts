@@ -74,19 +74,67 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auth_provider: string
           display_name: string
+          email: string | null
+          last_login_at: string | null
           role: string
+          status: string
           user_id: string
         }
         Insert: {
+          auth_provider?: string
           display_name: string
+          email?: string | null
+          last_login_at?: string | null
           role: string
+          status?: string
           user_id: string
         }
         Update: {
+          auth_provider?: string
           display_name?: string
+          email?: string | null
+          last_login_at?: string | null
           role?: string
+          status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_access: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string
+          invited_by: string | null
+          last_login_at: string | null
+          linked_user_id: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email: string
+          invited_by?: string | null
+          last_login_at?: string | null
+          linked_user_id?: string | null
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string
+          invited_by?: string | null
+          last_login_at?: string | null
+          linked_user_id?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -30,12 +30,19 @@ export async function middleware(request: NextRequest) {
   // Tem sessão: exige papel (RF-02). Sem profile → acesso negado.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role,status')
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!profile) {
+  if (!profile || (profile as { status?: string }).status === 'inactive') {
     if (pathname === '/acesso-negado') return response;
+    return NextResponse.redirect(new URL('/acesso-negado', request.url));
+  }
+
+  if (
+    pathname.startsWith('/admin') &&
+    (profile as { role: string }).role !== 'admin'
+  ) {
     return NextResponse.redirect(new URL('/acesso-negado', request.url));
   }
 
