@@ -25,6 +25,7 @@ import { getServiceClient } from '../lib/supabase';
 import { buildReportDocx, type DocxInput } from '../lib/buildDocx';
 import type { DocxInputMsc, TimeLogRow } from '../lib/buildDocxMsc';
 import { convertDocxToPdf, measureBookmarkPages } from '../lib/soffice';
+import { renderSheetPng } from '../lib/sheetImage';
 
 export interface GeneratePdfPayload {
   reportId: string;
@@ -250,11 +251,76 @@ export async function buildWorkingDocx(
 
   // ── Default (draft_survey, e futuros tipos sem builder dedicado). ──
   // Prints das abas (render_sheets) + fotos por slot (com crop).
-  const sheetImages = {
-    initial: await download(svc, `${reportId}/sheets/initial.png`),
-    intermediate: await download(svc, `${reportId}/sheets/intermediate.png`),
-    final: await download(svc, `${reportId}/sheets/final.png`),
+  // Fallback: se algum PNG ainda não foi gerado pelo job render_sheets, renderiza
+  // inline para garantir que a imagem apareça no docx.
+  const sheetImagePath = (phase: 'initial' | 'intermediate' | 'final') =>
+    `${reportId}/sheets/${phase}.png`;
+  const sheetImages: { initial: Buffer | null; intermediate: Buffer | null; final: Buffer | null } = {
+    initial: await download(svc, sheetImagePath('initial')),
+    intermediate: await download(svc, sheetImagePath('intermediate')),
+    final: await download(svc, sheetImagePath('final')),
   };
+  // Baixa a planilha uma vez para usar em qualquer render sob demanda.
+  let spreadsheetBuf: Buffer | null = null;
+  const ensureSpreadsheetBuf = async (): Promise<Buffer | null> => {
+    if (spreadsheetBuf) return spreadsheetBuf;
+    const { data: reportRow } = await svc
+      .from('reports')
+      .select('spreadsheet_path')
+      .eq('id', reportId)
+      .single();
+    const sp = (reportRow as { spreadsheet_path: string | null } | null)?.spreadsheet_path;
+    if (!sp) return null;
+    const { data: blob } = await svc.storage.from('reports').download(sp);
+    if (!blob) return null;
+    spreadsheetBuf = Buffer.from(await blob.arrayBuffer());
+    return spreadsheetBuf;
+  };
+  // Pega a lista de sheets do spec para mapear phase→sheet.
+  const { data: reportForSpec } = await svc
+    .from('reports')
+    .select('spec_id, extracted_data')
+    .eq('id', reportId)
+    .single();
+  const reportSpecId = (reportForSpec as { spec_id: string | null } | null)?.spec_id;
+  const extractedData = (reportForSpec as { extracted_data: Record<string, unknown> | null } | null)
+    ?.extracted_data;
+  let phaseMap: Record<'initial' | 'intermediate' | 'final', string | null> = {
+    initial: 'Inicial',
+    intermediate: 'Intermediario',
+    final: 'final',
+  };
+  if (reportSpecId) {
+    const { data: specRow } = await svc
+      .from('report_specs')
+      .select('spec')
+      .eq('id', reportSpecId)
+      .single();
+    const spec = (specRow as { spec: { source?: { tables?: { id: string; sheet: string }[] } } } | null)?.spec;
+    if (spec?.source?.tables) {
+      const t = (id: string) => spec.source!.tables!.find((x) => x.id === id)?.sheet ?? null;
+      phaseMap = { initial: t('init_draft_marks'), intermediate: t('int_draft_marks'), final: t('fin_draft_marks') };
+    }
+  }
+  const hasIntermediate = extractedData?.['intermediate_date'] != null;
+  for (const phase of ['initial', 'intermediate', 'final'] as const) {
+    if (sheetImages[phase]) continue; // já existe
+    if (phase === 'intermediate' && !hasIntermediate) continue; // fase ausente
+    const sheet = phaseMap[phase];
+    if (!sheet) continue;
+    const buf = await ensureSpreadsheetBuf();
+    if (!buf) continue;
+    try {
+      const png = await renderSheetPng(buf, sheet);
+      sheetImages[phase] = png;
+      // Sobe também para o storage (cache para o render_sheets job).
+      await svc.storage
+        .from('reports')
+        .upload(sheetImagePath(phase), png, { contentType: 'image/png', upsert: true });
+    } catch (err) {
+      console.error(`[generate_pdf] render inline de ${phase}/${sheet} falhou:`, err);
+    }
+  }
   const { data: photoRows } = await svc
     .from('report_photos')
     .select('slot_id, processed_path, position, crop')
