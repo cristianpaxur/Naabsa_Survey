@@ -26,7 +26,7 @@ export default async function EditPage({
 
   const { data: reportRow } = await supabase
     .from('reports')
-    .select('id,status,variant,vessel_name,working_docx_path,report_type_id')
+    .select('id,status,variant,vessel_name,working_docx_path,working_docx_generation,report_type_id')
     .eq('id', id)
     .maybeSingle();
   const report = reportRow as {
@@ -35,6 +35,7 @@ export default async function EditPage({
     variant: string | null;
     vessel_name: string | null;
     working_docx_path: string | null;
+    working_docx_generation: string;
     report_type_id: string;
   } | null;
   if (!report) notFound();
@@ -59,15 +60,16 @@ export default async function EditPage({
   // O CollaboraEditor faz polling (getEditorUrl → pending) até o .docx existir.
   if (report.status === 'editing' && !report.working_docx_path) {
     try {
-      await enqueueBuildWorkingDocx({ reportId: id });
-      await audit(supabase, {
+      const jobId = await enqueueBuildWorkingDocx({ reportId: id, generation: report.working_docx_generation });
+      if (jobId) await audit(supabase, {
         reportId: id,
         actor: user.id,
         action: 'working_docx_enqueued',
         payload: { slug, variant: report.variant },
       });
-    } catch {
-      /* o CollaboraEditor mostra erro/retry se o build não vier */
+    } catch (err) {
+      await audit(supabase, { reportId: id, actor: user.id, action: 'working_docx_enqueue_failed',
+        payload: { message: err instanceof Error ? err.message : 'Fila indisponível.' } });
     }
   }
 

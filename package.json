@@ -5,7 +5,7 @@
   "description": "Sistema de Relatórios Automatizados Naabsa — monorepo (app, worker, core, db)",
   "packageManager": "pnpm@11.6.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "lint": "eslint .",
@@ -19,7 +19,8 @@
     "dev": "pnpm -r --if-present --parallel run dev",
     "db:migrate": "pnpm --filter @naabsa/db migrate",
     "db:seed-dev": "pnpm --filter @naabsa/db seed:dev",
-    "e2e": "dotenv -e .env -- playwright test"
+    "e2e": "dotenv -e .env.local -e .env -- playwright test",
+    "check:specs": "node scripts/generate-spec-repair.mjs --check"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

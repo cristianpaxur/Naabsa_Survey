@@ -8,6 +8,9 @@ export interface WopiReport {
   status: string;
   vessel_name: string | null;
   working_docx_path: string | null;
+  working_docx_revision?: number;
+  working_docx_generation?: string;
+  working_docx_saved_at?: string | null;
   wopi_lock: string | null;
   wopi_lock_expires_at: string | null;
 }

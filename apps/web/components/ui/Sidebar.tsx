@@ -65,7 +65,7 @@ export function Sidebar({
           <Divider />
           <SectionLabel>Administração</SectionLabel>
           <NavItem href="/admin/specs" active={specsActive}>
-            Specs
+            Modelos · em preparação
           </NavItem>
           <NavItem href="/admin/users" active={usersActive}>
             Usuários

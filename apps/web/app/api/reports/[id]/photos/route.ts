@@ -78,14 +78,17 @@ export async function POST(
     );
   }
   // Fotos são alocadas durante a revisão (in_review) antes da edição.
-  if (report.status !== 'in_review' && report.status !== 'extracted') {
+  if (report.status !== 'in_review') {
     return NextResponse.json(
       { error: 'Fotos só podem ser enviadas durante a revisão.' },
       { status: 409 },
     );
   }
 
-  const form = await req.formData();
+  let form: FormData;
+  try { form = await req.formData(); } catch {
+    return NextResponse.json({ error: 'Envio inválido. Selecione as fotos novamente.' }, { status: 400 });
+  }
   const entries = form.getAll('files');
   const files = entries.filter((e): e is File => e instanceof File);
   if (files.length === 0) {
@@ -103,7 +106,8 @@ export async function POST(
   const photoIds: string[] = [];
   const rejected: RejectedFile[] = [];
 
-  for (const file of files) {
+  for (const [index, file] of files.entries()) {
+    try {
     const ext = resolveExt(file);
     if (!ext) {
       rejected.push({
@@ -122,7 +126,13 @@ export async function POST(
       continue;
     }
 
-    const uuid = randomUUID();
+    const requestedId = form.getAll('uploadIds')[index];
+    const uuid = typeof requestedId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedId)
+      ? requestedId : randomUUID();
+    // A mesma retentativa após timeout não cria outra cópia da foto.
+    const { data: existing } = await supabase.from('report_photos').select('id')
+      .eq('id', uuid).eq('report_id', id).is('removed_at', null).maybeSingle();
+    if (existing) { photoIds.push(uuid); continue; }
     const originalPath = `${id}/photos/original/${uuid}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
     const { error: upErr } = await svc.storage
@@ -131,7 +141,7 @@ export async function POST(
         upsert: false,
         contentType: file.type || `image/${ext}`,
       });
-    if (upErr) {
+    if (upErr && upErr.message !== 'The resource already exists') {
       rejected.push({
         name: file.name,
         status: 500,
@@ -143,6 +153,7 @@ export async function POST(
     const { data: inserted, error: insErr } = await supabase
       .from('report_photos')
       .insert({
+        id: uuid,
         report_id: id,
         original_path: originalPath,
         status: 'pending',
@@ -162,7 +173,7 @@ export async function POST(
     photoIds.push(photoId);
 
     try {
-      await enqueueProcessPhoto({ photoId, reportId: id });
+      if (!await enqueueProcessPhoto({ photoId, reportId: id })) throw new Error('A fila não aceitou o processamento.');
     } catch (err) {
       // Falha ao enfileirar não perde a foto: marca erro recuperável.
       await supabase
@@ -173,6 +184,9 @@ export async function POST(
             err instanceof Error ? err.message : 'Falha ao enfileirar.',
         } as never)
         .eq('id', photoId);
+    }
+    } catch {
+      rejected.push({ name: file.name, status: 500, reason: 'Falha de conexão no envio. Tente novamente.' });
     }
   }
 

@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
-import { enqueueRenderSheets, enqueueAiReview } from '@/lib/queue';
+import { enqueueRenderSheets } from '@/lib/queue';
+import { requestAiReview } from '@/lib/request-ai-review';
 import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB (RF-04)
@@ -172,9 +173,9 @@ export async function POST(
 
   // Revisão por IA pós-extração (010/T-007) — no-op no worker se AI_ENABLED=off.
   try {
-    await enqueueAiReview({ reportId: id });
-  } catch (err) {
-    console.error('[spreadsheet] falha ao enfileirar ai_review:', err);
+    await requestAiReview(id);
+  } catch {
+    console.error('[spreadsheet] falha ao solicitar a revisão por IA.');
   }
 
   return NextResponse.json({ ok: true, reportId: id, errors, warnings });

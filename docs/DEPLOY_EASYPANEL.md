@@ -6,13 +6,15 @@
 
 ## Visão geral
 
-São **dois serviços (App)** no mesmo projeto do EasyPanel, ambos buildados do mesmo
-repositório (monorepo), cada um com seu Dockerfile:
+São **três serviços** no mesmo projeto: web e worker buildados do mesmo repositório
+e um serviço Collabora CODE para o editor. Para a atualização 015, siga também
+[CORRECOES_015.md](./CORRECOES_015.md), incluindo migrations antes de iniciar a versão nova.
 
 | Serviço EasyPanel | Dockerfile | Domínio | Papel |
 |---|---|---|---|
 | **web** | `Dockerfile.web` (na raiz) | sim (público) | Next.js — UI, API, server actions |
 | **worker** | `Dockerfile.worker` (na raiz) | **não** | pg-boss — fotos, PDF, prints, IA, retenção |
+| **collabora** | imagem Collabora CODE homologada | sim (editor) | LibreOffice no navegador / WOPI |
 
 - **Supabase** (gerenciado, nuvem): Postgres (+ pg-boss), Auth, Storage. Não é serviço do EasyPanel.
 - **Proxy/TLS**: o **EasyPanel cuida** (Traefik + Let's Encrypt). **Não** use o `Caddyfile`/serviço Caddy aqui — ele é só para o deploy via `docker compose`.
@@ -44,6 +46,9 @@ repositório (monorepo), cada um com seu Dockerfile:
   SUPABASE_ANON_KEY=<anon key>
   SUPABASE_SERVICE_ROLE_KEY=<service role key>
   DATABASE_URL=postgresql://postgres.<ref>:<senha-URL-encodada>@<host>:5432/postgres
+  COLLABORA_URL=https://editor.suaempresa.com
+  WOPI_PUBLIC_URL=https://relatorios.suaempresa.com
+  WOPI_TOKEN_SECRET=<segredo-aleatorio-com-pelo-menos-32-caracteres>
   ```
   > ⚠️ Devem chegar ao **`process.env`** do container. No EasyPanel, **NÃO** use o modo
   > "Create env file" (isso só grava um arquivo `.env`, que o app não lê) — deixe como
@@ -97,9 +102,10 @@ repositório (monorepo), cada um com seu Dockerfile:
 | `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` | (opc) | — | dev | só conveniência no dev local; produção usa os de cima |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ✅ | runtime | admin; nunca no browser |
 | `DATABASE_URL` | ✅ | ✅ | runtime | pg-boss; ver **pooler/senha** abaixo |
-| `APP_BASE_URL` | — | ✅ | runtime | URL interna do `web` (logo) |
+| `APP_BASE_URL` | — | opcional | runtime | fallback do logo; o padrão vem empacotado |
 | `AI_ENABLED`/`AI_PROVIDER`/`AI_MODEL` | — | ✅ | runtime | IA atrás de flag (off por padrão) |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | — | ✅ | runtime | conforme o provedor, se IA on |
+| `COLLABORA_URL` / `WOPI_PUBLIC_URL` / `WOPI_TOKEN_SECRET` | ✅ | — | runtime | editor, endereço de retorno e assinatura WOPI |
 
 `NODE_ENV=production` já é definido pelos Dockerfiles.
 
@@ -114,7 +120,20 @@ repositório (monorepo), cada um com seu Dockerfile:
 
 ---
 
-## Migrações e seed (uma vez, contra o banco de produção)
+## Serviço 3 — `collabora`
+
+Configure um serviço de imagem Collabora CODE com versão homologada, porta interna
+9980 e domínio próprio do editor. O proxy deve encaminhar WebSockets e rotas
+`/browser`, `/hosting` e `/cool`. Configure `aliasgroup1` com a URL pública WOPI do app,
+credenciais administrativas próprias e terminação TLS coerente com o proxy.
+Use o bloco `collabora` do Compose como referência de variáveis, avaliando separadamente
+as permissões de container da plataforma. As concessões para WSL2 no Compose não são
+uma configuração de segurança já homologada para produção.
+
+Confirme que o app alcança `/hosting/discovery` do Collabora e que o Collabora alcança
+`WOPI_PUBLIC_URL`. Esse caminho de rede precisa funcionar nos dois sentidos.
+
+## Migrações e seed
 
 O EasyPanel não roda migração sozinho. Aplique o schema e o spec **antes do 1º uso**,
 de uma máquina com o repo e o `DATABASE_URL` de produção:
@@ -122,19 +141,20 @@ de uma máquina com o repo e o `DATABASE_URL` de produção:
 ```bash
 # na raiz do repo, com DATABASE_URL apontando para a produção:
 DATABASE_URL="postgresql://...:5432/postgres" pnpm --filter @naabsa/db migrate
-DATABASE_URL="postgresql://...:5432/postgres" pnpm --filter @naabsa/db seed:real-spec
 ```
 
 > O spec ativo fica versionado e imutável em `report_specs`. Reaplique `migrate` a cada
 > deploy que traga novas migrações (idempotente).
+> As migrations atuais já incluem specs reais. Seeds de demonstração são somente para
+> ambiente descartável; não os reaplique sobre dados de produção.
 
 ---
 
 ## Deploy e atualização
 
-1. Faça **push** na branch `main` (ou clique **Deploy** no serviço).
-2. O EasyPanel builda a imagem e sobe o container. Acompanhe em **Deployments → Logs**.
-3. Faça o deploy dos **dois** serviços (web e worker).
+1. Valide a revisão em homologação; faça backup e pare web/worker antigos para migrations.
+2. Aplique migrations, configure o runtime e faça deploy de web e worker da mesma revisão.
+3. Confira Collabora, logs e `/api/health/ready` autenticado como administrador ativo.
 
 Para **re-render das planilhas** de relatórios já existentes (ex.: após o fix dos 4
 blocos), reenvie a planilha no relatório — o job `render_sheets` regrava os PNGs.
@@ -143,12 +163,13 @@ blocos), reenvie a planilha no relatório — o job `render_sheets` regrava os P
 
 ## Checklist do 1º deploy
 
-- [ ] Migrações + `seed:real-spec` aplicados no banco de produção.
-- [ ] `web`: env (inclui `NEXT_PUBLIC_*`) preenchidas **antes do build**; deploy verde.
+- [ ] Migrações aplicadas no banco correto; specs ativas presentes.
+- [ ] `web`: variáveis de runtime preenchidas; deploy verde (sem secrets no build).
 - [ ] `worker`: deploy verde; logs mostram `worker pronto` e o cron `retention_purge` agendado.
 - [ ] Domínio do `web` com **TLS válido** (cadeado) e `GET /api/health` → `{"status":"ok"}`.
 - [ ] `APP_BASE_URL` aponta para o `web` interno (PDF sai **com** logo).
-- [ ] **Login** funciona (confirma que as `NEXT_PUBLIC_*` foram inlinadas no build).
+- [ ] **Login** funciona com config pública injetada em runtime.
+- [ ] Collabora abre o Word, salva e permite aprovar a versão editada.
 - [ ] Fluxo feliz E2E: criar → upload planilha → revisar → fotos → aprovar → **PDF gerado e baixável**.
 - [ ] (Se IA on) `ai_call` registrado no `audit_log`; com IA off, fluxo idêntico.
 

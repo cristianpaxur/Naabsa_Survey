@@ -71,6 +71,7 @@ export async function enqueueProcessPhoto(
 
 export interface GeneratePdfPayload {
   reportId: string;
+  approvedRevision?: number;
 }
 
 /** Enfileira a geração do PDF de um relatório (008/T-008). */
@@ -93,7 +94,7 @@ export async function enqueuePreviewPdf(
  * `singletonKey` por relatório dedupe builds em recarregamentos rápidos da página;
  * `dedupe: false` (retentativa pós-falha, 014/T-005) força um job novo. */
 export async function enqueueBuildWorkingDocx(
-  payload: GeneratePdfPayload,
+  payload: { reportId: string; generation: string },
   opts: { dedupe?: boolean } = {},
 ): Promise<string | null> {
   const boss = await getBoss();
@@ -102,7 +103,7 @@ export async function enqueueBuildWorkingDocx(
     payload,
     opts.dedupe === false
       ? {}
-      : { singletonKey: payload.reportId, singletonSeconds: 120 },
+      : { singletonKey: `${payload.reportId}:${payload.generation}`, singletonSeconds: 120 },
   );
 }
 
@@ -120,7 +121,7 @@ export async function enqueueRenderSheets(
 
 /** Enfileira a revisão por IA pós-extração (010/T-007; no-op se AI_ENABLED=off). */
 export async function enqueueAiReview(
-  payload: GeneratePdfPayload,
+  payload: GeneratePdfPayload & { dataRevision?: number; runId?: string },
 ): Promise<string | null> {
   const boss = await getBoss();
   return boss.send(AI_REVIEW_QUEUE, payload);

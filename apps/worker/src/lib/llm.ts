@@ -23,18 +23,18 @@ export type AiProvider = 'anthropic' | 'openai';
 
 /** IA ligada? (flag por env; off por padrão — RNF-06). */
 export function isAiEnabled(): boolean {
-  const v = (process.env['AI_ENABLED'] ?? '').toLowerCase();
+  const v = (process.env['AI_ENABLED'] ?? '').trim().toLowerCase();
   return v === '1' || v === 'true' || v === 'on';
 }
 
 /** Provedor escolhido por env (default anthropic). */
 export function getAiProvider(): AiProvider {
-  return (process.env['AI_PROVIDER'] ?? '').toLowerCase() === 'openai' ? 'openai' : 'anthropic';
+  return (process.env['AI_PROVIDER'] ?? '').trim().toLowerCase() === 'openai' ? 'openai' : 'anthropic';
 }
 
 /** Modelo vigente: `AI_MODEL` (override) ou default por provedor. Apara espaços. */
 export function getAiModel(): string {
-  const override = (process.env['AI_MODEL'] || process.env['ANTHROPIC_MODEL'] || '').trim();
+  const override = (process.env['AI_MODEL'] || (getAiProvider() === 'anthropic' ? process.env['ANTHROPIC_MODEL'] : '') || '').trim();
   if (override) return override;
   return getAiProvider() === 'openai' ? DEFAULT_OPENAI_MODEL : DEFAULT_ANTHROPIC_MODEL;
 }
@@ -60,9 +60,10 @@ export interface AiDeps {
 
 async function defaultAudit(reportId: string | null, payload: Record<string, unknown>): Promise<void> {
   try {
-    await getServiceClient()
+    const { error } = await getServiceClient()
       .from('audit_log')
       .insert({ report_id: reportId, actor: null, action: 'ai_call', payload } as never);
+    if (error) console.error('[ai] não foi possível registrar a auditoria da chamada.');
   } catch {
     /* auditoria best-effort — não deve quebrar o job */
   }
@@ -86,7 +87,7 @@ async function postJson(
 }
 
 async function callAnthropicProvider(model: string, input: AiCallInput, doFetch: typeof fetch): Promise<string | null> {
-  const key = process.env['ANTHROPIC_API_KEY'] ?? '';
+  const key = (process.env['ANTHROPIC_API_KEY'] ?? '').trim();
   if (!key) throw new Error('ANTHROPIC_API_KEY ausente');
   const json = (await postJson(
     ANTHROPIC_URL,
@@ -109,7 +110,7 @@ async function callAnthropicProvider(model: string, input: AiCallInput, doFetch:
 }
 
 async function callOpenAIProvider(model: string, input: AiCallInput, doFetch: typeof fetch): Promise<string | null> {
-  const key = process.env['OPENAI_API_KEY'] ?? '';
+  const key = (process.env['OPENAI_API_KEY'] ?? '').trim();
   if (!key) throw new Error('OPENAI_API_KEY ausente');
   // Converte os blocos para o formato do Chat Completions (texto + image_url data-URI).
   const userContent = input.content.map((b) =>
@@ -124,7 +125,11 @@ async function callOpenAIProvider(model: string, input: AiCallInput, doFetch: ty
   const json = (await postJson(
     OPENAI_URL,
     { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-    { model, max_tokens: input.maxTokens ?? 1024, messages },
+    {
+      model, max_completion_tokens: input.maxTokens ?? 1024, messages,
+      // GPT-5.5 aceita none: reserva o orçamento curto para a resposta JSON.
+      ...(/^gpt-5\.5(?:-|$)/.test(model) && !model.includes('pro') ? { reasoning_effort: 'none' } : {}),
+    },
     doFetch,
   )) as { choices?: { message?: { content?: string } }[] };
   return json.choices?.[0]?.message?.content?.trim() || null;
@@ -150,19 +155,25 @@ export async function callLLM(input: AiCallInput, deps: AiDeps = {}): Promise<st
       provider === 'openai'
         ? await callOpenAIProvider(model, input, doFetch)
         : await callAnthropicProvider(model, input, doFetch);
+    if (!text) throw new Error('empty_response');
     ok = true;
   } catch (e) {
-    errMsg = e instanceof Error ? e.message : String(e);
+    // Nunca persistir erros de transporte arbitrários: podem incluir URL/chave/body.
+    const message = e instanceof Error ? e.message : '';
+    errMsg = /^HTTP \d{3}$/.test(message) ? message
+      : e instanceof Error && e.name === 'AbortError' ? 'timeout'
+      : /API_KEY ausente$/.test(message) ? 'missing_api_key'
+      : message === 'empty_response' ? 'empty_response' : 'request_failed';
   }
 
-  await audit(input.reportId, {
+  try { await audit(input.reportId, {
     purpose: input.purpose,
     provider,
     model,
     duration_ms: now() - t0,
     ok,
     ...(errMsg ? { error: errMsg.slice(0, 200) } : {}),
-  });
+  }); } catch { console.error('[ai] não foi possível registrar a auditoria da chamada.'); }
   return ok ? text : null;
 }
 

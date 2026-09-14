@@ -15,6 +15,8 @@ export interface WopiClaims {
   canWrite: boolean;
   /** Expiração (epoch em segundos). */
   exp: number;
+  /** Emissão em segundos; opcional somente para tokens legados. */
+  iat?: number;
 }
 
 function getSecret(secret?: string): string {
@@ -29,12 +31,13 @@ function hmac(data: string, secret: string): string {
 
 /** Emite um access_token assinado com TTL (default 60 min). */
 export function signToken(
-  claims: Omit<WopiClaims, 'exp'>,
+  claims: Omit<WopiClaims, 'exp' | 'iat'>,
   ttlSeconds = 3600,
   secret?: string,
 ): string {
   const s = getSecret(secret);
-  const full: WopiClaims = { ...claims, exp: Math.floor(Date.now() / 1000) + ttlSeconds };
+  const iat = Math.floor(Date.now() / 1000);
+  const full: WopiClaims = { ...claims, iat, exp: iat + ttlSeconds };
   const body = Buffer.from(JSON.stringify(full)).toString('base64url');
   return `${body}.${hmac(body, s)}`;
 }
@@ -52,8 +55,9 @@ export function verifyToken(token: string, secret?: string): WopiClaims | null {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
     const claims = JSON.parse(Buffer.from(body, 'base64url').toString('utf-8')) as WopiClaims;
-    if (typeof claims.exp !== 'number' || claims.exp < Math.floor(Date.now() / 1000)) return null;
-    if (!claims.reportId || !claims.userId) return null;
+    if (!Number.isFinite(claims.exp) || claims.exp <= Math.floor(Date.now() / 1000)) return null;
+    if (typeof claims.reportId !== 'string' || !claims.reportId || typeof claims.userId !== 'string' || !claims.userId || typeof claims.canWrite !== 'boolean') return null;
+    if (claims.iat !== undefined && (!Number.isFinite(claims.iat) || claims.iat > Math.floor(Date.now() / 1000))) return null;
     return claims;
   } catch {
     return null;

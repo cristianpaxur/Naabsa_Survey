@@ -32,17 +32,22 @@ export function Wizard({ types }: { types: WizardType[] }) {
     if (!selected) return;
     setCreating(true);
     setError(null);
-    const result = await createReport({
-      reportTypeId: selected.id,
-      variant: hasVariants ? variant : null,
-    });
-    setCreating(false);
-    if ('error' in result) {
-      setError(result.error);
-      return;
+    try {
+      const result = await createReport({
+        reportTypeId: selected.id,
+        variant: hasVariants ? variant : null,
+      });
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      setReportId(result.id);
+      setStep('upload');
+    } catch {
+      setError('Não foi possível criar o relatório. Confira sua conexão e tente novamente.');
+    } finally {
+      setCreating(false);
     }
-    setReportId(result.id);
-    setStep('upload');
   }
 
   if (step === 'upload' && reportId && selected) {
@@ -65,8 +70,7 @@ export function Wizard({ types }: { types: WizardType[] }) {
           Escolha o tipo de relatório
         </div>
         <div style={{ fontSize: 13.5, color: 'var(--rocha)', marginTop: 5 }}>
-          O motor usará o spec ativo deste tipo. A versão fica congelada no
-          relatório.
+          Escolha um modelo disponível para iniciar o relatório.
         </div>
 
         <div
@@ -134,7 +138,7 @@ export function Wizard({ types }: { types: WizardType[] }) {
                     }}
                   >
                     {disabled
-                      ? 'sem spec ativo'
+                      ? 'Em preparação'
                       : t.variants.length
                         ? `${t.variants.length} variantes`
                         : 'sem variante'}

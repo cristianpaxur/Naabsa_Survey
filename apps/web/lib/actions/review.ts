@@ -10,6 +10,8 @@
  */
 import { createClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
+import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
+import { requestAiReview } from '@/lib/request-ai-review';
 import {
   validate,
   resolveFieldValue,
@@ -22,7 +24,7 @@ import {
 // ── Tipos compartilhados ────────────────────────────────────────────────────
 
 export type SetOverrideResult =
-  | { issues: Issue[] }
+  | { issues: Issue[]; aiReview: AiReviewState | null; revision: number }
   | { error: string };
 
 export type ConfirmDataResult =
@@ -37,6 +39,9 @@ interface ReportRow {
   variant: string | null;
   extracted_data: Record<string, FieldValue> | null;
   operator_overrides: Record<string, FieldValue> | null;
+  extraction_issues: Issue[] | null;
+  ai_review: AiReviewState | null;
+  data_revision: number;
   spec: ReportSpec;
 }
 
@@ -47,7 +52,7 @@ async function fetchReport(
   const { data } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, extracted_data, operator_overrides, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', reportId)
     .single();
@@ -61,6 +66,9 @@ async function fetchReport(
     variant: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
+    extraction_issues: Issue[] | null;
+    ai_review: AiReviewState | null;
+    data_revision: number;
     report_specs: { spec: ReportSpec } | { spec: ReportSpec }[] | null;
   };
 
@@ -79,6 +87,9 @@ async function fetchReport(
     variant: raw.variant,
     extracted_data: raw.extracted_data,
     operator_overrides: raw.operator_overrides,
+    extraction_issues: raw.extraction_issues,
+    ai_review: raw.ai_review,
+    data_revision: raw.data_revision,
     spec,
   };
 }
@@ -140,14 +151,16 @@ export async function setOverride(
   };
 
   // Atualiza operator_overrides (NUNCA extracted_data)
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('reports')
     .update({ operator_overrides: newOverrides } as never)
-    .eq('id', reportId);
+    .eq('id', reportId).eq('status', 'in_review').eq('data_revision', report.data_revision)
+    .select('data_revision, ai_review, extraction_issues').maybeSingle();
 
   if (updateError) {
     return { error: 'Falha ao gravar o override.' };
   }
+  if (!updated) return { error: 'Os dados mudaram em outra edição. Recarregue antes de tentar novamente.' };
 
   // Auditoria before/after (CA-003)
   await audit(supabase, {
@@ -170,9 +183,35 @@ export async function setOverride(
     extracted,
     newOverrides,
   );
-  const issues = validate(effective, report.spec, report.variant);
+  const latest = updated as unknown as { data_revision: number; ai_review: AiReviewState | null; extraction_issues: Issue[] | null };
+  const issues = mergeReviewIssues(validate(effective, report.spec, report.variant), latest.extraction_issues, effective, extracted, latest.ai_review);
 
-  return { issues };
+  return { issues, aiReview: latest.ai_review, revision: latest.data_revision };
+}
+
+/** Polling lê só avisos/estado: não substitui entradas que o operador está editando. */
+export async function getReviewStatus(reportId: string): Promise<SetOverrideResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
+  const report = await fetchReport(supabase, reportId);
+  if (!report) return { error: 'Não foi possível atualizar a revisão.' };
+  const extracted = report.extracted_data ?? {};
+  const effective = effectiveData(report.spec, report.variant, extracted, report.operator_overrides ?? {});
+  return {
+    issues: mergeReviewIssues(validate(effective, report.spec, report.variant), report.extraction_issues, effective, extracted, report.ai_review),
+    aiReview: report.ai_review, revision: report.data_revision,
+  };
+}
+
+export async function retryAiReview(reportId: string): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
+  const report = await fetchReport(supabase, reportId);
+  if (!report || !['extracted', 'in_review'].includes(report.status)) return { error: 'Relatório indisponível para revisão.' };
+  try { await requestAiReview(reportId); return { ok: true }; }
+  catch { return { error: 'Não foi possível solicitar a revisão por IA. Tente novamente.' }; }
 }
 
 // ── confirmData ─────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { isActiveProfile } from '@/lib/users/access';
 
 export interface LoginState {
   error: string | null;
@@ -36,10 +37,14 @@ export async function login(
   // fica correta). O middleware permanece como segunda linha de defesa (RF-02).
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role,status')
     .eq('user_id', data.user.id)
     .maybeSingle();
 
+  if (!isActiveProfile(profile)) {
+    await supabase.auth.signOut();
+    return { error: 'Seu acesso não está ativo. Entre em contato com o administrador.' };
+  }
   revalidatePath('/', 'layout');
-  redirect(profile ? '/dashboard' : '/acesso-negado');
+  redirect('/dashboard');
 }

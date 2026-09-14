@@ -150,7 +150,7 @@
   "validations": [
     { "rule": "range", "field": "loa", "min": 50, "max": 400, "level": "warning", "message": "LOA fora do intervalo usual (50–400 m) — confira a célula Capa!C20." },
     { "rule": "range", "field": "summer_dwt", "min": 0, "max": 500000, "level": "warning", "message": "Summer DWT fora do intervalo usual — confira a célula Capa!C26." },
-    { "rule": "range", "field": "fin_fig_diff_pct", "min": -0.05, "max": 0.05, "level": "warning", "message": "Diferença final acima de 0,5% entre figuras — revisar antes de aprovar." }
+    { "rule": "range", "field": "fin_fig_diff_pct", "min": -0.005, "max": 0.005, "level": "warning", "message": "Diferença final acima de 0,5% entre figuras — revisar antes de aprovar." }
   ],
 
   "photo_slots": [

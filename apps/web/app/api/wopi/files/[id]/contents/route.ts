@@ -1,6 +1,7 @@
 import 'server-only';
+import { randomUUID } from 'node:crypto';
 import { type NextRequest, NextResponse } from 'next/server';
-import { authWopi, canPutFile, currentLock, workingDocxPath, BUCKET } from '@/lib/wopi/host';
+import { authWopi, canPutFile, currentLock, BUCKET } from '@/lib/wopi/host';
 
 /**
  * WOPI GetFile (GET) + PutFile (POST) — 011/T-007. Lê/grava o `working.docx` no
@@ -18,7 +19,8 @@ export async function GET(
   const a = await authWopi(req, id);
   if (!a.ok) return a.res;
 
-  const { data, error } = await a.svc.storage.from(BUCKET).download(workingDocxPath(id));
+  if (!a.report.working_docx_path) return new NextResponse(null, { status: 404 });
+  const { data, error } = await a.svc.storage.from(BUCKET).download(a.report.working_docx_path);
   if (error || !data) return new NextResponse(null, { status: 404 });
   const buf = Buffer.from(await data.arrayBuffer());
   return new NextResponse(buf, {
@@ -55,24 +57,36 @@ export async function POST(
   // O Collabora envia X-WOPI-Lock no PutFile; rejeita se o lock divergir.
   const lock = req.headers.get('x-wopi-lock') ?? '';
   const cur = currentLock(report);
-  if (cur && lock && cur !== lock) {
+  if (cur && cur !== lock) {
     return new NextResponse(null, { status: 409, headers: { 'X-WOPI-Lock': cur } });
   }
 
   const body = Buffer.from(await req.arrayBuffer());
   if (body.length === 0) return new NextResponse(null, { status: 400 });
 
-  const { error } = await svc.storage.from(BUCKET).upload(workingDocxPath(id), body, {
+  if (!report.working_docx_path || report.working_docx_revision === undefined) {
+    return new NextResponse(null, { status: 409 });
+  }
+  // Nunca modifica bytes publicados. Um PutFile concorrente à aprovação só
+  // cria um objeto novo; o CAS abaixo decide se ele pode se tornar o atual.
+  const path = `${id}/working/${randomUUID()}.docx`;
+  const revision = report.working_docx_revision + 1;
+  const { error } = await svc.storage.from(BUCKET).upload(path, body, {
     contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    upsert: true,
+    upsert: false,
   });
   if (error) return new NextResponse(null, { status: 500 });
 
-  if (!report.working_docx_path) {
-    await svc
-      .from('reports')
-      .update({ working_docx_path: workingDocxPath(id) } as never)
-      .eq('id', id);
-  }
-  return new NextResponse(null, { status: 200 });
+  const saved = await svc.from('reports').update({
+    working_docx_path: path,
+    working_docx_revision: revision,
+    working_docx_saved_at: new Date().toISOString(),
+  } as never, { count: 'exact' }).eq('id', id).eq('status', 'editing')
+    .eq('working_docx_path', report.working_docx_path)
+    .eq('working_docx_revision', report.working_docx_revision);
+  // Em falha de rede a confirmação do banco é ambígua; não apagar o objeto
+  // pois o commit pode ter ocorrido. Versões são conservadas junto aos snapshots.
+  if (saved.error) return new NextResponse(null, { status: 500 });
+  if (saved.count !== 1) return new NextResponse(null, { status: 409, headers: { 'X-WOPI-Lock': cur ?? '' } });
+  return new NextResponse(null, { status: 200, headers: { 'X-WOPI-ItemVersion': String(revision) } });
 }

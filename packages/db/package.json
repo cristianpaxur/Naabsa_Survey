@@ -12,13 +12,15 @@
     "migrate": "tsx src/migrate.ts",
     "seed:dev": "tsx src/seed-dev.ts",
     "seed:real-spec": "tsx src/seed-real-spec.ts",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@naabsa/core": "workspace:*",
     "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@supabase/supabase-js": "^2.47.10",
     "@types/node": "^22.10.7",
     "@types/pg": "^8.11.10",

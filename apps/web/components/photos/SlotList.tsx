@@ -86,6 +86,9 @@ function AllocateDropzone({
       onClick={() => onClickAllocate(slotId)}
       role="button"
       tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClickAllocate(slotId); }
+      }}
       style={{
         width: 120,
         aspectRatio: '4 / 3',

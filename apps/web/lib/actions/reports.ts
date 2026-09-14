@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { transition, type ReportStatus } from '@/lib/state-machine';
+import { supportsReport } from '@/lib/supported-reports';
 
 export interface CreateReportInput {
   reportTypeId: string;
@@ -27,24 +28,26 @@ export async function createReport(
 
   const { data: typeData } = await supabase
     .from('report_types')
-    .select('id,active_spec_id,variants')
+    .select('id,slug,active_spec_id,variants')
     .eq('id', input.reportTypeId)
     .maybeSingle();
   const type = typeData as {
     id: string;
+    slug: string;
     active_spec_id: string | null;
     variants: string[];
   } | null;
 
   if (!type) return { error: 'Tipo de relatório inválido.' };
+  if (!supportsReport(type.slug)) return { error: 'Este tipo de relatório ainda não está disponível.' };
   if (!type.active_spec_id) {
     return {
       error:
-        'Este tipo ainda não tem um spec ativo — ative um em Admin · Specs.',
+        'Este tipo ainda não tem um modelo ativo. Entre em contato com o administrador.',
     };
   }
-  if (type.variants.length > 0 && !input.variant) {
-    return { error: 'Selecione a variante para continuar.' };
+  if ((type.variants.length > 0 && (!input.variant || !type.variants.includes(input.variant))) || (type.variants.length === 0 && input.variant !== null)) {
+    return { error: 'Selecione uma variante válida para continuar.' };
   }
 
   const { data: created, error } = await supabase
@@ -79,7 +82,7 @@ async function removeStoragePrefix(
   prefix: string,
 ): Promise<void> {
   // list é raso — varre os subdiretórios conhecidos do relatório.
-  const dirs = ['', 'photos/original', 'photos/processed', 'photos/thumbs', 'sheets', 'snapshots'];
+  const dirs = ['', 'photos/original', 'photos/processed', 'photos/thumbs', 'sheets', 'snapshots', 'working'];
   for (const dir of dirs) {
     const path = dir ? `${prefix}/${dir}` : prefix;
     const { data } = await svc.storage.from('reports').list(path, { limit: 1000 });

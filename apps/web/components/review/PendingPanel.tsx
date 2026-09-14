@@ -17,12 +17,14 @@ interface PendingPanelProps {
   reportId: string;
   issues: Issue[];
   totalFields: number;
+  saving?: boolean;
 }
 
 export function PendingPanel({
   reportId,
   issues,
   totalFields,
+  saving = false,
 }: PendingPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -134,7 +136,7 @@ export function PendingPanel({
       {/* Botão Confirmar */}
       <button
         onClick={handleConfirm}
-        disabled={hasErrors || isPending}
+        disabled={hasErrors || isPending || saving}
         style={{
           marginTop: 8,
           padding: '11px 16px',
@@ -153,7 +155,7 @@ export function PendingPanel({
           gap: 6,
         }}
       >
-        {isPending ? 'Confirmando…' : 'Confirmar dados →'}
+        {saving ? 'Salvando dados…' : isPending ? 'Confirmando…' : 'Confirmar dados →'}
       </button>
 
       {hasErrors && (

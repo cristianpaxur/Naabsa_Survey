@@ -24,6 +24,7 @@
 | [012](./012%20-%20Editor%20Nativo%20Collabora%20e%20Fluxo%20de%20Aprovação/spec.md) | Editor Nativo Collabora e Fluxo de Aprovação | subst. T-17/T-18 | 🟠 Em andamento | 9/10 (T-010: código pronto; rodar E2E c/ stack local) |
 | [013](./013%20-%20Gestão%20de%20Identidade%20e%20Acesso/spec.md) | Gestão de Identidade e Acesso (SSO Entra ID) | pós-PRD | 🟡 Planejada | 0/12 |
 | [014](./014%20-%20Recuperação%20de%20Erros%20e%20Resiliência%20Operacional/spec.md) | Recuperação de Erros e Resiliência Operacional | pós-PRD | 🟠 Código completo | 10/10 (aceite CA-001..004 pendente na stack local) |
+| [015](./015-correcao-integrada/spec.md) | Correções integradas de IA, fotos, texto, acesso e editor | auditoria C01–C15 | 🟠 Código e validação local concluídos | HEIC na imagem e aceite com serviços pendentes |
 
 ---
 
@@ -57,6 +58,7 @@ pendentes no atual).
 | 012 | 011, 004, 008 |
 | 013 | 002, 005 |
 | 014 | 010, 012 |
+| 015 | Auditoria do código atual; correção de 005–014 |
 
 Paralelização possível: após 001, **002 e 003** podem andar em paralelo; após 005,
 **006 e 007** podem andar em paralelo.

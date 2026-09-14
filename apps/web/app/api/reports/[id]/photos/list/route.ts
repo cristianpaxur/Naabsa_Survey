@@ -20,6 +20,10 @@ export async function GET(
     return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
   }
 
-  const photos = await loadUIPhotos(supabase, createServiceClient(), id);
-  return NextResponse.json({ photos });
+  try {
+    const photos = await loadUIPhotos(supabase, createServiceClient(), id);
+    return NextResponse.json({ photos });
+  } catch {
+    return NextResponse.json({ error: 'Não foi possível atualizar as fotos. Tente novamente.' }, { status: 503 });
+  }
 }

@@ -12,7 +12,7 @@
  */
 import { useState, useTransition } from 'react';
 import type { FieldDef, FieldValue, Issue } from '@naabsa/core';
-import { setOverride } from '@/lib/actions/review';
+import { setOverride, type SetOverrideResult } from '@/lib/actions/review';
 
 interface FieldRowProps {
   reportId: string;
@@ -23,7 +23,8 @@ interface FieldRowProps {
   /** Issues que afetam este campo. */
   fieldIssues: Issue[];
   /** Callback para sincronizar issues globais após override. */
-  onIssuesUpdated: (issues: Issue[]) => void;
+  onIssuesUpdated: (result: Exclude<SetOverrideResult, { error: string }>) => void;
+  onSavingChanged: (saving: boolean) => void;
 }
 
 export function FieldRow({
@@ -34,6 +35,7 @@ export function FieldRow({
   isOverride,
   fieldIssues,
   onIssuesUpdated,
+  onSavingChanged,
 }: FieldRowProps) {
   const [isPending, startTransition] = useTransition();
   const [localValue, setLocalValue] = useState<FieldValue>(value);
@@ -53,13 +55,20 @@ export function FieldRow({
   function handleChange(newVal: FieldValue) {
     setLocalValue(newVal);
     setSaveError(null);
+    onSavingChanged(true);
     startTransition(async () => {
-      const result = await setOverride(reportId, name, newVal);
-      if ('error' in result) {
-        setSaveError(result.error);
-      } else {
-        setLocalIsOverride(true);
-        onIssuesUpdated(result.issues);
+      try {
+        const result = await setOverride(reportId, name, newVal);
+        if ('error' in result) {
+          setSaveError(result.error);
+        } else {
+          setLocalIsOverride(true);
+          onIssuesUpdated(result);
+        }
+      } catch {
+        setSaveError('Falha de conexão ao salvar. Tente novamente.');
+      } finally {
+        onSavingChanged(false);
       }
     });
   }
@@ -121,12 +130,13 @@ export function FieldRow({
         </div>
 
         {/* Issue inline */}
-        {topIssue && (
+        {fieldIssues.map((issue, index) => (
           <div
+            key={`${issue.origin ?? 'validation'}-${index}`}
             style={{
               marginTop: 4,
               fontSize: 11,
-              color: topIssue.level === 'error' ? '#bf2c30' : '#8a6516',
+              color: issue.level === 'error' ? '#bf2c30' : '#8a6516',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -137,18 +147,18 @@ export function FieldRow({
                 fontSize: 10,
                 fontWeight: 800,
                 fontFamily: 'var(--font-mono)',
-                background: topIssue.level === 'error' ? '#bf2c30' : '#bb8420',
+                background: issue.level === 'error' ? '#bf2c30' : '#bb8420',
                 color: '#fff',
                 borderRadius: 3,
                 padding: '0 5px',
                 lineHeight: '16px',
               }}
             >
-              {topIssue.level === 'error' ? 'ERRO' : 'AVISO'}
+              {issue.level === 'error' ? 'ERRO' : issue.origin === 'ai' ? 'AVISO IA' : 'AVISO'}
             </span>
-            {topIssue.message}
+            {issue.message}
           </div>
-        )}
+        ))}
 
         {saveError && (
           <div style={{ marginTop: 4, fontSize: 11, color: '#bf2c30' }}>

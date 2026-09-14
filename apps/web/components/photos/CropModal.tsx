@@ -24,7 +24,7 @@ export interface CropModalProps {
   initialCrop: Crop | null;
   onClose: () => void;
   /** Salva o crop relativo à processada (0–1). */
-  onSave: (crop: Crop) => Promise<void> | void;
+  onSave: (crop: Crop) => Promise<boolean>;
 }
 
 /**
@@ -74,10 +74,9 @@ export function CropModal({
   async function handleSave() {
     setSaving(true);
     try {
-      await onSave(areaPixels);
+      if (await onSave(areaPixels)) onClose();
     } finally {
       setSaving(false);
-      onClose();
     }
   }
 

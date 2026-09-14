@@ -29,6 +29,7 @@ import { renderSheetPng } from '../lib/sheetImage';
 
 export interface GeneratePdfPayload {
   reportId: string;
+  approvedRevision?: number;
 }
 
 export const GENERATE_PDF_QUEUE = 'generate_pdf';
@@ -104,6 +105,11 @@ async function download(svc: ReturnType<typeof getServiceClient>, path: string) 
 
 export interface ReportRow {
   status: string;
+  working_docx_path: string | null;
+  working_docx_revision: number;
+  working_docx_generation: string;
+  approved_docx_path: string | null;
+  approved_docx_revision: number | null;
   variant: string | null;
   spec_id: string;
   extracted_data: unknown;
@@ -118,7 +124,7 @@ export interface ReportRow {
 export async function loadReport(svc: ReturnType<typeof getServiceClient>, reportId: string): Promise<ReportRow | null> {
   const { data, error } = await svc
     .from('reports')
-    .select('status, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths, report_types(slug)')
+    .select('status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths, report_types(slug)')
     .eq('id', reportId)
     .single();
   if (error || !data) return null;
@@ -130,7 +136,7 @@ export async function loadReport(svc: ReturnType<typeof getServiceClient>, repor
 export function nextPdfVersion(paths: string[]): number {
   let max = 0;
   for (const p of paths) {
-    const m = /final-v(\d+)\.pdf$/.exec(p);
+    const m = /final-v(\d+)(?:-r\d+)?\.pdf$/.exec(p);
     if (m) max = Math.max(max, parseInt(m[1]!, 10));
   }
   return max + 1;
@@ -225,6 +231,7 @@ export async function buildWorkingDocx(
       .from('report_photos')
       .select('slot_id, processed_path, position, crop')
       .eq('report_id', reportId)
+      .is('removed_at', null).eq('ai_suggested', false).eq('status', 'done')
       .not('slot_id', 'is', null)
       .order('position', { ascending: true });
     const photos: DocxInputMsc['photos'] = { vessel: [], engine_room: [], survey_attendance: [] };
@@ -325,6 +332,7 @@ export async function buildWorkingDocx(
     .from('report_photos')
     .select('slot_id, processed_path, position, crop')
     .eq('report_id', reportId)
+    .is('removed_at', null).eq('ai_suggested', false).eq('status', 'done')
     .not('slot_id', 'is', null)
     .order('position', { ascending: true });
   const bySlot: Record<string, Buffer[]> = {};
@@ -359,8 +367,8 @@ export async function buildWorkingDocx(
 
 /**
  * Converte o `working.docx` EDITADO (no Collabora, 012) em PDF — é o documento que
- * o operador finalizou, não um rebuild dos dados. Se ainda não existir (ex.: relatório
- * antigo, ou 1ª geração sem passar pelo editor), monta-o on-the-fly e persiste.
+ * o operador finalizou, não um rebuild dos dados. Se o objeto estiver ausente,
+ * falha de forma recuperável: jamais troca uma edição por dados reconstruídos.
  * `docHash` = sha256 dos bytes do .docx (identidade do que virou PDF).
  * NÃO checa status nem transiciona — quem chama decide o que fazer com o PDF.
  */
@@ -369,19 +377,11 @@ export async function convertWorkingDocxToPdf(
   reportId: string,
   row: ReportRow,
 ): Promise<{ pdf: Buffer; docx: Buffer; docHash: string }> {
-  const existing = await download(svc, `${reportId}/working.docx`);
-  let docx: Buffer;
-  if (existing) {
-    docx = existing;
-  } else {
-    // Fallback: monta dos dados e persiste, para o editor e as próximas gerações reusarem.
-    const built = await buildWorkingDocx(svc, reportId, row);
-    docx = built.docx;
-    await svc.storage.from(BUCKET).upload(`${reportId}/working.docx`, docx, {
-      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      upsert: true,
-    });
-  }
+  const path = row.status === 'approved' || row.status === 'generated'
+    ? row.approved_docx_path : row.working_docx_path;
+  if (!path) throw new Error('[generate_pdf] Documento salvo não encontrado. Abra o editor antes de gerar.');
+  const docx = await download(svc, path);
+  if (!docx) throw new Error('[generate_pdf] Não foi possível ler a versão salva. Tente novamente.');
   const pdf = await convertDocxToPdf(docx);
   const docHash = createHash('sha256').update(docx).digest('hex');
   return { pdf, docx, docHash };
@@ -393,7 +393,7 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
 
   const row = await loadReport(svc, reportId);
   if (!row) throw new Error(`[generate_pdf] relatório ${reportId} não encontrado.`);
-  if (row.status !== 'approved') {
+  if (row.status !== 'approved' || payload.approvedRevision === undefined || payload.approvedRevision !== row.approved_docx_revision) {
     await auditLog(svc, reportId, null, 'pdf_rejected', {
       reason: `status inválido: ${row.status} (esperado approved)`,
     });
@@ -401,26 +401,31 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
   }
 
   const { pdf, docx, docHash } = await convertWorkingDocxToPdf(svc, reportId, row);
+  if (!row.approved_docx_path) throw new Error('[generate_pdf] Snapshot aprovado ausente.');
 
   // Upload: PDF VERSIONADO (final-v{n}.pdf, 010/T-005) + .docx editável (mais recente).
   const version = nextPdfVersion(row.pdf_paths ?? []);
-  const pdfPath = `${reportId}/final-v${version}.pdf`;
-  const docxPath = `${reportId}/final.docx`;
-  const up1 = await svc.storage.from(BUCKET).upload(pdfPath, pdf, { contentType: 'application/pdf', upsert: true });
-  if (up1.error) throw new Error(`[generate_pdf] falha no upload do PDF: ${up1.error.message}`);
-  await svc.storage.from(BUCKET).upload(docxPath, docx, {
+  const pdfPath = `${reportId}/final-v${version}-r${payload.approvedRevision}.pdf`;
+  const docxPath = `${reportId}/final-v${version}-r${payload.approvedRevision}.docx`;
+  const up1 = await svc.storage.from(BUCKET).upload(pdfPath, pdf, { contentType: 'application/pdf', upsert: false });
+  if (up1.error && !isDuplicateObject(up1.error)) throw new Error(`[generate_pdf] falha no upload do PDF: ${up1.error.message}`);
+  const up2 = await svc.storage.from(BUCKET).upload(docxPath, docx, {
     contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    upsert: true,
+    upsert: false,
   });
+  if (up2.error && !isDuplicateObject(up2.error)) throw new Error(`[generate_pdf] falha no upload DOCX: ${up2.error.message}`);
 
   // Transição → generated + auditoria. pdf_paths acumula as versões (download = última).
   const pdfPaths = [...(row.pdf_paths ?? []), pdfPath];
-  const { error: updateErr } = await svc
+  const { error: updateErr, count } = await svc
     .from('reports')
-    .update({ status: 'generated', document_hash: docHash, pdf_paths: pdfPaths } as never)
+    .update({ status: 'generated', document_hash: docHash, pdf_paths: pdfPaths } as never, { count: 'exact' })
     .eq('id', reportId)
-    .eq('status', 'approved');
+    .eq('status', 'approved')
+    .eq('approved_docx_revision', payload.approvedRevision)
+    .eq('approved_docx_path', row.approved_docx_path);
   if (updateErr) throw new Error(`[generate_pdf] falha ao atualizar relatório: ${updateErr.message}`);
+  if (count !== 1) return;
 
   await auditLog(svc, reportId, row.created_by, 'pdf_generated', {
     document_hash: docHash,
@@ -444,4 +449,8 @@ async function auditLog(
     action,
     payload: details ?? null,
   } as never);
+}
+
+function isDuplicateObject(error: { message: string; statusCode?: string | number }): boolean {
+  return String(error.statusCode) === '409' || /already exists|duplicate/i.test(error.message);
 }

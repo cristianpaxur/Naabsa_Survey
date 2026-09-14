@@ -24,11 +24,13 @@ export function PreviewPanel({
   reportId,
   initialStatus,
   autoApprove = false,
+  saveReceipt,
   onBackToEdit,
 }: {
   reportId: string;
   initialStatus: ReportStatus;
   autoApprove?: boolean;
+  saveReceipt?: string;
   onBackToEdit: () => void;
 }) {
   const [status, setStatus] = useState<ReportStatus>(initialStatus);
@@ -48,7 +50,7 @@ export function PreviewPanel({
     setPreviewState('generating');
     setPreviewUrl(null);
     setError(null);
-    const res = await generatePreview(reportId);
+    const res = await generatePreview(reportId).catch(() => ({ error: 'Falha de conexão ao iniciar a pré-visualização. Tente novamente.' }));
     if ('error' in res) {
       setPreviewState('error');
       setError(res.error);
@@ -56,7 +58,7 @@ export function PreviewPanel({
     }
     let attempts = 0;
     const poll = async () => {
-      const r = await getPreviewUrl(reportId);
+      const r = await getPreviewUrl(reportId).catch(() => ({ error: 'Falha de conexão ao consultar a pré-visualização.' }));
       if ('url' in r) {
         setPreviewUrl(r.url);
         setPreviewState('ready');
@@ -92,7 +94,7 @@ export function PreviewPanel({
     if (status !== 'generated') return;
     let cancelled = false;
     void (async () => {
-      const res = await getDownloadUrl(reportId);
+      const res = await getDownloadUrl(reportId).catch(() => ({ error: 'Falha de conexão ao consultar o PDF.' }));
       if (cancelled) return;
       if ('url' in res) {
         setPreviewUrl(res.url);
@@ -109,11 +111,13 @@ export function PreviewPanel({
     if (status !== 'approved') return;
     let cancelled = false;
     let delay = 2000;
+    let attempts = 0;
     const tick = async () => {
-      const res = await getPdfStatus(reportId);
+      const res = await getPdfStatus(reportId).catch(() => ({ error: 'Falha de conexão ao consultar o PDF. Tente novamente.' }));
       if (cancelled) return;
       if ('error' in res) {
         setError(res.error);
+        setPdfFailed(true);
         return;
       }
       if (res.status === 'generated') {
@@ -131,6 +135,11 @@ export function PreviewPanel({
         );
         return;
       }
+      if (++attempts >= 90) {
+        setPdfFailed(true);
+        setError('O PDF está demorando além do esperado. Você pode tentar gerar novamente com segurança.');
+        return;
+      }
       delay = Math.min(delay + 500, 4000);
       pollRef.current = setTimeout(() => void tick(), delay);
     };
@@ -144,7 +153,7 @@ export function PreviewPanel({
   // Retentativa (014/T-004): re-enfileira e retoma o polling.
   const onRetryPdf = useCallback(async () => {
     setBusy(true);
-    const res = await retryGeneratePdf(reportId);
+    const res = await retryGeneratePdf(reportId).catch(() => ({ error: 'Falha de conexão ao tentar gerar o PDF.' }));
     setBusy(false);
     if ('error' in res) {
       setError(res.error);
@@ -158,14 +167,22 @@ export function PreviewPanel({
   const onApprove = useCallback(async () => {
     setBusy(true);
     setError(null);
-    const res = await approveAction(reportId);
+    const res = await approveAction(reportId, saveReceipt).catch(async () => {
+      const current = await getPdfStatus(reportId).catch(() => null);
+      if (current && 'status' in current && (current.status === 'approved' || current.status === 'generated')) {
+        setStatus(current.status);
+        return { error: 'A aprovação foi registrada. Confira a geração do PDF e tente novamente se necessário.', approved: current.status === 'approved' };
+      }
+      return { error: 'Falha de conexão ao aprovar. Reabra o relatório para conferir o estado.', approved: false };
+    });
     setBusy(false);
     if ('error' in res) {
       setError(res.error);
+      if (res.approved) { setStatus('approved'); setPdfFailed(true); }
       return;
     }
     setStatus('approved');
-  }, [reportId]);
+  }, [reportId, saveReceipt]);
 
   useEffect(() => {
     if (autoApprove && !autoApprovedRef.current && status === 'editing') {
@@ -177,7 +194,7 @@ export function PreviewPanel({
   async function onDownload() {
     setBusy(true);
     setError(null);
-    const res = await getDownloadUrl(reportId);
+    const res = await getDownloadUrl(reportId).catch(() => ({ error: 'Falha de conexão ao consultar o PDF.' }));
     setBusy(false);
     if ('error' in res) {
       setError(res.error);
@@ -228,7 +245,7 @@ export function PreviewPanel({
             className="ed-btn"
             style={{ borderColor: '#fff', color: '#fff', background: 'transparent' }}
             onClick={() => void runPreview()}
-            disabled={previewState === 'generating'}
+            disabled={previewState === 'generating' || status !== 'editing'}
           >
             Atualizar preview
           </button>
@@ -290,14 +307,14 @@ export function PreviewPanel({
             >
               Tentar gerar novamente
             </button>
-          ) : (
+          ) : status === 'editing' ? (
             <button
-              onClick={() => void runPreview()}
+              onClick={onBackToEdit}
               style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#9b2a2c', cursor: 'pointer' }}
             >
-              Tentar de novo
+              Voltar ao editor e salvar
             </button>
-          )}
+          ) : null}
         </div>
       )}
 

@@ -20,6 +20,7 @@ import { ReviewClient } from '@/components/review/ReviewClient';
 import { ReuploadPanel } from '@/components/review/ReuploadPanel';
 import { ResetToDraftButton } from '@/components/review/ResetToDraftButton';
 import { resolveFieldValue, collectFields } from '@naabsa/core';
+import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,7 +39,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const { data: raw } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, extracted_data, operator_overrides, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', id)
     .single();
@@ -51,6 +52,9 @@ export default async function ReviewPage({ params }: PageProps) {
     variant: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
+    extraction_issues: Issue[] | null;
+    ai_review: AiReviewState | null;
+    data_revision: number;
     report_specs:
       | { spec: ReportSpec }
       | { spec: ReportSpec }[]
@@ -124,7 +128,7 @@ export default async function ReviewPage({ params }: PageProps) {
   for (const [name] of fields) {
     effective[name] = resolveFieldValue(name, overrides, extracted);
   }
-  const initialIssues: Issue[] = validate(effective, spec, variant);
+  const initialIssues = mergeReviewIssues(validate(effective, spec, variant), row.extraction_issues, effective, extracted, row.ai_review);
 
   const totalFields = sections.reduce((acc, s) => acc + s.fields.length, 0);
 
@@ -180,6 +184,8 @@ export default async function ReviewPage({ params }: PageProps) {
         reportId={id}
         sections={sections}
         initialIssues={initialIssues}
+        initialAiReview={row.ai_review}
+        initialRevision={row.data_revision}
       />
     </div>
   );

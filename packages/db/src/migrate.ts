@@ -1,7 +1,7 @@
 /**
  * Runner de migrations do @naabsa/db.
  *
- * Aplica, em ordem alfabética e cada uma em sua transação, os arquivos
+ * Aplica, em ordem alfabética e em um lote transacional, os arquivos
  * `packages/db/migrations/*.sql` contra `DATABASE_URL` (projeto Supabase hosted).
  * As migrations são idempotentes — seguro re-rodar.
  *
@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { Client } from 'pg';
 import { loadRootEnv, normalizeConnectionString } from './env';
+import { applyMigrations } from './migration-runner';
 
 const MIGRATIONS_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -45,24 +46,14 @@ async function main(): Promise<void> {
 
   await client.connect();
   try {
-    for (const file of files) {
-      const sql = await readFile(path.join(MIGRATIONS_DIR, file), 'utf8');
-      process.stdout.write(`[db] aplicando ${file}… `);
-      await client.query('begin');
-      try {
-        await client.query(sql);
-        await client.query('commit');
-        process.stdout.write('ok\n');
-      } catch (err) {
-        await client.query('rollback');
-        throw err;
-      }
-    }
+    const migrations = await Promise.all(files.map(async name => ({name, sql: await readFile(path.join(MIGRATIONS_DIR,name),'utf8')})));
+    const applied = await applyMigrations(client, migrations);
+    console.log(`[db] ${applied.length} migrations novas aplicadas; ${files.length - applied.length} já registradas.`);
   } finally {
     await client.end();
   }
 
-  console.log(`[db] ${files.length} migration(s) aplicada(s) com sucesso.`);
+  console.log('[db] schema atualizado com sucesso.');
 }
 
 main().catch((err: unknown) => {

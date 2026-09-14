@@ -20,6 +20,8 @@ interface PhotoDbRow {
   error_message: string | null;
   ai_suggested: boolean;
   quality_flags: string[];
+  ai_status: UIPhoto['aiStatus'];
+  ai_error: string | null;
 }
 
 /** Rótulo curto/mono a partir do caminho do original (uuid abreviado). */
@@ -39,14 +41,16 @@ export async function loadUIPhotos(
   service: SupabaseClient<Database>,
   reportId: string,
 ): Promise<UIPhoto[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('report_photos')
     .select(
-      'id,status,thumb_path,processed_path,slot_id,position,crop,original_path,error_message,ai_suggested,quality_flags',
+      'id,status,thumb_path,processed_path,slot_id,position,crop,original_path,error_message,ai_suggested,quality_flags,ai_status,ai_error',
     )
     .eq('report_id', reportId)
+    .is('removed_at', null)
     .order('created_at', { ascending: true });
 
+  if (error) throw new Error('Não foi possível carregar as fotos. Tente atualizar novamente.');
   const rows = (data as PhotoDbRow[] | null) ?? [];
 
   // Coleta os paths a assinar e gera as URLs em lote por bucket.
@@ -57,9 +61,12 @@ export async function loadUIPhotos(
   }
   const signed = new Map<string, string>();
   if (paths.size > 0) {
-    const { data: urls } = await service.storage
+    const { data: urls, error: signingError } = await service.storage
       .from(BUCKET)
       .createSignedUrls(Array.from(paths), SIGNED_TTL);
+    if (signingError || !urls || urls.some((u) => !u.signedUrl)) {
+      throw new Error('Não foi possível carregar as imagens. Tente atualizar novamente.');
+    }
     for (const u of urls ?? []) {
       if (u.signedUrl && u.path) signed.set(u.path, u.signedUrl);
     }
@@ -79,5 +86,7 @@ export async function loadUIPhotos(
     errorMessage: r.error_message,
     aiSuggested: r.ai_suggested,
     qualityFlags: r.quality_flags ?? [],
+    aiStatus: r.ai_status ?? 'idle',
+    aiError: r.ai_error,
   }));
 }

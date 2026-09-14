@@ -5,13 +5,15 @@
 #   docker build -f Dockerfile.worker .
 #
 # ┌─ generate_pdf (.docx nativo → PDF via LibreOffice) ───────────────────────┐
-# │ O job generate_pdf monta o relatório como .docx nativo (lib `docx`) e      │
-# │ converte para PDF via LibreOffice headless (sem Chromium). Por isso a base  │
+# │ build_working_docx monta o rascunho; generate_pdf converte o Word          │
+# │ editado/aprovado via LibreOffice headless. Por isso a base                  │
 # │ node:22-slim basta; o LibreOffice é instalado no estágio runner abaixo.    │
 # └────────────────────────────────────────────────────────────────────────────┘
 
 # --- base: Node + pnpm (via corepack, versão fixada em package.json) ---
-FROM node:22-slim AS base
+# Trixie explícito: libheif-plugin-libde265 pertence a esta distribuição.
+# Não usar o alias slim, cuja distribuição pode mudar independentemente do build.
+FROM node:22-trixie-slim AS base
 ENV PNPM_HOME="/pnpm" PATH="/pnpm:$PATH" CI=true
 RUN corepack enable
 WORKDIR /app
@@ -25,12 +27,7 @@ COPY apps/worker/package.json apps/worker/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
-# ┌─ impl 007 (process_photo / sharp + HEIC) ─────────────────────────────────┐
-# │ O job process_photo usa `sharp`. O pacote npm pré-compilado para linux-x64 │
-# │ (sharp@0.34) embute libvips com suporte a HEIF/HEIC, então node:22-slim    │
-# │ basta — não é necessário instalar libvips do SO. Se trocar para uma base   │
-# │ musl (alpine) ou outra arquitetura, validar o suporte HEIC do sharp.       │
-# └────────────────────────────────────────────────────────────────────────────┘
+# HEIC/HEVC é decodificado por libheif; Sharp recebe o PNG intermediário.
 
 # --- runner: fonte + execução via tsx (core/db são TS, sem build) ---
 FROM deps AS runner
@@ -46,6 +43,9 @@ FROM deps AS runner
 # └────────────────────────────────────────────────────────────────────────────┘
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libreoffice-calc libreoffice-writer libreoffice-draw fonts-crosextra-carlito fonts-crosextra-caladea \
+      libheif-examples libheif-plugin-libde265 \
+    && (command -v heif-convert || ln -s /usr/bin/heif-dec /usr/local/bin/heif-convert) \
+    && heif-convert --help >/dev/null \
     && rm -rf /var/lib/apt/lists/*
 # Perfil do LibreOffice (macro de conversão) num caminho gravável pelo usuário node.
 ENV LO_PROFILE_DIR=/tmp/naabsa-lo

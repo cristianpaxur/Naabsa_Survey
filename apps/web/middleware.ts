@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase/middleware';
+import { isActiveProfile } from '@/lib/users/access';
 
 // Rotas públicas (não exigem sessão).
 function isPublic(pathname: string): boolean {
@@ -34,14 +35,15 @@ export async function middleware(request: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!profile || (profile as { status?: string }).status === 'inactive') {
+  const { data: currentAccess } = await supabase.rpc('current_has_role');
+  if (!isActiveProfile(profile) || currentAccess !== true) {
     if (pathname === '/acesso-negado') return response;
     return NextResponse.redirect(new URL('/acesso-negado', request.url));
   }
 
   if (
     pathname.startsWith('/admin') &&
-    (profile as { role: string }).role !== 'admin'
+    (profile as { role: string } | null)?.role !== 'admin'
   ) {
     return NextResponse.redirect(new URL('/acesso-negado', request.url));
   }

@@ -50,12 +50,8 @@ export default async function AdminUsersPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if ((profile as { role?: string } | null)?.role !== 'admin')
+  const { data: currentAdmin } = await supabase.rpc('current_is_admin');
+  if (currentAdmin !== true)
     redirect('/acesso-negado');
   const { data } = await supabase
     .from('user_access')

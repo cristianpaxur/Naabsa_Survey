@@ -27,13 +27,8 @@ async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if ((data as { role?: string } | null)?.role !== 'admin')
-    redirect('/acesso-negado');
+  const { data: currentAdmin, error: accessError } = await supabase.rpc('current_is_admin');
+  if (accessError || currentAdmin !== true) redirect('/acesso-negado');
   return { actorId: user.id, service: createServiceClient() };
 }
 
@@ -201,10 +196,7 @@ export async function updateUserAccess(formData: FormData) {
     .eq('email', email);
   if (error) go('Não foi possível atualizar o usuário.', 'error');
   if (row.linked_user_id) {
-    await service
-      .from('profiles')
-      .update({ display_name: displayName, role, status } as never)
-      .eq('user_id', row.linked_user_id);
+    // Migration 0009 sincroniza perfil e revoga sessões na mesma transação.
     if (password) {
       const { error: passwordError } = await service.auth.admin.updateUserById(
         row.linked_user_id,
@@ -239,12 +231,7 @@ export async function deleteUserAccess(formData: FormData) {
   ) {
     go('Não é possível excluir o último administrador ativo.', 'error');
   }
-  if (row.linked_user_id) {
-    await service
-      .from('profiles')
-      .update({ status: 'inactive' } as never)
-      .eq('user_id', row.linked_user_id);
-  }
+  // Exclusão da allowlist desativa o perfil e revoga as sessões atomicamente.
   const { error } = await service
     .from('user_access')
     .delete()

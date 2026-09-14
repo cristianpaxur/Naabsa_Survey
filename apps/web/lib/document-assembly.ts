@@ -58,6 +58,7 @@ async function loadAllocatedPhotos(
     .from('report_photos')
     .select('id,slot_id,processed_path,crop')
     .eq('report_id', reportId)
+    .is('removed_at', null).eq('ai_suggested', false).eq('status', 'done')
     .not('slot_id', 'is', null)
     .order('position', { ascending: true });
 

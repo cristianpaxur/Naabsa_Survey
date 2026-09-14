@@ -29,7 +29,7 @@ describe('convertWorkingDocxToPdf (012/T-005..T-007, CA-004)', () => {
     const svc = {
       storage: {
         from: () => ({
-          download: async () => ({ data: { arrayBuffer: async () => edited }, error: null }),
+          download: async (path: string) => { expect(path).toBe('r1/working/approved.docx'); return { data: { arrayBuffer: async () => edited }, error: null }; },
         }),
       },
       // Se o job tentar reconstruir dos dados (spec/planilha), o teste falha:
@@ -39,6 +39,8 @@ describe('convertWorkingDocxToPdf (012/T-005..T-007, CA-004)', () => {
     };
     const row = {
       status: 'approved',
+      approved_docx_path: 'r1/working/approved.docx',
+      working_docx_path: 'r1/working/newer-edit.docx',
       variant: null,
       spec_id: 's1',
       extracted_data: {},
@@ -54,3 +56,11 @@ describe('convertWorkingDocxToPdf (012/T-005..T-007, CA-004)', () => {
     expect(out.docHash).toBe(createHash('sha256').update(edited).digest('hex'));
   });
 });
+
+  it('arquivo salvo indisponível falha sem reconstruir ou gravar documento', async () => {
+    const svc = { storage: { from: () => ({ download: async () => ({ error: { message: 'offline' }, data: null }) }) } };
+    await expect(convertWorkingDocxToPdf(svc as never, 'r1', { status: 'approved', approved_docx_path: 'r1/saved.docx' } as never)).rejects.toThrow('versão salva');
+  });
+  it('reconhece arquivos finais isolados por revisão', () => {
+    expect(nextPdfVersion(['r/final-v1-r12.pdf', 'r/final-v2-r15.pdf'])).toBe(3);
+  });

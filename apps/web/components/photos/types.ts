@@ -21,6 +21,8 @@ export interface UIPhoto {
   /** Forward-compatible (006/010) — render apenas, sem lógica de IA aqui. */
   aiSuggested: boolean;
   qualityFlags: string[];
+  aiStatus?: 'idle' | 'pending' | 'running' | 'done' | 'error';
+  aiError?: string | null;
 }
 
 export type { PhotoSlot };

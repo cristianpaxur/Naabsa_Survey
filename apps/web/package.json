@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- next dev -H 0.0.0.0",
+    "dev": "dotenv -e ../../.env.local -e ../../.env -- next dev -H 0.0.0.0",
     "build": "next build",
-    "start": "dotenv -e ../../.env -- next start",
+    "start": "dotenv -e ../../.env.local -e ../../.env -- next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

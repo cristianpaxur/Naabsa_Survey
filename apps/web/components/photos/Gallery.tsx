@@ -4,7 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import type { UIPhoto } from './types';
 
 /** Item arrastável da galeria (uma foto). */
-function GalleryItem({ photo, analyzing }: { photo: UIPhoto; analyzing?: boolean }) {
+function GalleryItem({ photo }: { photo: UIPhoto }) {
   const allocated = photo.slotId !== null;
   const draggable = photo.status === 'done';
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -54,7 +54,7 @@ function GalleryItem({ photo, analyzing }: { photo: UIPhoto; analyzing?: boolean
       )}
 
       {/* IA classificando — após o processamento, enquanto a IA analisa a foto. */}
-      {analyzing &&
+      {(photo.aiStatus === 'pending' || photo.aiStatus === 'running') &&
         photo.status === 'done' &&
         !photo.aiSuggested &&
         photo.slotId === null && (
@@ -67,7 +67,7 @@ function GalleryItem({ photo, analyzing }: { photo: UIPhoto; analyzing?: boolean
             }}
           >
             <span className="naabsa-pulse" style={{ fontSize: 10.5, fontWeight: 700, color: '#fff' }}>
-              IA analisando…
+              {photo.aiStatus === 'pending' ? 'IA aguardando…' : 'IA analisando…'}
             </span>
           </div>
         )}
@@ -154,10 +154,8 @@ const overlayCenter = {
  */
 export function Gallery({
   photos,
-  analyzing,
 }: {
   photos: UIPhoto[];
-  analyzing?: boolean;
 }) {
   const allocated = photos.filter((p) => p.slotId !== null).length;
 
@@ -205,7 +203,7 @@ export function Gallery({
           }}
         >
           {photos.map((p) => (
-            <GalleryItem key={p.id} photo={p} analyzing={analyzing} />
+            <GalleryItem key={p.id} photo={p} />
           ))}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Wizard, type WizardType } from '@/components/wizard/Wizard';
+import { supportsReport } from '@/lib/supported-reports';
 
 const TYPE_ORDER = [
   'draft_survey',
@@ -28,7 +29,7 @@ export default async function NewReportPage() {
       slug: t.slug,
       name: t.name,
       variants: t.variants,
-      hasActiveSpec: t.active_spec_id !== null,
+      hasActiveSpec: t.active_spec_id !== null && supportsReport(t.slug),
     }))
     .sort((a, b) => TYPE_ORDER.indexOf(a.slug) - TYPE_ORDER.indexOf(b.slug));
 

@@ -1,95 +1,70 @@
-# Sistema de Relatórios Automatizados Naabsa
+# Naabsa Survey
 
-Sistema web interno que automatiza a produção dos relatórios de inspeção marítima da
-**Naabsa Marine Surveyors & Consultants**: o operador sobe a planilha pré-moldada, o sistema
-extrai e valida os dados, distribui as fotos, abre o documento num editor rico e gera o PDF —
-com auditoria completa e o operador como autoridade final.
+Aplicação interna para transformar planilhas de inspeção em relatórios: extração e revisão
+dos dados, fotos opcionais, edição do Word no Collabora e aprovação de uma versão para PDF.
+Os tipos disponíveis são **Draft Survey** (carga/descarga) e **MSC**. Os demais tipos,
+o editor administrativo de modelos e o SSO Entra ID ainda dependem de implementação.
 
-- **Requisitos:** [PRD.md](./PRD.md) (fonte de verdade — RF/RNF, domínio, stack).
-- **Convenções do agente:** [CLAUDE.md](./CLAUDE.md).
-- **Plano de implementação:** [implementation/](./implementation/) (10 implementações, 001→010).
-- **Design (handoff):** [design/naabsa-survey](./design/naabsa-survey).
+As correções da auditoria de setembro estão na [implementação 015](implementation/015-correcao-integrada/spec.md).
+Consulte as [evidências de validação](implementation/015-correcao-integrada/validation.md)
+e as [instruções para atualizar o ambiente](docs/CORRECOES_015.md) antes de publicar.
 
-> Status: **fundação (implementação 001) concluída** — monorepo, tooling, esqueletos de app e
-> worker, testes e containerização. As features chegam nas implementações 002–010.
+## Estrutura e funcionamento
 
-## Stack
+- `apps/web`: Next.js 15 / React 19, telas, APIs e host WOPI.
+- `apps/worker`: pg-boss, ExcelJS, Sharp/libheif, IA e LibreOffice.
+- `packages/core`: extração e validação em TypeScript, sem dependência do Next.js.
+- `packages/db`: schema Supabase, RLS, migrations e testes SQL.
+- `tests/golden`: conteúdo dos documentos DOCX gerados pelos builders atuais.
 
-Next.js 15 (App Router) · TypeScript estrito · Supabase (Postgres/RLS/Storage) · pg-boss ·
-worker Node + Playwright + sharp · TipTap · ExcelJS · Docker Compose (app, worker, caddy).
-Detalhes e decisões fixas no [PRD §2](./PRD.md).
+O Supabase fornece Auth, Postgres e o bucket privado `reports`. O worker monta o DOCX
+inicial; o Collabora edita esse arquivo via WOPI. Cada salvamento publica uma nova versão.
+A aprovação fixa a versão usada pelo LibreOffice para gerar o PDF, preservando as edições.
 
-## Estrutura do monorepo
+## Desenvolvimento
 
-```
-apps/
-  web/        # Next.js (UI + API + rota /print)
-  worker/     # processo Node (pg-boss, Playwright, sharp) — jobs em src/jobs/
-packages/
-  core/       # MOTOR (TS puro): extractor, spec-schema, document-builder
-  db/         # migrations SQL + tipos gerados do Supabase
-tests/
-  golden/     # golden tests de PDF por tipo×variante
-  fixtures/   # planilhas/specs de teste
-```
-
-`packages/core` é **TypeScript puro** e nunca importa Next.js, Supabase ou o worker — regra
-garantida por lint (`eslint.config.mjs`).
-
-## Pré-requisitos
-
-- **Node** ≥ 20 (ver [.nvmrc](./.nvmrc) — usamos 24)
-- **pnpm** 11+ (`npm i -g pnpm` ou via corepack)
-- **Docker** + Docker Compose (para a stack containerizada)
-
-## Como rodar
-
-### Instalar
+Requer Node **22 ou superior** (desenvolvimento validado com 24), pnpm 11,
+Supabase de testes e LibreOffice. O editor também requer Collabora.
 
 ```bash
 pnpm install
+pnpm --filter @naabsa/worker diagnose
+pnpm --filter @naabsa/web dev
+pnpm --filter @naabsa/worker dev
 ```
 
-### Desenvolvimento
+Execute web e worker em terminais separados. Preencha as variáveis da raiz conforme
+[.env.example](.env.example). Scripts locais usam **ambiente do processo > `.env.local` > `.env`**.
+Reinicie ambos depois de mudar a configuração. O diagnóstico informa presença e validade
+das variáveis sem imprimir segredos nem chamar o provedor de IA.
+
+Containers recebem variáveis da plataforma; o Compose usa `.env` e não carrega
+`.env.local` automaticamente. Não copie credenciais de produção para o ambiente de testes.
+
+## Verificação
 
 ```bash
-pnpm --filter @naabsa/web dev      # app web em http://localhost:3000
-pnpm --filter @naabsa/worker dev   # worker (recarrega ao salvar)
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:golden
+pnpm check:specs
+pnpm build
 ```
 
-### Qualidade (gate de cada tarefa)
+Os testes padrão usam memória e mocks, incluindo SQL no PGlite. Não acessam Supabase
+externo. O golden confere conteúdo DOCX; não certifica a aparência do PDF.
+Os testes contra Supabase, navegador, HEIC e LibreOffice têm requisitos próprios,
+descritos em [CORRECOES_015.md](docs/CORRECOES_015.md).
 
-```bash
-pnpm lint          # ESLint (config única, isolamento do core)
-pnpm typecheck     # tsc estrito em todos os workspaces
-pnpm test          # Vitest
-pnpm format        # Prettier --write   (format:check para verificar)
-```
+## Operação
 
-### Stack completa (Docker)
+O [Compose](docker-compose.yml) declara app, worker, Caddy e Collabora.
+`GET /api/health` verifica que o app responde. Para um administrador ativo,
+`GET /api/health/ready` verifica também worker/fila, bucket privado e discovery do Collabora.
 
-```bash
-cp .env.example .env        # preencha conforme o PRD §13 (opcional no esqueleto)
-docker compose up --build   # sobe app, worker e caddy
-```
-
-Por padrão o Caddy publica em **http://localhost** (HTTP). Verifique:
-
-```bash
-curl http://localhost/api/health    # → {"status":"ok","service":"naabsa-web"}
-```
-
-> Se a porta 80 estiver em uso, defina `CADDY_HTTP_PORT` (ex.: `CADDY_HTTP_PORT=8080`).
-> Em produção, defina `APP_DOMAIN=seu.dominio` no `.env` e o Caddy emite TLS automaticamente.
-
-## Variáveis de ambiente
-
-Todas as variáveis estão em [.env.example](./.env.example) (PRD §13). Nenhum segredo vai para o
-repositório: `.env` está no `.gitignore`.
-
-## Convenções
-
-- Uma implementação por vez, na ordem de [implementation/README.md](./implementation/README.md).
-- Por tarefa: ler RFs → implementar → testes → `pnpm lint && pnpm typecheck && pnpm test`
-  verdes → commit pequeno referenciando a tarefa (ex.: `feat(core): 003/T-005 ...`).
-- UI e mensagens sempre em **pt-BR**.
+- [Operação, filas e backup](docs/OPERACAO.md)
+- [Deploy no EasyPanel](docs/DEPLOY_EASYPANEL.md)
+- [Auditoria e plano C01–C15](docs/project/repository-analysis.md)
+- [Histórico das implementações](implementation/README.md)
+- [Requisitos originais](PRD.md) e [convenções](CLAUDE.md)
