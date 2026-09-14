@@ -14,17 +14,14 @@ const photo = {
 
 describe('loadUIPhotos', () => {
   it('erro de banco lança erro recuperável em vez de retornar galeria vazia', async () => {
-    await expect(loadUIPhotos(client({ data: null, error: { message: 'offline' } }), {} as never, 'report')).rejects.toThrow('carregar as fotos');
+    await expect(loadUIPhotos(client({ data: null, error: { message: 'offline' } }), 'report')).rejects.toThrow('carregar as fotos');
   });
-  it('não substitui URLs válidas por imagens vazias quando assinatura falha', async () => {
-    const service = { storage: { from: () => ({ createSignedUrls: async () => ({ data: null, error: { message: 'offline' } }) }) } };
-    await expect(loadUIPhotos(client({ data: [photo], error: null }), service as never, 'report')).rejects.toThrow('carregar as imagens');
+  it('foto pendente não expõe caminhos ainda não processados', async () => {
+    const result = await loadUIPhotos(client({ data: [{ ...photo, status: 'pending' }], error: null }), 'report');
+    expect(result[0]).toMatchObject({ thumbUrl: null, processedUrl: null });
   });
-  it('nova leitura renova URLs por dez minutos e preserva estado real da IA', async () => {
-    const sign = vi.fn(async (paths: string[]) => ({ data: paths.map((path) => ({ path, signedUrl: `signed:${path}` })), error: null }));
-    const service = { storage: { from: () => ({ createSignedUrls: sign }) } };
-    const result = await loadUIPhotos(client({ data: [photo], error: null }), service as never, 'report');
-    expect(sign).toHaveBeenCalledWith(['thumb.jpg', 'photo.jpg'], 600);
-    expect(result[0]).toMatchObject({ thumbUrl: 'signed:thumb.jpg', processedUrl: 'signed:photo.jpg', aiStatus: 'running' });
+  it('usa origem do app mesmo com Storage HTTP e preserva estado real da IA', async () => {
+    const result = await loadUIPhotos(client({ data: [photo], error: null }), 'report');
+    expect(result[0]).toMatchObject({ thumbUrl: '/api/reports/report/photos/photo/image?size=thumb', processedUrl: '/api/reports/report/photos/photo/image?size=full', aiStatus: 'running' });
   });
 });

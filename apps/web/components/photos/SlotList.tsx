@@ -1,5 +1,6 @@
 'use client';
 
+import { PhotoImage } from './PhotoImage';
 import { useDroppable } from '@dnd-kit/core';
 import type { PhotoSlot, UIPhoto } from './types';
 
@@ -34,12 +35,7 @@ function AllocatedThumb({
       }}
     >
       {photo.thumbUrl && (
-        <img
-          src={photo.thumbUrl}
-          alt={photo.label}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          draggable={false}
-        />
+        <PhotoImage src={photo.thumbUrl} label={photo.label} retryable={false} />
       )}
       <span
         style={{

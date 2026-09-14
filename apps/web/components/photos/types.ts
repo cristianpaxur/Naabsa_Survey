@@ -4,13 +4,13 @@ import type { Crop } from '@/lib/actions/photos';
 /** Estado de processamento de uma foto na galeria. */
 export type PhotoStatus = 'pending' | 'done' | 'error';
 
-/** Foto materializada para a UI (com URLs assinadas resolvidas no servidor). */
+/** Foto materializada para a UI (com URLs autenticadas da própria origem). */
 export interface UIPhoto {
   id: string;
   status: PhotoStatus;
-  /** URL assinada do thumb (≤ 10 min); null enquanto processando/erro. */
+  /** URL autenticada do thumb; null enquanto processando/erro. */
   thumbUrl: string | null;
-  /** URL assinada da processada (usada no crop); null enquanto processando. */
+  /** URL autenticada da processada (usada no crop); null enquanto processando. */
   processedUrl: string | null;
   slotId: string | null;
   position: number;

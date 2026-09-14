@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import type { ReportSpec } from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/service';
 import { loadUIPhotos } from '@/lib/photos';
 import { PhotosClient } from '@/components/photos/PhotosClient';
 
@@ -52,7 +51,7 @@ export default async function PhotosPage({
   const spec = (specRow as { spec: ReportSpec } | null)?.spec;
   const slots = spec?.photo_slots ?? [];
 
-  const photos = await loadUIPhotos(supabase, createServiceClient(), id);
+  const photos = await loadUIPhotos(supabase, id);
 
   const metaLabel = report.variant ? report.variant : 'sem variante';
 

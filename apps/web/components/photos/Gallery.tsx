@@ -1,212 +1,58 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { UIPhoto } from './types';
+import { PhotoImage } from './PhotoImage';
 
-/** Item arrastável da galeria (uma foto). */
-function GalleryItem({ photo }: { photo: UIPhoto }) {
-  const allocated = photo.slotId !== null;
+interface GalleryProps {
+  photos: UIPhoto[];
+  picked?: string | null;
+  renderActions?: (photo: UIPhoto) => ReactNode;
+}
+
+function GalleryItem({ photo, selected, actions }: { photo: UIPhoto; selected: boolean; actions: ReactNode }) {
   const draggable = photo.status === 'done';
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `photo:${photo.id}`,
-    data: { photoId: photo.id },
-    disabled: !draggable,
+    id: `photo:${photo.id}`, data: { photoId: photo.id }, disabled: !draggable,
   });
-
+  const analyzing = photo.aiStatus === 'pending' || photo.aiStatus === 'running';
+  const message = photo.status === 'error' ? photo.errorMessage || 'Falha no processamento.'
+    : photo.aiStatus === 'error' ? photo.aiError || 'Falha na análise da IA.' : null;
   return (
-    <div
-      ref={setNodeRef}
-      data-photo-id={photo.id}
-      {...(draggable ? listeners : {})}
-      {...attributes}
-      title={
-        photo.status === 'error'
-          ? (photo.errorMessage ?? 'Erro no processamento')
-          : photo.label
-      }
-      style={{
-        position: 'relative',
-        borderRadius: 9,
-        overflow: 'hidden',
-        aspectRatio: '4 / 3',
-        background: photo.thumbUrl ? '#2b3647' : '#e7e2d9',
-        border: '1px solid rgba(0,0,0,.08)',
-        cursor: draggable ? 'grab' : 'default',
-        opacity: isDragging ? 0.4 : 1,
-      }}
-    >
-      {photo.thumbUrl && (
-        <img
-          src={photo.thumbUrl}
-          alt={photo.label}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          draggable={false}
-        />
-      )}
-
-      {/* Estado processando */}
-      {photo.status === 'pending' && (
-        <div style={overlayCenter}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#7d7468' }}>
-            Processando…
-          </span>
-        </div>
-      )}
-
-      {/* IA classificando — após o processamento, enquanto a IA analisa a foto. */}
-      {(photo.aiStatus === 'pending' || photo.aiStatus === 'running') &&
-        photo.status === 'done' &&
-        !photo.aiSuggested &&
-        photo.slotId === null && (
-          <div
-            style={{
-              ...overlayCenter,
-              background: 'rgba(22,41,77,.58)',
-              flexDirection: 'column',
-              gap: 5,
-            }}
-          >
-            <span className="naabsa-pulse" style={{ fontSize: 10.5, fontWeight: 700, color: '#fff' }}>
-              {photo.aiStatus === 'pending' ? 'IA aguardando…' : 'IA analisando…'}
-            </span>
-          </div>
-        )}
-
-      {/* Estado erro */}
-      {photo.status === 'error' && (
-        <div style={{ ...overlayCenter, background: '#fbeceb' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#9b2a2c' }}>
-            Erro
-          </span>
-        </div>
-      )}
-
-      {/* Nome mono */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 8,
-          bottom: 7,
-          fontFamily: 'var(--font-mono)',
-          fontSize: 9.5,
-          color: photo.thumbUrl ? 'rgba(255,255,255,.9)' : '#7d7468',
-        }}
-      >
-        {photo.label}
+    <article data-photo-id={photo.id} style={{ minWidth: 0, border: selected ? '2px solid #16294d' : '1px solid #e4e0d8', borderRadius: 10, overflow: 'hidden', background: '#fff', opacity: isDragging ? 0.4 : 1, boxShadow: selected ? '0 0 0 2px #e7ecf4' : 'none' }}>
+      <div ref={setNodeRef} {...(draggable ? listeners : {})} {...attributes}
+        aria-label={`Selecionar ${photo.label}`} title={photo.label}
+        style={{ position: 'relative', aspectRatio: '4 / 3', background: '#f4f2ee', cursor: draggable ? 'grab' : 'default' }}>
+        {photo.thumbUrl ? <PhotoImage src={photo.thumbUrl} label={photo.label} />
+          : <div style={{ display: 'grid', placeItems: 'center', height: '100%', fontSize: 12, color: '#7d7468' }}>
+            {photo.status === 'pending' ? 'Processando…' : 'Imagem indisponível'}
+          </div>}
+        {photo.slotId && <span style={{ position: 'absolute', top: 8, right: 8, background: '#2f7d52', color: '#fff', borderRadius: 99, padding: '2px 6px', fontSize: 11 }}>✓</span>}
+        {(analyzing || photo.aiSuggested) && <span style={{ position: 'absolute', left: 8, top: 8, background: '#16294d', color: '#fff', borderRadius: 5, padding: '3px 6px', fontSize: 10 }}>
+          {photo.aiSuggested ? 'Sugestão IA' : photo.aiStatus === 'running' ? 'IA analisando…' : 'IA aguardando…'}
+        </span>}
       </div>
-
-      {/* Check verde de alocada */}
-      {allocated && photo.status === 'done' && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 7,
-            top: 7,
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            background: '#2f7d52',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 11,
-          }}
-        >
-          ✓
-        </div>
-      )}
-
-      {/* Forward-compatible: marca de sugestão de IA (lógica na 010) */}
-      {photo.aiSuggested && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 7,
-            top: 7,
-            fontSize: 9,
-            fontWeight: 700,
-            color: '#fff',
-            background: 'var(--navy)',
-            padding: '1px 6px',
-            borderRadius: 99,
-          }}
-        >
-          IA
-        </div>
-      )}
-    </div>
+      <div style={{ padding: '9px 10px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: '#7d7468', marginBottom: 7 }}>{photo.label}</div>
+        {message && <div role="status" style={{ color: '#9b2a2c', fontSize: 11, marginBottom: 8, overflowWrap: 'anywhere' }}>{message}</div>}
+        <div className="photo-card-actions" onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>{actions}</div>
+      </div>
+    </article>
   );
 }
 
-const overlayCenter = {
-  position: 'absolute' as const,
-  inset: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'rgba(250,248,245,.82)',
-};
-
-/**
- * Galeria de fotos (RF-17): grid de thumbs com estado (processando/pronta/
- * alocada/erro). Fotos prontas são arrastáveis para os slots (dnd-kit).
- */
-export function Gallery({
-  photos,
-}: {
-  photos: UIPhoto[];
-}) {
-  const allocated = photos.filter((p) => p.slotId !== null).length;
-
+export function Gallery({ photos, picked, renderActions }: GalleryProps) {
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 14,
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div style={{ fontSize: 14, fontWeight: 700 }}>Galeria</div>
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11.5,
-            color: '#9a9185',
-          }}
-        >
-          {photos.length} fotos · {allocated} alocadas
-        </div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: '#9a9185' }}>{photos.length} fotos · {photos.filter(photo => photo.slotId !== null).length} alocadas</div>
       </div>
-
-      {photos.length === 0 ? (
-        <div
-          style={{
-            border: '2px dashed #c9c3b6',
-            borderRadius: 10,
-            padding: '34px 16px',
-            textAlign: 'center',
-            fontSize: 13,
-            color: 'var(--rocha)',
-          }}
-        >
-          Nenhuma foto enviada ainda.
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 10,
-          }}
-        >
-          {photos.map((p) => (
-            <GalleryItem key={p.id} photo={p} />
-          ))}
-        </div>
-      )}
+      {!photos.length ? <div style={{ border: '2px dashed #c9c3b6', borderRadius: 10, padding: '34px 16px', textAlign: 'center', fontSize: 13, color: '#7d7468' }}>Nenhuma foto enviada ainda.</div>
+        : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+          {photos.map(photo => <GalleryItem key={photo.id} photo={photo} selected={picked === photo.id} actions={renderActions?.(photo)} />)}
+        </div>}
     </div>
   );
 }

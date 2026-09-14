@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './photos.css';
+
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { PhotoSlot } from '@naabsa/core';
@@ -293,9 +295,9 @@ export function PhotosClient({
               {uploadWait !== null ? `Aguardando limite de envio (${uploadWait}s)…` : uploading ? 'Enviando…' : '+ Enviar fotos (jpg/png/heic)'}
             </button>
 
-            {retryFiles.length > 0 && <button disabled={uploading} onClick={() => void onUpload(retryFiles)}>
+            {retryFiles.length > 0 && <div className="photo-card-actions" style={{ marginBottom: 12 }}><button disabled={uploading} onClick={() => void onUpload(retryFiles)}>
               Reenviar {retryFiles.length} foto(s) pendente(s)
-            </button>}
+            </button></div>}
             {picked && (
               <div
                 style={{
@@ -322,16 +324,8 @@ export function PhotosClient({
             )}
 
             <GalleryPicker
-              photos={photos}
-              picked={picked}
-              onPick={setPicked}
-
-            />
-            <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
-              {photos.map((photo) => <div key={photo.id} style={{ fontSize: 12 }}>
-                <strong>{photo.label}</strong>{' '}
-                {photo.status === 'error' && <span>{photo.errorMessage || 'Falha no processamento.'} </span>}
-                {photo.aiStatus === 'error' && <span>{photo.aiError || 'Falha na análise da IA.'} </span>}
+              photos={photos} picked={picked} onPick={setPicked}
+              renderActions={(photo) => <>
                 {(photo.status !== 'done' || photo.aiStatus === 'error' || photo.aiStatus === 'pending' || photo.aiStatus === 'running') && !photo.slotId &&
                   <button disabled={busy} onClick={() => void runAction(() => retryPhoto(reportId, photo.id))}>Tentar novamente</button>}
                 {photo.slotId && <>
@@ -339,11 +333,9 @@ export function PhotosClient({
                   <button disabled={busy || photosBySlot[photo.slotId]?.[0]?.id === photo.id} onClick={() => void changeOrder(photo, -1)} aria-label={`Mover ${photo.label} para antes`}>↑</button>
                   <button disabled={busy || photosBySlot[photo.slotId]?.at(-1)?.id === photo.id} onClick={() => void changeOrder(photo, 1)} aria-label={`Mover ${photo.label} para depois`}>↓</button>
                 </>}
-                <button disabled={busy} onClick={() => void runAction(() => removePhoto(reportId, photo.id))}>Remover</button>
-              </div>)}
-            </div>
-            {/* Realce visual da foto selecionada via borda na própria galeria
-                não é necessário aqui — a barra acima indica a seleção. */}
+                <button data-action="remove" disabled={busy} onClick={() => void runAction(() => removePhoto(reportId, photo.id))}>Remover</button>
+              </>}
+            />
           </div>
 
           {/* Slots à direita */}
@@ -396,13 +388,24 @@ function GalleryPicker({
   photos,
   picked,
   onPick,
+  renderActions,
 }: {
   photos: UIPhoto[];
   picked: string | null;
   onPick: (id: string) => void;
+  renderActions: (photo: UIPhoto) => ReactNode;
 }) {
   return (
     <div
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'BUTTON') return;
+        const id = target.closest('[data-photo-id]')?.getAttribute('data-photo-id');
+        if (id && photos.some(photo => photo.id === id && photo.status === 'done')) {
+          event.preventDefault(); onPick(id);
+        }
+      }}
       onClick={(e) => {
         const el = (e.target as HTMLElement).closest('[data-photo-id]');
         const id = el?.getAttribute('data-photo-id');
@@ -410,9 +413,7 @@ function GalleryPicker({
         if (id && p && p.status === 'done') onPick(id);
       }}
     >
-      <div style={{ outline: picked ? '0' : '0' }}>
-        <Gallery photos={photos} />
-      </div>
+      <Gallery photos={photos} picked={picked} renderActions={renderActions} />
     </div>
   );
 }
