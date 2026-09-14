@@ -1,9 +1,7 @@
 /**
- * Gera o relatorio Draft Survey como .docx NATIVO (lib `docx`), reproduzindo o
- * layout do modelo Word do cliente — so trocando os dados. O .docx abre no Word
- * identico ao modelo; o worker converte para PDF via LibreOffice.
- *
- * Entrada: dados efetivos + imagens (prints das abas + fotos) + variante.
+ * Contrato público do Draft Survey e builder nativo antigo, mantido como rota
+ * explícita de rollback. O builder público no fim do arquivo usa a cópia limpa
+ * do Word aprovado, implementada em `buildDocxFromTemplate.ts`.
  */
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
@@ -22,6 +20,7 @@ import {
 /** Entrelinha confortável (~1.15) para o texto corrido — ar entre as linhas. */
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
 import type { FieldValue } from '@naabsa/core';
+import { buildReportDocxFromTemplate } from './buildDocxFromTemplate';
 
 const NAVY = '002060';
 const GREY = '7F7F7F';
@@ -135,7 +134,8 @@ function img(buf: Buffer, widthMm: number): Paragraph {
   ] });
 }
 
-export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
+/** @deprecated Kept only as an explicit rollback path for the template migration. */
+export async function buildReportDocxLegacy(input: DocxInput): Promise<Buffer> {
   const { data, logo } = input;
   const V = VARIANT[input.variant];
   const hasInter = data['intermediate_date'] != null;
@@ -274,6 +274,11 @@ export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
     }],
   });
   return Packer.toBuffer(doc) as unknown as Buffer;
+}
+
+/** Public builder: fill the sanitized copy of the client's approved Word file. */
+export async function buildReportDocx(input: DocxInput): Promise<Buffer> {
+  return buildReportDocxFromTemplate(input);
 }
 
 function noBorders() {

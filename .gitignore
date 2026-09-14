@@ -49,3 +49,6 @@ Thumbs.db
 .tmp_docx/
 .tmp_toc*
 templates/
+!templates/
+templates/*
+!templates/draft_survey.clean.docx

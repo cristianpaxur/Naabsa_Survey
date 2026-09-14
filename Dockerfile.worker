@@ -52,6 +52,7 @@ ENV LO_PROFILE_DIR=/tmp/naabsa-lo
 
 COPY packages ./packages
 COPY apps/worker ./apps/worker
+COPY templates/draft_survey.clean.docx ./templates/draft_survey.clean.docx
 ENV NODE_ENV=production
 # node:22-slim já inclui o usuário não-root `node`.
 USER node

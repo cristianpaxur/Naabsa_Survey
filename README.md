@@ -15,7 +15,7 @@ e as [instruções para atualizar o ambiente](docs/CORRECOES_015.md) antes de pu
 - `apps/worker`: pg-boss, ExcelJS, Sharp/libheif, IA e LibreOffice.
 - `packages/core`: extração e validação em TypeScript, sem dependência do Next.js.
 - `packages/db`: schema Supabase, RLS, migrations e testes SQL.
-- `tests/golden`: conteúdo dos documentos DOCX gerados pelos builders atuais.
+- `tests/golden`: conteúdo e contrato estrutural dos documentos DOCX gerados.
 
 O Supabase fornece Auth, Postgres e o bucket privado `reports`. O worker monta o DOCX
 inicial; o Collabora edita esse arquivo via WOPI. Cada salvamento publica uma nova versão.
@@ -53,7 +53,9 @@ pnpm build
 ```
 
 Os testes padrão usam memória e mocks, incluindo SQL no PGlite. Não acessam Supabase
-externo. O golden confere conteúdo DOCX; não certifica a aparência do PDF.
+externo. O golden confere conteúdo e estrutura do DOCX (página, estilos, cabeçalho,
+rodapé e ausência das marcações do modelo); a comparação raster do PDF continua sendo
+um aceite visual separado.
 Os testes contra Supabase, navegador, HEIC e LibreOffice têm requisitos próprios,
 descritos em [CORRECOES_015.md](docs/CORRECOES_015.md).
 
