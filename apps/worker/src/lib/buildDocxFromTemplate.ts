@@ -40,6 +40,33 @@ const MONTHS = [
   'December',
 ];
 
+/**
+ * The free image module has a compatibility bug with per-tag centered markers:
+ * it expands `{%%image}` only to the text node, then inserts a whole paragraph
+ * there. That creates an invalid `<w:p>` nested inside `<w:r>` which Collabora
+ * and LibreOffice silently ignore. Dedicated template paragraphs already carry
+ * the required pagination, so keep those paragraphs and render an inline image
+ * tag inside each one instead.
+ */
+function prepareImagePlaceholders(zip: PizZip): void {
+  const file = zip.file('word/document.xml');
+  if (!file) throw new Error('Template DOCX sem word/document.xml.');
+
+  const imageTag =
+    /\{%%(?:coverPhoto|sheetInitial|sheetIntermediate|sheetFinal|photo)\}/;
+  const xml = file.asText().replace(/<w:p\b[^>]*>.*?<\/w:p>/gs, (paragraph) => {
+    if (!imageTag.test(paragraph)) return paragraph;
+    let prepared = paragraph.replace(/\{%%/g, '{%');
+    if (/<w:jc\b/.test(prepared)) {
+      prepared = prepared.replace(/<w:jc\b[^>]*\/>/, '<w:jc w:val="center"/>');
+    } else {
+      prepared = prepared.replace('</w:pPr>', '<w:jc w:val="center"/></w:pPr>');
+    }
+    return prepared;
+  });
+  zip.file('word/document.xml', xml);
+}
+
 const VARIANT = {
   loading: {
     verb: 'load',
@@ -354,6 +381,8 @@ export async function buildReportDocxFromTemplate(
   input: DocxInput,
 ): Promise<Buffer> {
   const template = await readFile(fileURLToPath(TEMPLATE_URL));
+  const templateZip = new PizZip(template);
+  prepareImagePlaceholders(templateZip);
   const asPng = async (image: Buffer | null | undefined): Promise<Buffer> => {
     if (image == null || image.length === 0) return EMPTY_PNG;
     if (
@@ -393,7 +422,7 @@ export async function buildReportDocxFromTemplate(
       return [567, 425];
     },
   });
-  const document = new Docxtemplater(new PizZip(template), {
+  const document = new Docxtemplater(templateZip, {
     modules: [imageModule],
     paragraphLoop: true,
     linebreaks: true,
