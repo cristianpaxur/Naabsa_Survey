@@ -5,7 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
-import { pendingRequiredSlots } from '@/lib/photo-gate';
+import {
+  pendingRequiredSlots,
+  photoAdvanceBlockReason,
+  type AssignedPhotoState,
+} from '@/lib/photo-gate';
 import { enqueueProcessPhoto } from '@/lib/queue';
 
 export interface Crop {
@@ -270,14 +274,22 @@ export async function advance(reportId: string): Promise<ActionResult> {
   if (!spec) return { error: 'Spec não encontrado.' };
   const slots = spec.photo_slots ?? [];
 
-  // Conta alocações por slot.
-  const { data: rows } = await supabase
+  // Só permite montar o Word quando as fotos que entrarão nele já estiverem
+  // processadas e as sugestões da IA tiverem sido confirmadas ou removidas.
+  const { data: rows, error: photoLoadError } = await supabase
     .from('report_photos')
-    .select('slot_id')
+    .select('slot_id,status,processed_path,ai_suggested')
     .eq('report_id', reportId)
+    .is('removed_at', null)
     .not('slot_id', 'is', null);
+  if (photoLoadError) return { error: 'Não foi possível verificar as fotos. Tente novamente.' };
+  const assigned = (rows as AssignedPhotoState[] | null) ?? [];
+  const blockReason = photoAdvanceBlockReason(assigned);
+  if (blockReason) return { error: blockReason };
+
+  // Conta apenas as alocações que realmente estarão disponíveis no documento.
   const counts: Record<string, number> = {};
-  for (const r of (rows as { slot_id: string }[] | null) ?? []) {
+  for (const r of assigned) {
     counts[r.slot_id] = (counts[r.slot_id] ?? 0) + 1;
   }
 

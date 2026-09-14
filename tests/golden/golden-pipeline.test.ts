@@ -100,6 +100,9 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
       );
       expect(documentXml).toContain('w:name="s1"');
       expect(documentXml).toContain('w:name="s7"');
+      expect(documentXml).toContain('<w:hyperlink w:anchor="s1"');
+      expect(documentXml).toContain('<w:hyperlink w:anchor="s7"');
+      expect(documentXml.match(/<w:pageBreakBefore\/>/g) ?? []).toHaveLength(5);
       for (const part of [
         'word/styles.xml',
         'word/numbering.xml',

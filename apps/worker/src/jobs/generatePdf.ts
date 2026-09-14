@@ -40,6 +40,17 @@ export const GENERATE_PDF_RETRY_LIMIT = 2;
 export const GENERATE_PDF_TIMEOUT_S = 300;
 
 const BUCKET = 'reports';
+type SheetPhase = 'initial' | 'intermediate' | 'final';
+
+export function missingRequiredSheetPhases(
+  images: Record<SheetPhase, Buffer | null>,
+  hasIntermediate: boolean,
+): SheetPhase[] {
+  const required: SheetPhase[] = hasIntermediate
+    ? ['initial', 'intermediate', 'final']
+    : ['initial', 'final'];
+  return required.filter((phase) => !images[phase]);
+}
 
 /** Logo NAABSA, cacheado. Null se indisponível (header cai em texto). */
 let logoCache: Buffer | null | undefined;
@@ -207,9 +218,11 @@ export async function buildWorkingDocx(
 
   // Planilha → variante AUTORITATIVA (spec resolve de Capa!L4) + tabelas (figures).
   let wb: ExcelJS.Workbook | null = null;
+  let spreadsheetBuf: Buffer | null = null;
   if (row.spreadsheet_path) {
     const xlsx = await download(svc, row.spreadsheet_path);
     if (xlsx) {
+      spreadsheetBuf = xlsx;
       wb = new ExcelJS.Workbook();
       // cast p/ o tipo exato esperado (conflito de versões de Buffer entre @types/node).
       await wb.xlsx.load(xlsx as unknown as Parameters<typeof wb.xlsx.load>[0]);
@@ -268,48 +281,23 @@ export async function buildWorkingDocx(
     final: await download(svc, sheetImagePath('final')),
   };
   // Baixa a planilha uma vez para usar em qualquer render sob demanda.
-  let spreadsheetBuf: Buffer | null = null;
   const ensureSpreadsheetBuf = async (): Promise<Buffer | null> => {
     if (spreadsheetBuf) return spreadsheetBuf;
-    const { data: reportRow } = await svc
-      .from('reports')
-      .select('spreadsheet_path')
-      .eq('id', reportId)
-      .single();
-    const sp = (reportRow as { spreadsheet_path: string | null } | null)?.spreadsheet_path;
-    if (!sp) return null;
-    const { data: blob } = await svc.storage.from('reports').download(sp);
-    if (!blob) return null;
-    spreadsheetBuf = Buffer.from(await blob.arrayBuffer());
+    if (!row.spreadsheet_path) return null;
+    spreadsheetBuf = await download(svc, row.spreadsheet_path);
     return spreadsheetBuf;
   };
   // Pega a lista de sheets do spec para mapear phase→sheet.
-  const { data: reportForSpec } = await svc
-    .from('reports')
-    .select('spec_id, extracted_data')
-    .eq('id', reportId)
-    .single();
-  const reportSpecId = (reportForSpec as { spec_id: string | null } | null)?.spec_id;
-  const extractedData = (reportForSpec as { extracted_data: Record<string, unknown> | null } | null)
-    ?.extracted_data;
-  let phaseMap: Record<'initial' | 'intermediate' | 'final', string | null> = {
+  let phaseMap: Record<SheetPhase, string | null> = {
     initial: 'Inicial',
     intermediate: 'Intermediario',
     final: 'final',
   };
-  if (reportSpecId) {
-    const { data: specRow } = await svc
-      .from('report_specs')
-      .select('spec')
-      .eq('id', reportSpecId)
-      .single();
-    const spec = (specRow as { spec: { source?: { tables?: { id: string; sheet: string }[] } } } | null)?.spec;
-    if (spec?.source?.tables) {
-      const t = (id: string) => spec.source!.tables!.find((x) => x.id === id)?.sheet ?? null;
-      phaseMap = { initial: t('init_draft_marks'), intermediate: t('int_draft_marks'), final: t('fin_draft_marks') };
-    }
+  if (spec.source.tables) {
+    const t = (id: string) => spec.source.tables?.find((x) => x.id === id)?.sheet ?? null;
+    phaseMap = { initial: t('init_draft_marks'), intermediate: t('int_draft_marks'), final: t('fin_draft_marks') };
   }
-  const hasIntermediate = extractedData?.['intermediate_date'] != null;
+  const hasIntermediate = data['intermediate_date'] != null && data['intermediate_date'] !== '';
   for (const phase of ['initial', 'intermediate', 'final'] as const) {
     if (sheetImages[phase]) continue; // já existe
     if (phase === 'intermediate' && !hasIntermediate) continue; // fase ausente
@@ -327,6 +315,13 @@ export async function buildWorkingDocx(
     } catch (err) {
       console.error(`[generate_pdf] render inline de ${phase}/${sheet} falhou:`, err);
     }
+  }
+  const missingSheets = missingRequiredSheetPhases(sheetImages, hasIntermediate);
+  if (missingSheets.length > 0) {
+    throw new Error(
+      `[generate_pdf] prints obrigatórios da planilha ausentes: ${missingSheets.join(', ')}. ` +
+      'O relatório não será montado sem essas imagens.',
+    );
   }
   const { data: photoRows } = await svc
     .from('report_photos')

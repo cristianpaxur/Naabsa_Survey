@@ -136,8 +136,28 @@ def add_bookmark(paragraph: etree._Element, name: str, bookmark_id: int) -> None
     paragraph.append(end)
 
 
-def set_toc_paragraph(paragraph: etree._Element, label: str, token: str) -> None:
-    """Use Word's native dot-leader tab so labels never wrap on the dots."""
+def set_page_break_before(paragraph: etree._Element) -> None:
+    """Force a stable page boundary without inserting an empty paragraph."""
+    ppr = paragraph.find("w:pPr", NS)
+    if ppr is None:
+        ppr = etree.Element(W + "pPr")
+        paragraph.insert(0, ppr)
+    if ppr.find("w:pageBreakBefore", NS) is None:
+        ppr.append(etree.Element(W + "pageBreakBefore"))
+
+
+def set_keep_with_next(paragraph: etree._Element) -> None:
+    """Keep a heading on the same page as the content immediately after it."""
+    ppr = paragraph.find("w:pPr", NS)
+    if ppr is None:
+        ppr = etree.Element(W + "pPr")
+        paragraph.insert(0, ppr)
+    if ppr.find("w:keepNext", NS) is None:
+        ppr.append(etree.Element(W + "keepNext"))
+
+
+def set_toc_paragraph(paragraph: etree._Element, label: str, token: str, anchor: str) -> None:
+    """Create a clickable internal TOC row with Word's native dot leader."""
     style = choose_run(paragraph, "normal")
     ppr = paragraph.find("w:pPr", NS)
     if ppr is None:
@@ -158,11 +178,15 @@ def set_toc_paragraph(paragraph: etree._Element, label: str, token: str) -> None
     tab_stop.set(W + "leader", "dot")
     tab_stop.set(W + "pos", "10150")
     ppr.append(tabs)
-    paragraph.append(make_run(label, style))
+    hyperlink = etree.Element(W + "hyperlink")
+    hyperlink.set(W + "anchor", anchor)
+    hyperlink.set(W + "history", "1")
+    hyperlink.append(make_run(label, style))
     tab_run = etree.Element(W + "r")
     tab_run.append(etree.Element(W + "tab"))
-    paragraph.append(tab_run)
-    paragraph.append(make_run(token, style))
+    hyperlink.append(tab_run)
+    hyperlink.append(make_run(token, style))
+    paragraph.append(hyperlink)
 
 
 def build_document_xml(xml: bytes) -> bytes:
@@ -187,6 +211,11 @@ def build_document_xml(xml: bytes) -> bytes:
     set_paragraph(paragraphs[27], [("{operator}", "highlight")])
     set_paragraph(paragraphs[30], [("{surveyor_name}", "normal")])
     set_paragraph(paragraphs[33], [("Mr. ", "normal"), ("{captain}", "highlight"), (" / Mr. ", "normal"), ("{chief_officer}", "highlight")])
+    # These five empty body paragraphs were manual vertical padding in the
+    # source. With a real cover image they can spill onto a blank second page;
+    # the explicit Contents page break below replaces that fragile spacing.
+    for index in range(34, 39):
+        remove_paragraph(paragraphs[index])
 
     # Contents: the reference's orphan "Draft Survey" entry is removed.  Word's
     # list numbering then naturally returns to 1..7, matching the body.
@@ -210,7 +239,14 @@ def build_document_xml(xml: bytes) -> bytes:
         66: ("Attachment", "{toc_s7}"),
     }
     for index, (label, token) in toc_labels.items():
-        set_toc_paragraph(paragraphs[index], label, token)
+        anchor = token.removeprefix("{toc_").removesuffix("}")
+        set_toc_paragraph(paragraphs[index], label, token, anchor)
+
+    # The source document relied on the amount of content above these headings
+    # to paginate. Generated reports can have shorter text, so make the two
+    # document-level boundaries explicit: cover → Contents → report body.
+    set_page_break_before(paragraphs[39])
+    set_page_break_before(paragraphs[95])
 
     # The source used a separate numbering definition for Attachment and a
     # literal number for Photographic Report. Put both back into the main list
@@ -295,6 +331,7 @@ def build_document_xml(xml: bytes) -> bytes:
         raise RuntimeError(f"Expected at least four body drawings, got {len(drawing_paragraphs)}")
     for paragraph, tag in zip(drawing_paragraphs[-3:], ("{%%sheetInitial}", "{%%sheetIntermediate}", "{%%sheetFinal}")):
         set_paragraph(paragraph, [(tag, "normal")])
+        set_page_break_before(paragraph)
     # Cover photo is the first inline body drawing. Header drawings live outside document.xml.
     set_paragraph(drawing_paragraphs[0], [("{%%coverPhoto}", "normal")])
 
@@ -309,6 +346,7 @@ def build_document_xml(xml: bytes) -> bytes:
     # Photo loops are inserted under the original 6.1/6.2/6.3 headings.
     for heading_index, collection in ((287, "photosInitial"), (289, "photosIntermediate"), (291, "photosFinal")):
         heading = paragraphs[heading_index]
+        set_keep_with_next(heading)
         # The following source paragraph is a blank Normal paragraph.  Reusing
         # it avoids accidentally copying the heading's automatic numbering to
         # every generated photo.

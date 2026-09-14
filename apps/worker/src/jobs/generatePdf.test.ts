@@ -1,6 +1,10 @@
 import { createHash } from 'crypto';
 import { describe, it, expect, vi } from 'vitest';
-import { convertWorkingDocxToPdf, nextPdfVersion } from './generatePdf';
+import {
+  convertWorkingDocxToPdf,
+  missingRequiredSheetPhases,
+  nextPdfVersion,
+} from './generatePdf';
 
 vi.mock('../lib/soffice', () => ({
   convertDocxToPdf: vi.fn(async () => Buffer.from('PDF')),
@@ -20,6 +24,24 @@ describe('nextPdfVersion (010/T-005, CA-003)', () => {
   it('ignora caminhos legados sem versão (final.pdf antigo)', () => {
     expect(nextPdfVersion(['3ffa/final.pdf'])).toBe(1);
     expect(nextPdfVersion(['3ffa/final.pdf', '3ffa/final-v3.pdf'])).toBe(4);
+  });
+});
+
+describe('missingRequiredSheetPhases', () => {
+  const png = Buffer.from('png');
+
+  it('exige initial e final quando não há fase intermediária', () => {
+    expect(missingRequiredSheetPhases(
+      { initial: null, intermediate: null, final: png },
+      false,
+    )).toEqual(['initial']);
+  });
+
+  it('exige as três imagens quando há fase intermediária', () => {
+    expect(missingRequiredSheetPhases(
+      { initial: png, intermediate: null, final: png },
+      true,
+    )).toEqual(['intermediate']);
   });
 });
 

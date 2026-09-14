@@ -14,3 +14,25 @@ export function pendingRequiredSlots(
   const REQUIRED = 0;
   return slots.filter((slot) => (counts[slot.id] ?? 0) < REQUIRED);
 }
+
+export interface AssignedPhotoState {
+  slot_id: string;
+  status: string;
+  processed_path: string | null;
+  ai_suggested: boolean;
+}
+
+/** Motivo que impede criar o Word sem perder uma foto já atribuída. */
+export function photoAdvanceBlockReason(
+  photos: AssignedPhotoState[],
+): string | null {
+  if (photos.some((photo) => photo.ai_suggested)) {
+    return 'Confirme ou remova as sugestões de foto antes de avançar.';
+  }
+  if (
+    photos.some((photo) => photo.status !== 'done' || !photo.processed_path)
+  ) {
+    return 'Aguarde o processamento das fotos antes de avançar.';
+  }
+  return null;
+}
