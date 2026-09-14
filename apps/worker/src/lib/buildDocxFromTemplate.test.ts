@@ -34,10 +34,18 @@ describe('buildReportDocxFromTemplate', () => {
         paragraph.includes('<w:jc w:val="center"/>'),
       ),
     ).toBe(true);
+    expect(documentXml).not.toContain('<w:pageBreakBefore');
+
+    const paragraphs =
+      documentXml.match(
+        /<w:p\b[^>]*>(?:(?!<\/w:p>).)*<\/w:p>/gs,
+      ) ?? [];
+    const sheetHeadings = paragraphs.filter((paragraph) =>
+      /w:name="s[345]_5"/.test(paragraph),
+    );
+    expect(sheetHeadings).toHaveLength(3);
     expect(
-      imageParagraphs.filter((paragraph) =>
-        paragraph.includes('<w:pageBreakBefore/>'),
-      ),
-    ).toHaveLength(3);
+      sheetHeadings.map((paragraph) => paragraph.includes('<w:keepNext/>')),
+    ).toEqual([true, true, true]);
   });
 });

@@ -44,27 +44,62 @@ const MONTHS = [
  * The free image module has a compatibility bug with per-tag centered markers:
  * it expands `{%%image}` only to the text node, then inserts a whole paragraph
  * there. That creates an invalid `<w:p>` nested inside `<w:r>` which Collabora
- * and LibreOffice silently ignore. Dedicated template paragraphs already carry
- * the required pagination, so keep those paragraphs and render an inline image
- * tag inside each one instead.
+ * and LibreOffice silently ignore. Keep the dedicated template paragraphs,
+ * render inline images inside them and normalize the inherited pagination.
  */
-function prepareImagePlaceholders(zip: PizZip): void {
+function prepareTemplateLayout(zip: PizZip): void {
   const file = zip.file('word/document.xml');
   if (!file) throw new Error('Template DOCX sem word/document.xml.');
 
   const imageTag =
     /\{%%(?:coverPhoto|sheetInitial|sheetIntermediate|sheetFinal|photo)\}/;
-  const xml = file.asText().replace(/<w:p\b[^>]*>.*?<\/w:p>/gs, (paragraph) => {
-    if (!imageTag.test(paragraph)) return paragraph;
-    let prepared = paragraph.replace(/\{%%/g, '{%');
-    if (/<w:jc\b/.test(prepared)) {
-      prepared = prepared.replace(/<w:jc\b[^>]*\/>/, '<w:jc w:val="center"/>');
-    } else {
-      prepared = prepared.replace('</w:pPr>', '<w:jc w:val="center"/></w:pPr>');
+  const parts = file.asText().split(/(<w:p\b[^>]*>.*?<\/w:p>)/gs);
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const paragraph = parts[index];
+    if (!paragraph?.startsWith('<w:p')) continue;
+
+    // These breaks were introduced while sanitizing the client's template, but
+    // the approved Word source relies on natural pagination. In Collabora they
+    // compound with the template's spacer paragraphs and create blank pages.
+    let prepared = paragraph.replace(/<w:pageBreakBefore\b[^>]*\/>/g, '');
+
+    if (imageTag.test(paragraph)) {
+      prepared = prepared.replace(/\{%%/g, '{%');
+      if (/<w:jc\b/.test(prepared)) {
+        prepared = prepared.replace(
+          /<w:jc\b[^>]*\/>/,
+          '<w:jc w:val="center"/>',
+        );
+      } else {
+        prepared = prepared.replace(
+          '</w:pPr>',
+          '<w:jc w:val="center"/></w:pPr>',
+        );
+      }
     }
-    return prepared;
-  });
-  zip.file('word/document.xml', xml);
+
+    const paragraphText = [...paragraph.matchAll(/<w:t\b[^>]*>(.*?)<\/w:t>/gs)]
+      .map((match) => match[1])
+      .join('')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+    if (
+      /Draft (?:details|Details)/.test(paragraphText) &&
+      !/<w:hyperlink\b/.test(paragraph) &&
+      !/<w:keepNext\b/.test(prepared)
+    ) {
+      prepared = /<w:pPr\b[^>]*>/.test(prepared)
+        ? prepared.replace(/<w:pPr\b[^>]*>/, '$&<w:keepNext/>')
+        : prepared.replace(
+            /(<w:p\b[^>]*>)/,
+            '$1<w:pPr><w:keepNext/></w:pPr>',
+          );
+    }
+    parts[index] = prepared;
+  }
+
+  zip.file('word/document.xml', parts.join(''));
 }
 
 const VARIANT = {
@@ -382,7 +417,7 @@ export async function buildReportDocxFromTemplate(
 ): Promise<Buffer> {
   const template = await readFile(fileURLToPath(TEMPLATE_URL));
   const templateZip = new PizZip(template);
-  prepareImagePlaceholders(templateZip);
+  prepareTemplateLayout(templateZip);
   const asPng = async (image: Buffer | null | undefined): Promise<Buffer> => {
     if (image == null || image.length === 0) return EMPTY_PNG;
     if (
