@@ -37,6 +37,9 @@ describe('WOPI PutFile publica somente após CAS confirmado', () => {
   it('novo save publica versão e conserva bytes da anterior', async () => {
     const response = await POST(request(), { params: Promise.resolve({ id: 'r1' }) });
     expect(response.status).toBe(200); expect(response.headers.get('X-WOPI-ItemVersion')).toBe('6');
+    const payload = await response.json() as { LastModifiedTime?: string };
+    expect(payload.LastModifiedTime).toBe(state.report.working_docx_saved_at);
+    expect(Number.isNaN(Date.parse(payload.LastModifiedTime ?? ''))).toBe(false);
     expect(state.objects.get(state.report.working_docx_path as string)?.toString()).toBe('LAST MANUAL EDIT');
     expect(state.objects.get('r1/working/original.docx')?.toString()).toBe('ORIGINAL');
   });

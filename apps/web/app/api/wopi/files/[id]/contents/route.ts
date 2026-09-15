@@ -71,6 +71,7 @@ export async function POST(
   // cria um objeto novo; o CAS abaixo decide se ele pode se tornar o atual.
   const path = `${id}/working/${randomUUID()}.docx`;
   const revision = report.working_docx_revision + 1;
+  const savedAt = new Date().toISOString();
   const { error } = await svc.storage.from(BUCKET).upload(path, body, {
     contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     upsert: false,
@@ -80,7 +81,7 @@ export async function POST(
   const saved = await svc.from('reports').update({
     working_docx_path: path,
     working_docx_revision: revision,
-    working_docx_saved_at: new Date().toISOString(),
+    working_docx_saved_at: savedAt,
   } as never, { count: 'exact' }).eq('id', id).eq('status', 'editing')
     .eq('working_docx_path', report.working_docx_path)
     .eq('working_docx_revision', report.working_docx_revision);
@@ -88,5 +89,11 @@ export async function POST(
   // pois o commit pode ter ocorrido. Versões são conservadas junto aos snapshots.
   if (saved.error) return new NextResponse(null, { status: 500 });
   if (saved.count !== 1) return new NextResponse(null, { status: 409, headers: { 'X-WOPI-Lock': cur ?? '' } });
-  return new NextResponse(null, { status: 200, headers: { 'X-WOPI-ItemVersion': String(revision) } });
+  // O contrato WOPI exige JSON com LastModifiedTime mesmo em HTTP 200. Sem
+  // esse corpo o Collabora considera o PutFile ambíguo, mantém "Salvando…" e
+  // não confirma a revisão ao host, apesar de os bytes já terem sido gravados.
+  return NextResponse.json(
+    { LastModifiedTime: savedAt },
+    { status: 200, headers: { 'X-WOPI-ItemVersion': String(revision) } },
+  );
 }
