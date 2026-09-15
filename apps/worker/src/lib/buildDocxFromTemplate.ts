@@ -26,6 +26,10 @@ const EMPTY_PNG = Buffer.from(
 );
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
 const COVER_IMAGE_SIZE = [480, 360] as const;
+const SINGLE_PHOTO_SIZE = [567, 425] as const;
+const GRID_PHOTO_SIZE = [270, 203] as const;
+const PHOTO_GRID_WIDTH_TWIPS = 9360;
+const PHOTO_GRID_CELL_WIDTH_TWIPS = PHOTO_GRID_WIDTH_TWIPS / 2;
 const MONTHS = [
   'January',
   'February',
@@ -281,6 +285,76 @@ function prepareTemplateLayout(zip: PizZip): void {
   }
 
   zip.file('word/document.xml', parts.join(''));
+}
+
+function photoGridCell(paragraph: string | undefined): string {
+  return `<w:tc><w:tcPr><w:tcW w:w="${PHOTO_GRID_CELL_WIDTH_TWIPS}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${paragraph ?? '<w:p/>'}</w:tc>`;
+}
+
+function photoGridTable(paragraphs: string[]): string {
+  const rows: string[] = [];
+  for (let index = 0; index < paragraphs.length; index += 2) {
+    rows.push(
+      `<w:tr><w:trPr><w:cantSplit/></w:trPr>${photoGridCell(paragraphs[index])}${photoGridCell(paragraphs[index + 1])}</w:tr>`,
+    );
+  }
+  return `<w:tbl><w:tblPr><w:tblW w:w="${PHOTO_GRID_WIDTH_TWIPS}" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${PHOTO_GRID_CELL_WIDTH_TWIPS}"/><w:gridCol w:w="${PHOTO_GRID_CELL_WIDTH_TWIPS}"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+}
+
+/**
+ * Agrupa somente conjuntos com duas ou mais fotos em uma tabela invisível de
+ * duas colunas. Uma única foto conserva o parágrafo e o tamanho já aprovados.
+ * Cada linha é indivisível, mas a tabela pode continuar na página seguinte.
+ */
+function arrangePhasePhotosInTwoColumns(
+  zip: PizZip,
+  counts: { initial: number; intermediate: number; final: number },
+): void {
+  const file = zip.file('word/document.xml');
+  if (!file) throw new Error('Template DOCX sem word/document.xml.');
+  let xml = file.asText();
+  const phases = [
+    { name: 'initial', bookmark: 's3_6', boundaries: ['s4', 's5'] },
+    { name: 'intermediate', bookmark: 's4_6', boundaries: ['s5'] },
+    { name: 'final', bookmark: 's5_6', boundaries: ['s6'] },
+  ] as const;
+
+  for (const phase of phases) {
+    const expected = counts[phase.name];
+    if (expected < 2) continue;
+    const start = xml.indexOf(`w:name="${phase.bookmark}"`);
+    if (start < 0)
+      throw new Error(`Documento renderizado sem bookmark ${phase.bookmark}.`);
+    const boundaryPositions = phase.boundaries
+      .map((bookmark) => xml.indexOf(`w:name="${bookmark}"`, start + 1))
+      .filter((position) => position >= 0);
+    const end = boundaryPositions.length
+      ? Math.min(...boundaryPositions)
+      : xml.length;
+    const segment = xml.slice(start, end);
+    const paragraphs = [
+      ...segment.matchAll(
+        /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:drawing>(?:(?!<\/w:p>)[\s\S])*?<\/w:p>/g,
+      ),
+    ];
+    if (paragraphs.length !== expected) {
+      throw new Error(
+        `Photographic Report ${phase.name}: esperadas ${expected} fotos, encontradas ${paragraphs.length}.`,
+      );
+    }
+
+    let rebuilt = '';
+    let cursor = 0;
+    for (const [index, match] of paragraphs.entries()) {
+      rebuilt += segment.slice(cursor, match.index);
+      if (index === 0)
+        rebuilt += photoGridTable(paragraphs.map((item) => item[0]));
+      cursor = (match.index ?? 0) + match[0].length;
+    }
+    rebuilt += segment.slice(cursor);
+    xml = `${xml.slice(0, start)}${rebuilt}${xml.slice(end)}`;
+  }
+  zip.file('word/document.xml', xml);
 }
 
 const VARIANT = {
@@ -623,6 +697,15 @@ export async function buildReportDocxFromTemplate(
     images.set(`photoIntermediate${index}`, await asPng(photo));
   for (const [index, photo] of (input.phasePhotos.final ?? []).entries())
     images.set(`photoFinal${index}`, await asPng(photo));
+  const photoCounts = {
+    initial: input.phasePhotos.initial?.length ?? 0,
+    intermediate:
+      input.data['intermediate_date'] == null ||
+      input.data['intermediate_date'] === ''
+        ? 0
+        : (input.phasePhotos.intermediate?.length ?? 0),
+    final: input.phasePhotos.final?.length ?? 0,
+  };
   const imageModule = new ImageModule({
     centered: false,
     fileType: 'docx',
@@ -632,7 +715,12 @@ export async function buildReportDocxFromTemplate(
       if (tagName === 'sheetInitial') return [684, 264];
       if (tagName === 'sheetIntermediate' || tagName === 'sheetFinal')
         return [684, 244];
-      return [567, 425];
+      const key = String(_tagValue);
+      const inMultiPhotoPhase =
+        (key.startsWith('photoInitial') && photoCounts.initial > 1) ||
+        (key.startsWith('photoIntermediate') && photoCounts.intermediate > 1) ||
+        (key.startsWith('photoFinal') && photoCounts.final > 1);
+      return inMultiPhotoPhase ? [...GRID_PHOTO_SIZE] : [...SINGLE_PHOTO_SIZE];
     },
   });
   const document = new Docxtemplater(templateZip, {
@@ -642,7 +730,9 @@ export async function buildReportDocxFromTemplate(
     nullGetter: () => '',
   });
   document.render(makeTemplateData(input));
-  return document.getZip().generate({
+  const renderedZip = document.getZip();
+  arrangePhasePhotosInTwoColumns(renderedZip, photoCounts);
+  return renderedZip.generate({
     type: 'nodebuffer',
     compression: 'DEFLATE',
     mimeType:

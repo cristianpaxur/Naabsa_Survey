@@ -110,4 +110,44 @@ describe('buildReportDocxFromTemplate', () => {
     expect(documentXml).toContain('4.6. Photographic Report');
     expect(documentXml).not.toContain('5.6. Photographic Report');
   });
+
+  it('uses at most two photo columns and preserves the single-photo layout', async () => {
+    const docx = await buildReportDocxFromTemplate({
+      data: { intermediate_date: '2026-09-14' },
+      variant: 'loading',
+      logo: null,
+      coverPhoto: PNG,
+      sheetImages: { initial: PNG, intermediate: PNG, final: PNG },
+      phasePhotos: {
+        initial: [PNG, PNG, PNG, PNG, PNG, PNG],
+        intermediate: [PNG, PNG],
+        final: [PNG],
+      },
+      acting: {},
+    });
+
+    const documentXml = new PizZip(docx).file('word/document.xml')!.asText();
+    const phaseXml = (start: string, end: string) => {
+      const from = documentXml.indexOf(`w:name="${start}"`);
+      const to = documentXml.indexOf(`w:name="${end}"`, from + 1);
+      return documentXml.slice(from, to);
+    };
+    const initial = phaseXml('s3_6', 's4');
+    const intermediate = phaseXml('s4_6', 's5');
+    const final = phaseXml('s5_6', 's6');
+
+    expect(initial.match(/<w:tbl>/g)).toHaveLength(1);
+    expect(initial.match(/<w:tr>/g)).toHaveLength(3);
+    expect(initial.match(/<w:tc>/g)).toHaveLength(6);
+    expect(initial.match(/<w:drawing>/g)).toHaveLength(6);
+    expect(initial).toContain('<w:jc w:val="center"/>');
+    expect(intermediate.match(/<w:tbl>/g)).toHaveLength(1);
+    expect(intermediate.match(/<w:tr>/g)).toHaveLength(1);
+    expect(intermediate.match(/<w:tc>/g)).toHaveLength(2);
+    expect(final).not.toContain('<w:tbl>');
+    expect(final.match(/<w:drawing>/g)).toHaveLength(1);
+    expect(documentXml).toContain('<wp:extent cx="2571750" cy="1933575"/>');
+    expect(documentXml).toContain('<wp:extent cx="5400675" cy="4048125"/>');
+    expect(documentXml.match(/<w:cantSplit\/>/g)).toHaveLength(4);
+  });
 });
