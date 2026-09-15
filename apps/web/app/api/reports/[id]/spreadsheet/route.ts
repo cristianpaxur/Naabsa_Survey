@@ -37,7 +37,10 @@ export async function POST(
   const rl = rateLimit(`spreadsheet:${user.id}`, 10, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
-      { error: 'Muitas requisições. Aguarde alguns instantes e tente novamente.' },
+      {
+        error:
+          'Muitas requisições. Aguarde alguns instantes e tente novamente.',
+      },
       { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
     );
   }
@@ -64,6 +67,7 @@ export async function POST(
     .from('reports')
     .select('id,status,variant,spec_id')
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
   const report = reportRow as {
     id: string;

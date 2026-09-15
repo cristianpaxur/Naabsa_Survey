@@ -60,7 +60,10 @@ export async function POST(
   const rl = rateLimit(`photos:${user.id}`, 20, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
-      { error: 'Muitas requisições. Aguarde alguns instantes e tente novamente.' },
+      {
+        error:
+          'Muitas requisições. Aguarde alguns instantes e tente novamente.',
+      },
       { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
     );
   }
@@ -69,6 +72,7 @@ export async function POST(
     .from('reports')
     .select('id,status')
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
   const report = reportRow as { id: string; status: string } | null;
   if (!report) {
@@ -86,8 +90,13 @@ export async function POST(
   }
 
   let form: FormData;
-  try { form = await req.formData(); } catch {
-    return NextResponse.json({ error: 'Envio inválido. Selecione as fotos novamente.' }, { status: 400 });
+  try {
+    form = await req.formData();
+  } catch {
+    return NextResponse.json(
+      { error: 'Envio inválido. Selecione as fotos novamente.' },
+      { status: 400 },
+    );
   }
   const entries = form.getAll('files');
   const files = entries.filter((e): e is File => e instanceof File);
@@ -108,85 +117,103 @@ export async function POST(
 
   for (const [index, file] of files.entries()) {
     try {
-    const ext = resolveExt(file);
-    if (!ext) {
-      rejected.push({
-        name: file.name,
-        status: 415,
-        reason: 'Formato inválido (use jpg, png ou heic).',
-      });
-      continue;
-    }
-    if (file.size > MAX_BYTES) {
-      rejected.push({
-        name: file.name,
-        status: 413,
-        reason: 'Acima do limite de 15 MB.',
-      });
-      continue;
-    }
+      const ext = resolveExt(file);
+      if (!ext) {
+        rejected.push({
+          name: file.name,
+          status: 415,
+          reason: 'Formato inválido (use jpg, png ou heic).',
+        });
+        continue;
+      }
+      if (file.size > MAX_BYTES) {
+        rejected.push({
+          name: file.name,
+          status: 413,
+          reason: 'Acima do limite de 15 MB.',
+        });
+        continue;
+      }
 
-    const requestedId = form.getAll('uploadIds')[index];
-    const uuid = typeof requestedId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedId)
-      ? requestedId : randomUUID();
-    // A mesma retentativa após timeout não cria outra cópia da foto.
-    const { data: existing } = await supabase.from('report_photos').select('id')
-      .eq('id', uuid).eq('report_id', id).is('removed_at', null).maybeSingle();
-    if (existing) { photoIds.push(uuid); continue; }
-    const originalPath = `${id}/photos/original/${uuid}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { error: upErr } = await svc.storage
-      .from(BUCKET)
-      .upload(originalPath, buffer, {
-        upsert: false,
-        contentType: file.type || `image/${ext}`,
-      });
-    if (upErr && upErr.message !== 'The resource already exists') {
-      rejected.push({
-        name: file.name,
-        status: 500,
-        reason: `Falha no upload: ${upErr.message}`,
-      });
-      continue;
-    }
-
-    const { data: inserted, error: insErr } = await supabase
-      .from('report_photos')
-      .insert({
-        id: uuid,
-        report_id: id,
-        original_path: originalPath,
-        status: 'pending',
-        slot_id: null,
-      } as never)
-      .select('id')
-      .single();
-    if (insErr || !inserted) {
-      rejected.push({
-        name: file.name,
-        status: 500,
-        reason: 'Falha ao registrar a foto.',
-      });
-      continue;
-    }
-    const photoId = (inserted as { id: string }).id;
-    photoIds.push(photoId);
-
-    try {
-      if (!await enqueueProcessPhoto({ photoId, reportId: id })) throw new Error('A fila não aceitou o processamento.');
-    } catch (err) {
-      // Falha ao enfileirar não perde a foto: marca erro recuperável.
-      await supabase
+      const requestedId = form.getAll('uploadIds')[index];
+      const uuid =
+        typeof requestedId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          requestedId,
+        )
+          ? requestedId
+          : randomUUID();
+      // A mesma retentativa após timeout não cria outra cópia da foto.
+      const { data: existing } = await supabase
         .from('report_photos')
-        .update({
-          status: 'error',
-          error_message:
-            err instanceof Error ? err.message : 'Falha ao enfileirar.',
+        .select('id')
+        .eq('id', uuid)
+        .eq('report_id', id)
+        .is('removed_at', null)
+        .maybeSingle();
+      if (existing) {
+        photoIds.push(uuid);
+        continue;
+      }
+      const originalPath = `${id}/photos/original/${uuid}.${ext}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const { error: upErr } = await svc.storage
+        .from(BUCKET)
+        .upload(originalPath, buffer, {
+          upsert: false,
+          contentType: file.type || `image/${ext}`,
+        });
+      if (upErr && upErr.message !== 'The resource already exists') {
+        rejected.push({
+          name: file.name,
+          status: 500,
+          reason: `Falha no upload: ${upErr.message}`,
+        });
+        continue;
+      }
+
+      const { data: inserted, error: insErr } = await supabase
+        .from('report_photos')
+        .insert({
+          id: uuid,
+          report_id: id,
+          original_path: originalPath,
+          status: 'pending',
+          slot_id: null,
         } as never)
-        .eq('id', photoId);
-    }
+        .select('id')
+        .single();
+      if (insErr || !inserted) {
+        rejected.push({
+          name: file.name,
+          status: 500,
+          reason: 'Falha ao registrar a foto.',
+        });
+        continue;
+      }
+      const photoId = (inserted as { id: string }).id;
+      photoIds.push(photoId);
+
+      try {
+        if (!(await enqueueProcessPhoto({ photoId, reportId: id })))
+          throw new Error('A fila não aceitou o processamento.');
+      } catch (err) {
+        // Falha ao enfileirar não perde a foto: marca erro recuperável.
+        await supabase
+          .from('report_photos')
+          .update({
+            status: 'error',
+            error_message:
+              err instanceof Error ? err.message : 'Falha ao enfileirar.',
+          } as never)
+          .eq('id', photoId);
+      }
     } catch {
-      rejected.push({ name: file.name, status: 500, reason: 'Falha de conexão no envio. Tente novamente.' });
+      rejected.push({
+        name: file.name,
+        status: 500,
+        reason: 'Falha de conexão no envio. Tente novamente.',
+      });
     }
   }
 

@@ -15,8 +15,12 @@ import { createHash } from 'crypto';
 import ExcelJS from 'exceljs';
 import sharp from 'sharp';
 import {
-  runExtraction, collectFields, resolveFieldValue, resolveVariant,
-  type ReportSpec, type FieldValue,
+  runExtraction,
+  collectFields,
+  resolveFieldValue,
+  resolveVariant,
+  type ReportSpec,
+  type FieldValue,
 } from '@naabsa/core';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -88,15 +92,23 @@ function effectiveData(
 }
 
 const toStr = (m: unknown): string[][] =>
-  Array.isArray(m) ? (m as unknown[][]).map((r) => r.map((c) => (c == null ? '' : String(c)))) : [];
+  Array.isArray(m)
+    ? (m as unknown[][]).map((r) => r.map((c) => (c == null ? '' : String(c))))
+    : [];
 
-interface Crop { x: number; y: number; width: number; height: number }
+interface Crop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 /** Aplica o crop (normalizado 0-1, relativo à imagem processada) via sharp. */
 async function applyCrop(buf: Buffer, crop: Crop | null): Promise<Buffer> {
   if (!crop) return buf;
   try {
     const meta = await sharp(buf).metadata();
-    const W = meta.width ?? 0, H = meta.height ?? 0;
+    const W = meta.width ?? 0,
+      H = meta.height ?? 0;
     if (!W || !H) return buf;
     const left = Math.max(0, Math.min(W - 1, Math.round(crop.x * W)));
     const top = Math.max(0, Math.min(H - 1, Math.round(crop.y * H)));
@@ -108,7 +120,10 @@ async function applyCrop(buf: Buffer, crop: Crop | null): Promise<Buffer> {
   }
 }
 
-async function download(svc: ReturnType<typeof getServiceClient>, path: string) {
+async function download(
+  svc: ReturnType<typeof getServiceClient>,
+  path: string,
+) {
   const { data, error } = await svc.storage.from(BUCKET).download(path);
   if (error || !data) return null;
   return Buffer.from(await data.arrayBuffer());
@@ -132,14 +147,22 @@ export interface ReportRow {
   type_slug?: string | null;
 }
 
-export async function loadReport(svc: ReturnType<typeof getServiceClient>, reportId: string): Promise<ReportRow | null> {
+export async function loadReport(
+  svc: ReturnType<typeof getServiceClient>,
+  reportId: string,
+): Promise<ReportRow | null> {
   const { data, error } = await svc
     .from('reports')
-    .select('status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths, report_types(slug)')
+    .select(
+      'status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths, report_types(slug)',
+    )
     .eq('id', reportId)
+    .is('deleted_at', null)
     .single();
   if (error || !data) return null;
-  const row = data as unknown as ReportRow & { report_types: { slug: string } | null };
+  const row = data as unknown as ReportRow & {
+    report_types: { slug: string } | null;
+  };
   return { ...row, type_slug: row.report_types?.slug ?? null };
 }
 
@@ -174,10 +197,18 @@ function excelDateToTime(d: Date | null | undefined): string {
  * Lê a aba `Time Log` crua do ExcelJS (B5:I16), convertendo Date → ISO.
  * B = evento, F = data, G = hora, H = flag, I = hora fim.
  */
-function readTimeLog(wb: ExcelJS.Workbook): { event: string; date: string; start: string; flag: string; end: string }[] {
+function readTimeLog(
+  wb: ExcelJS.Workbook,
+): { event: string; date: string; start: string; flag: string; end: string }[] {
   const ws = wb.getWorksheet('Time Log');
   if (!ws) return [];
-  const rows: { event: string; date: string; start: string; flag: string; end: string }[] = [];
+  const rows: {
+    event: string;
+    date: string;
+    start: string;
+    flag: string;
+    end: string;
+  }[] = [];
   for (let r = 5; r <= 16; r++) {
     const event = String(ws.getCell(r, 2).value ?? '').trim();
     if (!event) continue;
@@ -185,9 +216,24 @@ function readTimeLog(wb: ExcelJS.Workbook): { event: string; date: string; start
     const startRaw = ws.getCell(r, 7).value;
     const flag = String(ws.getCell(r, 8).value ?? '').trim();
     const endRaw = ws.getCell(r, 9).value;
-    const date = dateRaw instanceof Date ? excelDateToISO(dateRaw) : (dateRaw == null ? '' : String(dateRaw));
-    const start = startRaw instanceof Date ? excelDateToTime(startRaw) : (startRaw == null ? '' : String(startRaw));
-    const end = endRaw instanceof Date ? excelDateToTime(endRaw) : (endRaw == null ? '' : String(endRaw));
+    const date =
+      dateRaw instanceof Date
+        ? excelDateToISO(dateRaw)
+        : dateRaw == null
+          ? ''
+          : String(dateRaw);
+    const start =
+      startRaw instanceof Date
+        ? excelDateToTime(startRaw)
+        : startRaw == null
+          ? ''
+          : String(startRaw);
+    const end =
+      endRaw instanceof Date
+        ? excelDateToTime(endRaw)
+        : endRaw == null
+          ? ''
+          : String(endRaw);
     rows.push({ event, date, start, flag, end });
   }
   return rows;
@@ -212,9 +258,14 @@ export async function buildWorkingDocx(
   row: ReportRow,
 ): Promise<BuiltWorkingDocx> {
   // Spec congelado.
-  const { data: specRow } = await svc.from('report_specs').select('spec').eq('id', row.spec_id).single();
+  const { data: specRow } = await svc
+    .from('report_specs')
+    .select('spec')
+    .eq('id', row.spec_id)
+    .single();
   const spec = (specRow as { spec: ReportSpec } | null)?.spec;
-  if (!spec) throw new Error(`[generate_pdf] spec ${row.spec_id} não encontrado.`);
+  if (!spec)
+    throw new Error(`[generate_pdf] spec ${row.spec_id} não encontrado.`);
 
   // Planilha → variante AUTORITATIVA (spec resolve de Capa!L4) + tabelas (figures).
   let wb: ExcelJS.Workbook | null = null;
@@ -229,11 +280,24 @@ export async function buildWorkingDocx(
     }
   }
   const variant = (wb ? resolveVariant(wb, spec).variant : null) ?? row.variant;
-  const variantStr: 'loading' | 'discharge' | null = variant === 'discharge' ? 'discharge' : variant === 'loading' ? 'loading' : null;
-  const extracted = (row.extracted_data ?? {}) as unknown as Record<string, FieldValue>;
-  const overrides = (row.operator_overrides ?? {}) as unknown as Record<string, FieldValue>;
+  const variantStr: 'loading' | 'discharge' | null =
+    variant === 'discharge'
+      ? 'discharge'
+      : variant === 'loading'
+        ? 'loading'
+        : null;
+  const extracted = (row.extracted_data ?? {}) as unknown as Record<
+    string,
+    FieldValue
+  >;
+  const overrides = (row.operator_overrides ?? {}) as unknown as Record<
+    string,
+    FieldValue
+  >;
   const data = effectiveData(spec, variant, extracted, overrides);
-  const tables: Record<string, FieldValue[][]> = wb ? runExtraction(wb, spec, variant).tables : {};
+  const tables: Record<string, FieldValue[][]> = wb
+    ? runExtraction(wb, spec, variant).tables
+    : {};
 
   const logo = await fetchLogo();
 
@@ -244,15 +308,29 @@ export async function buildWorkingDocx(
       .from('report_photos')
       .select('slot_id, processed_path, position, crop')
       .eq('report_id', reportId)
-      .is('removed_at', null).eq('ai_suggested', false).eq('status', 'done')
+      .is('removed_at', null)
+      .eq('ai_suggested', false)
+      .eq('status', 'done')
       .not('slot_id', 'is', null)
       .order('position', { ascending: true });
-    const photos: DocxInputMsc['photos'] = { vessel: [], engine_room: [], survey_attendance: [] };
-    for (const r of (photoRows ?? []) as { slot_id: string | null; processed_path: string | null; crop: Crop | null }[]) {
+    const photos: DocxInputMsc['photos'] = {
+      vessel: [],
+      engine_room: [],
+      survey_attendance: [],
+    };
+    for (const r of (photoRows ?? []) as {
+      slot_id: string | null;
+      processed_path: string | null;
+      crop: Crop | null;
+    }[]) {
       if (!r.slot_id || !r.processed_path) continue;
-      if (!['vessel', 'engine_room', 'survey_attendance'].includes(r.slot_id)) continue;
+      if (!['vessel', 'engine_room', 'survey_attendance'].includes(r.slot_id))
+        continue;
       const buf = await download(svc, r.processed_path);
-      if (buf) (photos[r.slot_id as keyof typeof photos] ??= []).push(await applyCrop(buf, r.crop));
+      if (buf)
+        (photos[r.slot_id as keyof typeof photos] ??= []).push(
+          await applyCrop(buf, r.crop),
+        );
     }
     // Lê o Time Log direto da planilha (ExcelJS serializa Date com hora cheia;
     // o extractTables do core trunca em YYYY-MM-DD e perderíamos G/I).
@@ -275,7 +353,11 @@ export async function buildWorkingDocx(
   // inline para garantir que a imagem apareça no docx.
   const sheetImagePath = (phase: 'initial' | 'intermediate' | 'final') =>
     `${reportId}/sheets/${phase}.png`;
-  const sheetImages: { initial: Buffer | null; intermediate: Buffer | null; final: Buffer | null } = {
+  const sheetImages: {
+    initial: Buffer | null;
+    intermediate: Buffer | null;
+    final: Buffer | null;
+  } = {
     initial: await download(svc, sheetImagePath('initial')),
     intermediate: await download(svc, sheetImagePath('intermediate')),
     final: await download(svc, sheetImagePath('final')),
@@ -294,10 +376,16 @@ export async function buildWorkingDocx(
     final: 'final',
   };
   if (spec.source.tables) {
-    const t = (id: string) => spec.source.tables?.find((x) => x.id === id)?.sheet ?? null;
-    phaseMap = { initial: t('init_draft_marks'), intermediate: t('int_draft_marks'), final: t('fin_draft_marks') };
+    const t = (id: string) =>
+      spec.source.tables?.find((x) => x.id === id)?.sheet ?? null;
+    phaseMap = {
+      initial: t('init_draft_marks'),
+      intermediate: t('int_draft_marks'),
+      final: t('fin_draft_marks'),
+    };
   }
-  const hasIntermediate = data['intermediate_date'] != null && data['intermediate_date'] !== '';
+  const hasIntermediate =
+    data['intermediate_date'] != null && data['intermediate_date'] !== '';
   for (const phase of ['initial', 'intermediate', 'final'] as const) {
     if (sheetImages[phase]) continue; // já existe
     if (phase === 'intermediate' && !hasIntermediate) continue; // fase ausente
@@ -311,27 +399,42 @@ export async function buildWorkingDocx(
       // Sobe também para o storage (cache para o render_sheets job).
       await svc.storage
         .from('reports')
-        .upload(sheetImagePath(phase), png, { contentType: 'image/png', upsert: true });
+        .upload(sheetImagePath(phase), png, {
+          contentType: 'image/png',
+          upsert: true,
+        });
     } catch (err) {
-      console.error(`[generate_pdf] render inline de ${phase}/${sheet} falhou:`, err);
+      console.error(
+        `[generate_pdf] render inline de ${phase}/${sheet} falhou:`,
+        err,
+      );
     }
   }
-  const missingSheets = missingRequiredSheetPhases(sheetImages, hasIntermediate);
+  const missingSheets = missingRequiredSheetPhases(
+    sheetImages,
+    hasIntermediate,
+  );
   if (missingSheets.length > 0) {
     throw new Error(
       `[generate_pdf] prints obrigatórios da planilha ausentes: ${missingSheets.join(', ')}. ` +
-      'O relatório não será montado sem essas imagens.',
+        'O relatório não será montado sem essas imagens.',
     );
   }
   const { data: photoRows } = await svc
     .from('report_photos')
     .select('slot_id, processed_path, position, crop')
     .eq('report_id', reportId)
-    .is('removed_at', null).eq('ai_suggested', false).eq('status', 'done')
+    .is('removed_at', null)
+    .eq('ai_suggested', false)
+    .eq('status', 'done')
     .not('slot_id', 'is', null)
     .order('position', { ascending: true });
   const bySlot: Record<string, Buffer[]> = {};
-  for (const r of (photoRows ?? []) as { slot_id: string | null; processed_path: string | null; crop: Crop | null }[]) {
+  for (const r of (photoRows ?? []) as {
+    slot_id: string | null;
+    processed_path: string | null;
+    crop: Crop | null;
+  }[]) {
     if (!r.slot_id || !r.processed_path) continue;
     const buf = await download(svc, r.processed_path);
     if (buf) (bySlot[r.slot_id] ??= []).push(await applyCrop(buf, r.crop));
@@ -372,11 +475,19 @@ export async function convertWorkingDocxToPdf(
   reportId: string,
   row: ReportRow,
 ): Promise<{ pdf: Buffer; docx: Buffer; docHash: string }> {
-  const path = row.status === 'approved' || row.status === 'generated'
-    ? row.approved_docx_path : row.working_docx_path;
-  if (!path) throw new Error('[generate_pdf] Documento salvo não encontrado. Abra o editor antes de gerar.');
+  const path =
+    row.status === 'approved' || row.status === 'generated'
+      ? row.approved_docx_path
+      : row.working_docx_path;
+  if (!path)
+    throw new Error(
+      '[generate_pdf] Documento salvo não encontrado. Abra o editor antes de gerar.',
+    );
   const docx = await download(svc, path);
-  if (!docx) throw new Error('[generate_pdf] Não foi possível ler a versão salva. Tente novamente.');
+  if (!docx)
+    throw new Error(
+      '[generate_pdf] Não foi possível ler a versão salva. Tente novamente.',
+    );
   const pdf = await convertDocxToPdf(docx);
   const docHash = createHash('sha256').update(docx).digest('hex');
   return { pdf, docx, docHash };
@@ -387,39 +498,68 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
   const svc = getServiceClient();
 
   const row = await loadReport(svc, reportId);
-  if (!row) throw new Error(`[generate_pdf] relatório ${reportId} não encontrado.`);
-  if (row.status !== 'approved' || payload.approvedRevision === undefined || payload.approvedRevision !== row.approved_docx_revision) {
+  if (!row)
+    throw new Error(`[generate_pdf] relatório ${reportId} não encontrado.`);
+  if (
+    row.status !== 'approved' ||
+    payload.approvedRevision === undefined ||
+    payload.approvedRevision !== row.approved_docx_revision
+  ) {
     await auditLog(svc, reportId, null, 'pdf_rejected', {
       reason: `status inválido: ${row.status} (esperado approved)`,
     });
     return;
   }
 
-  const { pdf, docx, docHash } = await convertWorkingDocxToPdf(svc, reportId, row);
-  if (!row.approved_docx_path) throw new Error('[generate_pdf] Snapshot aprovado ausente.');
+  const { pdf, docx, docHash } = await convertWorkingDocxToPdf(
+    svc,
+    reportId,
+    row,
+  );
+  if (!row.approved_docx_path)
+    throw new Error('[generate_pdf] Snapshot aprovado ausente.');
 
   // Upload: PDF VERSIONADO (final-v{n}.pdf, 010/T-005) + .docx editável (mais recente).
   const version = nextPdfVersion(row.pdf_paths ?? []);
   const pdfPath = `${reportId}/final-v${version}-r${payload.approvedRevision}.pdf`;
   const docxPath = `${reportId}/final-v${version}-r${payload.approvedRevision}.docx`;
-  const up1 = await svc.storage.from(BUCKET).upload(pdfPath, pdf, { contentType: 'application/pdf', upsert: false });
-  if (up1.error && !isDuplicateObject(up1.error)) throw new Error(`[generate_pdf] falha no upload do PDF: ${up1.error.message}`);
+  const up1 = await svc.storage
+    .from(BUCKET)
+    .upload(pdfPath, pdf, { contentType: 'application/pdf', upsert: false });
+  if (up1.error && !isDuplicateObject(up1.error))
+    throw new Error(
+      `[generate_pdf] falha no upload do PDF: ${up1.error.message}`,
+    );
   const up2 = await svc.storage.from(BUCKET).upload(docxPath, docx, {
-    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    contentType:
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     upsert: false,
   });
-  if (up2.error && !isDuplicateObject(up2.error)) throw new Error(`[generate_pdf] falha no upload DOCX: ${up2.error.message}`);
+  if (up2.error && !isDuplicateObject(up2.error))
+    throw new Error(
+      `[generate_pdf] falha no upload DOCX: ${up2.error.message}`,
+    );
 
   // Transição → generated + auditoria. pdf_paths acumula as versões (download = última).
   const pdfPaths = [...(row.pdf_paths ?? []), pdfPath];
   const { error: updateErr, count } = await svc
     .from('reports')
-    .update({ status: 'generated', document_hash: docHash, pdf_paths: pdfPaths } as never, { count: 'exact' })
+    .update(
+      {
+        status: 'generated',
+        document_hash: docHash,
+        pdf_paths: pdfPaths,
+      } as never,
+      { count: 'exact' },
+    )
     .eq('id', reportId)
     .eq('status', 'approved')
     .eq('approved_docx_revision', payload.approvedRevision)
     .eq('approved_docx_path', row.approved_docx_path);
-  if (updateErr) throw new Error(`[generate_pdf] falha ao atualizar relatório: ${updateErr.message}`);
+  if (updateErr)
+    throw new Error(
+      `[generate_pdf] falha ao atualizar relatório: ${updateErr.message}`,
+    );
   if (count !== 1) return;
 
   await auditLog(svc, reportId, row.created_by, 'pdf_generated', {
@@ -428,7 +568,9 @@ export async function generatePdf(payload: GeneratePdfPayload): Promise<void> {
     docx_path: docxPath,
     version,
   });
-  console.log(`[generate_pdf] PDF v${version} (.docx nativo) gerado para ${reportId} (hash ${docHash.slice(0, 8)}…)`);
+  console.log(
+    `[generate_pdf] PDF v${version} (.docx nativo) gerado para ${reportId} (hash ${docHash.slice(0, 8)}…)`,
+  );
 }
 
 async function auditLog(
@@ -446,6 +588,12 @@ async function auditLog(
   } as never);
 }
 
-function isDuplicateObject(error: { message: string; statusCode?: string | number }): boolean {
-  return String(error.statusCode) === '409' || /already exists|duplicate/i.test(error.message);
+function isDuplicateObject(error: {
+  message: string;
+  statusCode?: string | number;
+}): boolean {
+  return (
+    String(error.statusCode) === '409' ||
+    /already exists|duplicate/i.test(error.message)
+  );
 }

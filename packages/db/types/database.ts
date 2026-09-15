@@ -330,6 +330,8 @@ export type Database = {
           ai_review: Json | null
           created_at: string
           created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
           document_hash: string | null
           document_json: Json | null
           extracted_data: Json | null
@@ -359,6 +361,8 @@ export type Database = {
           ai_review?: Json | null
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           document_hash?: string | null
           document_json?: Json | null
           extracted_data?: Json | null
@@ -388,6 +392,8 @@ export type Database = {
           ai_review?: Json | null
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           document_hash?: string | null
           document_json?: Json | null
           extracted_data?: Json | null

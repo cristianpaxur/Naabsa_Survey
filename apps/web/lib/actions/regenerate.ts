@@ -23,6 +23,7 @@ export async function regenerate(reportId: string): Promise<RegenerateResult> {
     .from('reports')
     .select('status')
     .eq('id', reportId)
+    .is('deleted_at', null)
     .maybeSingle();
   const status = (row as { status: string } | null)?.status;
   if (!status) return { error: 'Relatório não encontrado.' };
@@ -34,7 +35,9 @@ export async function regenerate(reportId: string): Promise<RegenerateResult> {
     // Mantém o working.docx — a transição só altera o status (auditada).
     await transition(supabase, reportId, 'generated', 'editing', user.id);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Falha ao regenerar.' };
+    return {
+      error: err instanceof Error ? err.message : 'Falha ao regenerar.',
+    };
   }
   return { ok: true };
 }

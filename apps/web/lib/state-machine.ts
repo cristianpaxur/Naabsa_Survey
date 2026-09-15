@@ -69,7 +69,8 @@ export async function transition(
     .from('reports')
     .update({ status: to } as never, { count: 'exact' })
     .eq('id', reportId)
-    .eq('status', from);
+    .eq('status', from)
+    .is('deleted_at', null);
   if (error) throw error;
   if (count === 0) {
     throw new Error(

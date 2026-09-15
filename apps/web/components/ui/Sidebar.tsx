@@ -26,9 +26,10 @@ export function Sidebar({
   const novoActive = pathname === '/reports/new';
   const specsActive = pathname.startsWith('/admin/specs');
   const usersActive = pathname.startsWith('/admin/users');
+  const trashActive = pathname === '/trash';
   const relActive =
     pathname === '/dashboard' ||
-    (pathname.startsWith('/reports/') && !novoActive);
+    (pathname.startsWith('/reports/') && !novoActive && !trashActive);
 
   return (
     <aside
@@ -58,6 +59,9 @@ export function Sidebar({
       </NavItem>
       <NavItem href="/reports/new" active={novoActive}>
         Novo relatório
+      </NavItem>
+      <NavItem href="/trash" active={trashActive}>
+        Lixeira
       </NavItem>
 
       {isAdmin && (

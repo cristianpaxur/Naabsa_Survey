@@ -13,7 +13,12 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { transition } from '@/lib/state-machine';
-import { validate, type Issue, type ReportSpec, type FieldValue } from '@naabsa/core';
+import {
+  validate,
+  type Issue,
+  type ReportSpec,
+  type FieldValue,
+} from '@naabsa/core';
 import { groupBySectionOrdered } from '@/lib/effective-values';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ReviewClient } from '@/components/review/ReviewClient';
@@ -42,6 +47,7 @@ export default async function ReviewPage({ params }: PageProps) {
       'id, status, variant, extracted_data, operator_overrides, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', id)
+    .is('deleted_at', null)
     .single();
 
   if (!raw) redirect('/dashboard');
@@ -55,10 +61,7 @@ export default async function ReviewPage({ params }: PageProps) {
     extraction_issues: Issue[] | null;
     ai_review: AiReviewState | null;
     data_revision: number;
-    report_specs:
-      | { spec: ReportSpec }
-      | { spec: ReportSpec }[]
-      | null;
+    report_specs: { spec: ReportSpec } | { spec: ReportSpec }[] | null;
   };
 
   // Resolver spec do join
@@ -94,7 +97,14 @@ export default async function ReviewPage({ params }: PageProps) {
           }}
         >
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--tinta)' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 20,
+                fontWeight: 800,
+                color: 'var(--tinta)',
+              }}
+            >
               Aguardando planilha
             </h1>
           </div>
@@ -128,7 +138,13 @@ export default async function ReviewPage({ params }: PageProps) {
   for (const [name] of fields) {
     effective[name] = resolveFieldValue(name, overrides, extracted);
   }
-  const initialIssues = mergeReviewIssues(validate(effective, spec, variant), row.extraction_issues, effective, extracted, row.ai_review);
+  const initialIssues = mergeReviewIssues(
+    validate(effective, spec, variant),
+    row.extraction_issues,
+    effective,
+    extracted,
+    row.ai_review,
+  );
 
   const totalFields = sections.reduce((acc, s) => acc + s.fields.length, 0);
 

@@ -25,6 +25,7 @@ export default async function PhotosPage({
     .from('reports')
     .select('id,status,spec_id,vessel_name,variant')
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
   const report = reportRow as {
     id: string;

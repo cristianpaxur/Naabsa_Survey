@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteReport } from '@/lib/actions/reports';
+import { trashReport } from '@/lib/actions/reports';
 
 /**
- * Descartar relatório em `draft`/`extracted` (014/T-007, RF-004). Confirmação
- * exibe o navio para evitar descarte do relatório errado (spec 014 §7).
+ * Move um relatório para a lixeira. A confirmação exibe o navio para evitar
+ * que o operador selecione o relatório errado.
  */
 export function DiscardReportButton({
   reportId,
@@ -19,12 +19,18 @@ export function DiscardReportButton({
   const [busy, setBusy] = useState(false);
 
   async function onDiscard() {
-    const label = vesselName ? `"${vesselName}"` : `${reportId.slice(0, 8)} (sem navio)`;
-    if (!window.confirm(`Descartar o relatório ${label}? Esta ação não pode ser desfeita.`)) {
+    const label = vesselName
+      ? `"${vesselName}"`
+      : `${reportId.slice(0, 8)} (sem navio)`;
+    if (
+      !window.confirm(
+        `Mover o relatório ${label} para a lixeira? Você poderá restaurá-lo depois.`,
+      )
+    ) {
       return;
     }
     setBusy(true);
-    const res = await deleteReport(reportId);
+    const res = await trashReport(reportId);
     setBusy(false);
     if ('error' in res) {
       window.alert(res.error);
@@ -37,8 +43,8 @@ export function DiscardReportButton({
     <button
       onClick={() => void onDiscard()}
       disabled={busy}
-      title="Descartar relatório"
-      aria-label="Descartar relatório"
+      title="Mover para a lixeira"
+      aria-label="Mover para a lixeira"
       style={{
         border: 'none',
         background: 'transparent',

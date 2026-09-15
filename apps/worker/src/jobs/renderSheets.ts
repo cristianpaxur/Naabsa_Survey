@@ -42,10 +42,13 @@ export async function renderSheets(data: RenderSheetsPayload): Promise<void> {
     .from('reports')
     .select('spec_id, spreadsheet_path, extracted_data')
     .eq('id', reportId)
+    .is('deleted_at', null)
     .single();
-  const r = report as
-    | { spec_id: string; spreadsheet_path: string | null; extracted_data: Record<string, unknown> | null }
-    | null;
+  const r = report as {
+    spec_id: string;
+    spreadsheet_path: string | null;
+    extracted_data: Record<string, unknown> | null;
+  } | null;
   if (!r?.spreadsheet_path || !r.spec_id) {
     console.log(`[render_sheets] ${reportId} sem planilha/spec — pulando.`);
     return;
@@ -63,7 +66,10 @@ export async function renderSheets(data: RenderSheetsPayload): Promise<void> {
     .from('reports')
     .download(r.spreadsheet_path);
   if (dlErr || !blob) {
-    console.error(`[render_sheets] falha ao baixar planilha de ${reportId}:`, dlErr?.message);
+    console.error(
+      `[render_sheets] falha ao baixar planilha de ${reportId}:`,
+      dlErr?.message,
+    );
     return;
   }
   const buf = Buffer.from(await blob.arrayBuffer());
@@ -82,9 +88,14 @@ export async function renderSheets(data: RenderSheetsPayload): Promise<void> {
           upsert: true,
         });
       if (upErr) throw new Error(upErr.message);
-      console.log(`[render_sheets] ${reportId} fase ${phase} (aba ${sheet}) ok (${png.length} B).`);
+      console.log(
+        `[render_sheets] ${reportId} fase ${phase} (aba ${sheet}) ok (${png.length} B).`,
+      );
     } catch (err) {
-      console.error(`[render_sheets] ${reportId} fase ${phase} (aba ${sheet}) falhou:`, err);
+      console.error(
+        `[render_sheets] ${reportId} fase ${phase} (aba ${sheet}) falhou:`,
+        err,
+      );
     }
   }
 }

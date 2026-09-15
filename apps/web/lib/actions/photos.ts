@@ -44,6 +44,7 @@ async function loadReport(
     .from('reports')
     .select('id,status,spec_id')
     .eq('id', reportId)
+    .is('deleted_at', null)
     .maybeSingle();
   return (data as ReportRow | null) ?? null;
 }
@@ -102,8 +103,10 @@ export async function allocate(
   if (!photo || photo.report_id !== reportId) {
     return { error: 'Foto não encontrada.' };
   }
-  if (photo.status !== 'done') return { error: 'Aguarde o processamento da foto.' };
-  if (!Number.isInteger(position) || position < 0) return { error: 'Posição inválida.' };
+  if (photo.status !== 'done')
+    return { error: 'Aguarde o processamento da foto.' };
+  if (!Number.isInteger(position) || position < 0)
+    return { error: 'Posição inválida.' };
 
   // Valida `max`: conta as já alocadas nesse slot (excluindo a própria foto).
   if (typeof slot.max === 'number') {
@@ -167,18 +170,35 @@ export async function reorder(
     return { error: 'A reordenação só é permitida durante a revisão.' };
   }
 
-  const { data: current, error: loadError } = await supabase.from('report_photos').select('id')
-    .eq('report_id', reportId).eq('slot_id', slotId).is('removed_at', null);
+  const { data: current, error: loadError } = await supabase
+    .from('report_photos')
+    .select('id')
+    .eq('report_id', reportId)
+    .eq('slot_id', slotId)
+    .is('removed_at', null);
   const currentIds = (current ?? []) as { id: string }[];
-  if (loadError || new Set(photoIds).size !== photoIds.length || currentIds.length !== photoIds.length ||
-    currentIds.some((p) => !photoIds.includes(p.id))) return { error: 'As fotos mudaram. Atualize a galeria antes de reordenar.' };
+  if (
+    loadError ||
+    new Set(photoIds).size !== photoIds.length ||
+    currentIds.length !== photoIds.length ||
+    currentIds.some((p) => !photoIds.includes(p.id))
+  )
+    return {
+      error: 'As fotos mudaram. Atualize a galeria antes de reordenar.',
+    };
 
   for (let i = 0; i < photoIds.length; i++) {
     const pid = photoIds[i];
     if (!pid) continue;
     const { error } = await supabase
       .from('report_photos')
-      .update({ position: i, ai_suggested: false, confirmed_by: user.id, ai_status: 'done', ai_request_id: null } as never)
+      .update({
+        position: i,
+        ai_suggested: false,
+        confirmed_by: user.id,
+        ai_status: 'done',
+        ai_request_id: null,
+      } as never)
       .eq('id', pid)
       .eq('report_id', reportId)
       .eq('slot_id', slotId);
@@ -218,7 +238,14 @@ export async function saveCrop(
   const valid = [crop.x, crop.y, crop.width, crop.height].every(
     (n) => typeof n === 'number' && n >= 0 && n <= 1,
   );
-  if (!valid || crop.width <= 0 || crop.height <= 0 || crop.x + crop.width > 1.000001 || crop.y + crop.height > 1.000001) return { error: 'Coordenadas de recorte inválidas.' };
+  if (
+    !valid ||
+    crop.width <= 0 ||
+    crop.height <= 0 ||
+    crop.x + crop.width > 1.000001 ||
+    crop.y + crop.height > 1.000001
+  )
+    return { error: 'Coordenadas de recorte inválidas.' };
 
   const { data: photoRow } = await supabase
     .from('report_photos')
@@ -239,7 +266,13 @@ export async function saveCrop(
 
   const { error } = await supabase
     .from('report_photos')
-    .update({ crop, ai_suggested: false, confirmed_by: user.id, ai_status: 'done', ai_request_id: null } as never)
+    .update({
+      crop,
+      ai_suggested: false,
+      confirmed_by: user.id,
+      ai_status: 'done',
+      ai_request_id: null,
+    } as never)
     .eq('id', photoId);
   if (error) return { error: 'Falha ao salvar o recorte.' };
 
@@ -282,7 +315,8 @@ export async function advance(reportId: string): Promise<ActionResult> {
     .eq('report_id', reportId)
     .is('removed_at', null)
     .not('slot_id', 'is', null);
-  if (photoLoadError) return { error: 'Não foi possível verificar as fotos. Tente novamente.' };
+  if (photoLoadError)
+    return { error: 'Não foi possível verificar as fotos. Tente novamente.' };
   const assigned = (rows as AssignedPhotoState[] | null) ?? [];
   const blockReason = photoAdvanceBlockReason(assigned);
   if (blockReason) return { error: blockReason };
@@ -338,12 +372,19 @@ export async function confirmSuggestion(
     .eq('ai_suggested', true);
   if (error) return { error: 'Falha ao confirmar a sugestão.' };
 
-  await audit(supabase, { reportId, actor: user.id, action: 'photo_confirmed', payload: { photoId } });
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'photo_confirmed',
+    payload: { photoId },
+  });
   return { ok: true };
 }
 
 /** Confirma TODAS as sugestões de IA pendentes do relatório (010/T-009). */
-export async function confirmAllSuggestions(reportId: string): Promise<ActionResult> {
+export async function confirmAllSuggestions(
+  reportId: string,
+): Promise<ActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -365,61 +406,142 @@ export async function confirmAllSuggestions(reportId: string): Promise<ActionRes
   if (error) return { error: 'Falha ao confirmar as sugestões.' };
 
   const count = (data as { id: string }[] | null)?.length ?? 0;
-  await audit(supabase, { reportId, actor: user.id, action: 'photo_confirmed', payload: { count, all: true } });
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'photo_confirmed',
+    payload: { count, all: true },
+  });
   return { ok: true };
 }
 
 /** Remove a alocação; a decisão impede nova sugestão automática para a foto. */
-export async function unallocate(reportId: string, photoId: string): Promise<ActionResult> {
+export async function unallocate(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
   return changePhoto(reportId, photoId, false);
 }
 
 /** Remoção lógica: documentos antigos podem continuar referenciando os arquivos. */
-export async function removePhoto(reportId: string, photoId: string): Promise<ActionResult> {
+export async function removePhoto(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
   return changePhoto(reportId, photoId, true);
 }
 
-async function changePhoto(reportId: string, photoId: string, remove: boolean): Promise<ActionResult> {
+async function changePhoto(
+  reportId: string,
+  photoId: string,
+  remove: boolean,
+): Promise<ActionResult> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
   const report = await loadReport(supabase, reportId);
-  if (report?.status !== 'in_review') return { error: 'Fotos só podem ser alteradas durante a revisão.' };
-  const { data, error } = await supabase.from('report_photos').update({
-    slot_id: null, crop: null, position: 0, ai_suggested: false,
-    confirmed_by: user.id, ai_status: 'done', ai_request_id: null, ai_error: null,
-    ...(remove ? { removed_at: new Date().toISOString() } : {}),
-  } as never).eq('id', photoId).eq('report_id', reportId).is('removed_at', null).select('id');
-  if (error || !data?.length) return { error: 'Não foi possível alterar a foto. Atualize e tente novamente.' };
-  await audit(supabase, { reportId, actor: user.id, action: remove ? 'remove_photo' : 'unallocate_photo', payload: { photoId } });
+  if (report?.status !== 'in_review')
+    return { error: 'Fotos só podem ser alteradas durante a revisão.' };
+  const { data, error } = await supabase
+    .from('report_photos')
+    .update({
+      slot_id: null,
+      crop: null,
+      position: 0,
+      ai_suggested: false,
+      confirmed_by: user.id,
+      ai_status: 'done',
+      ai_request_id: null,
+      ai_error: null,
+      ...(remove ? { removed_at: new Date().toISOString() } : {}),
+    } as never)
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null)
+    .select('id');
+  if (error || !data?.length)
+    return {
+      error: 'Não foi possível alterar a foto. Atualize e tente novamente.',
+    };
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: remove ? 'remove_photo' : 'unallocate_photo',
+    payload: { photoId },
+  });
   return { ok: true };
 }
 
 /** Reaproveita o original já salvo, inclusive quando o envio à fila falhou. */
-export async function retryPhoto(reportId: string, photoId: string): Promise<ActionResult> {
+export async function retryPhoto(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
   const report = await loadReport(supabase, reportId);
-  if (report?.status !== 'in_review') return { error: 'Fotos só podem ser processadas durante a revisão.' };
-  const { data: row } = await supabase.from('report_photos').select('status,slot_id')
-    .eq('id', photoId).eq('report_id', reportId).is('removed_at', null).maybeSingle();
+  if (report?.status !== 'in_review')
+    return { error: 'Fotos só podem ser processadas durante a revisão.' };
+  const { data: row } = await supabase
+    .from('report_photos')
+    .select('status,slot_id')
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null)
+    .maybeSingle();
   const photo = row as { status: string; slot_id: string | null } | null;
-  if (!photo || photo.slot_id) return { error: 'Escolha uma foto não alocada para repetir o processamento.' };
-  const { error } = await supabase.from('report_photos').update({
-    status: photo.status === 'done' ? 'done' : 'pending', error_message: null,
-    ai_status: 'idle', ai_error: null, ai_request_id: null, ai_run_id: null, ai_job_id: null, ai_attempt: -1,
-  } as never).eq('id', photoId).eq('report_id', reportId).is('removed_at', null);
-  if (error) return { error: 'Não foi possível preparar a foto para nova tentativa.' };
+  if (!photo || photo.slot_id)
+    return {
+      error: 'Escolha uma foto não alocada para repetir o processamento.',
+    };
+  const { error } = await supabase
+    .from('report_photos')
+    .update({
+      status: photo.status === 'done' ? 'done' : 'pending',
+      error_message: null,
+      ai_status: 'idle',
+      ai_error: null,
+      ai_request_id: null,
+      ai_run_id: null,
+      ai_job_id: null,
+      ai_attempt: -1,
+    } as never)
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null);
+  if (error)
+    return { error: 'Não foi possível preparar a foto para nova tentativa.' };
   try {
-    if (!await enqueueProcessPhoto({ reportId, photoId })) throw new Error('Fila indisponível.');
+    if (!(await enqueueProcessPhoto({ reportId, photoId })))
+      throw new Error('Fila indisponível.');
   } catch {
-    await supabase.from('report_photos').update(photo.status === 'done'
-      ? { ai_status: 'error', ai_error: 'Falha ao agendar a análise. Tente novamente.' } as never
-      : { status: 'error', error_message: 'Falha ao agendar o processamento. Tente novamente.' } as never)
+    await supabase
+      .from('report_photos')
+      .update(
+        photo.status === 'done'
+          ? ({
+              ai_status: 'error',
+              ai_error: 'Falha ao agendar a análise. Tente novamente.',
+            } as never)
+          : ({
+              status: 'error',
+              error_message:
+                'Falha ao agendar o processamento. Tente novamente.',
+            } as never),
+      )
       .eq('id', photoId);
     return { error: 'Não foi possível agendar. Tente novamente em instantes.' };
   }
-  await audit(supabase, { reportId, actor: user.id, action: 'retry_photo', payload: { photoId } });
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'retry_photo',
+    payload: { photoId },
+  });
   return { ok: true };
 }
