@@ -25,6 +25,7 @@ const EMPTY_PNG = Buffer.from(
   'base64',
 );
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
+const COVER_IMAGE_SIZE = [480, 360] as const;
 const MONTHS = [
   'January',
   'February',
@@ -47,6 +48,178 @@ const MONTHS = [
  * and LibreOffice silently ignore. Keep the dedicated template paragraphs,
  * render inline images inside them and normalize the inherited pagination.
  */
+function requiredPartIndex(
+  parts: string[],
+  predicate: (part: string) => boolean,
+  label: string,
+): number {
+  const index = parts.findIndex(predicate);
+  if (index < 0) throw new Error(`Template DOCX sem ${label}.`);
+  return index;
+}
+
+function rewritePhotoHeading(
+  block: string[],
+  oldBookmark: string,
+  newBookmark: string,
+  oldLabel: string,
+): string[] {
+  return block.map((part) =>
+    part
+      .replace(`w:name="${oldBookmark}"`, `w:name="${newBookmark}"`)
+      .replace(
+        new RegExp(`(<w:t\\b[^>]*>)${oldLabel}(<\\/w:t>)`),
+        '$1Photographic Report$2',
+      ),
+  );
+}
+
+function movePhotographicReportsIntoPhases(parts: string[]): void {
+  const bodyPhotoStart = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:name="s6"'),
+    'seção Photographic Report',
+  );
+  const bodyAttachmentStart = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:name="s7"'),
+    'seção Attachment',
+  );
+  const bodyBlock = (bookmark: string, closeTag: string) => {
+    const start = requiredPartIndex(
+      parts,
+      (part) => part.includes(`w:name="${bookmark}"`),
+      `bookmark ${bookmark}`,
+    );
+    const end = requiredPartIndex(
+      parts,
+      (part) => part.includes(closeTag),
+      closeTag,
+    );
+    return parts.slice(start, end + 1);
+  };
+  const initialPhotos = rewritePhotoHeading(
+    bodyBlock('s6_1', '{/photosInitial}'),
+    's6_1',
+    's3_6',
+    'Initial',
+  );
+  const intermediatePhotos = rewritePhotoHeading(
+    bodyBlock('s6_2', '{/photosIntermediate}'),
+    's6_2',
+    's4_6',
+    'Intermediate',
+  );
+  const finalPhotos = rewritePhotoHeading(
+    bodyBlock('s6_3', '{/photosFinal}'),
+    's6_3',
+    's5_6',
+    'Final',
+  );
+  parts.splice(bodyPhotoStart, bodyAttachmentStart - bodyPhotoStart);
+
+  for (const [sheetTag, photoBlock] of [
+    ['{%%sheetInitial}', initialPhotos],
+    ['{%%sheetIntermediate}', intermediatePhotos],
+    ['{%%sheetFinal}', finalPhotos],
+  ] as const) {
+    const sheet = requiredPartIndex(
+      parts,
+      (part) => part.includes(sheetTag),
+      sheetTag,
+    );
+    parts.splice(sheet + 1, 0, ...photoBlock);
+  }
+
+  const tocPhotoStart = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:anchor="s6"'),
+    'entrada Photographic Report do sumário',
+  );
+  const tocAttachmentStart = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:anchor="s7"'),
+    'entrada Attachment do sumário',
+  );
+  const tocEntry = (
+    oldAnchor: string,
+    newAnchor: string,
+    oldLabel: string,
+    newLabel: string,
+    oldPageTag: string,
+    newPageTag: string,
+  ) => {
+    const index = requiredPartIndex(
+      parts,
+      (part) => part.includes(`w:anchor="${oldAnchor}"`),
+      `entrada ${oldAnchor} do sumário`,
+    );
+    return parts[index]!.replaceAll(
+      `w:anchor="${oldAnchor}"`,
+      `w:anchor="${newAnchor}"`,
+    )
+      .replace(oldLabel, newLabel)
+      .replace(oldPageTag, newPageTag);
+  };
+  const initialToc = tocEntry(
+    's6_1',
+    's3_6',
+    '{photo_no}.1. Initial',
+    '3.6. Photographic Report',
+    '{toc_s6_1}',
+    '{toc_s3_6}',
+  );
+  const intermediateToc = tocEntry(
+    's6_2',
+    's4_6',
+    '{photo_no}.2. Intermediate',
+    '4.6. Photographic Report',
+    '{toc_s6_2}',
+    '{toc_s4_6}',
+  );
+  const finalToc = tocEntry(
+    's6_3',
+    's5_6',
+    '{photo_no}.{photo_final_subno}. Final',
+    '{final_no}.6. Photographic Report',
+    '{toc_s6_3}',
+    '{toc_s5_6}',
+  );
+  parts.splice(tocPhotoStart, tocAttachmentStart - tocPhotoStart);
+
+  for (const [anchor, entry] of [
+    ['s3_5', initialToc],
+    ['s4_5', intermediateToc],
+    ['s5_5', finalToc],
+  ] as const) {
+    const index = requiredPartIndex(
+      parts,
+      (part) => part.includes(`w:anchor="${anchor}"`),
+      `entrada ${anchor} do sumário`,
+    );
+    parts.splice(index + 1, 0, entry);
+  }
+
+  const tocAttachment = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:anchor="s7"'),
+    'entrada Attachment do sumário',
+  );
+  parts[tocAttachment] = parts[tocAttachment]!.replaceAll(
+    'w:anchor="s7"',
+    'w:anchor="s6"',
+  ).replace('{toc_s7}', '{toc_s6}');
+  const bodyAttachment = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:name="s7"'),
+    'bookmark Attachment',
+  );
+  parts[bodyAttachment] = parts[bodyAttachment]!.replace(
+    'w:name="s7"',
+    'w:name="s6"',
+  );
+}
+
 function prepareTemplateLayout(zip: PizZip): void {
   const file = zip.file('word/document.xml');
   if (!file) throw new Error('Template DOCX sem word/document.xml.');
@@ -54,6 +227,8 @@ function prepareTemplateLayout(zip: PizZip): void {
   const imageTag =
     /\{%%(?:coverPhoto|sheetInitial|sheetIntermediate|sheetFinal|photo)\}/;
   const parts = file.asText().split(/(<w:p\b[^>]*>.*?<\/w:p>)/gs);
+
+  movePhotographicReportsIntoPhases(parts);
 
   for (let index = 0; index < parts.length; index += 1) {
     const paragraph = parts[index];
@@ -84,17 +259,23 @@ function prepareTemplateLayout(zip: PizZip): void {
       .join('')
       .replace(/&nbsp;/g, ' ')
       .trim();
+    if (paragraphText === 'Contents') {
+      prepared = /<w:pPr\b[^>]*>/.test(prepared)
+        ? prepared.replace(/<w:pPr\b[^>]*>/, '$&<w:pageBreakBefore/>')
+        : prepared.replace(
+            /(<w:p\b[^>]*>)/,
+            '$1<w:pPr><w:pageBreakBefore/></w:pPr>',
+          );
+    }
     if (
-      /Draft (?:details|Details)/.test(paragraphText) &&
+      (/Draft (?:details|Details)/.test(paragraphText) ||
+        /w:name="s[345]_6"/.test(paragraph)) &&
       !/<w:hyperlink\b/.test(paragraph) &&
       !/<w:keepNext\b/.test(prepared)
     ) {
       prepared = /<w:pPr\b[^>]*>/.test(prepared)
         ? prepared.replace(/<w:pPr\b[^>]*>/, '$&<w:keepNext/>')
-        : prepared.replace(
-            /(<w:p\b[^>]*>)/,
-            '$1<w:pPr><w:keepNext/></w:pPr>',
-          );
+        : prepared.replace(/(<w:p\b[^>]*>)/, '$1<w:pPr><w:keepNext/></w:pPr>');
     }
     parts[index] = prepared;
   }
@@ -256,23 +437,22 @@ function tocData(
     's3_3',
     's3_4',
     's3_5',
+    's3_6',
     's4',
     's4_1',
     's4_2',
     's4_3',
     's4_4',
     's4_5',
+    's4_6',
     's5',
     's5_1',
     's5_2',
     's5_3',
     's5_4',
     's5_5',
+    's5_6',
     's6',
-    's6_1',
-    's6_2',
-    's6_3',
-    's7',
   ];
   for (const id of ids)
     result[`toc_${id}`] = pages?.[id] == null ? '' : String(pages[id]);
@@ -337,8 +517,6 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     summer_dwt: groupedNumeric(data['summer_dwt'], 0),
     hasIntermediate,
     final_no: hasIntermediate ? 5 : 4,
-    photo_no: hasIntermediate ? 6 : 5,
-    photo_final_subno: hasIntermediate ? 3 : 2,
     initial_narrative: initialNarrative,
     intermediate_narrative: phaseNarrative(
       'intermediate',
@@ -450,7 +628,7 @@ export async function buildReportDocxFromTemplate(
     fileType: 'docx',
     getImage: (tagValue) => images.get(String(tagValue)) ?? EMPTY_PNG,
     getSize: (_image, _tagValue, tagName) => {
-      if (tagName === 'coverPhoto') return [543, 408];
+      if (tagName === 'coverPhoto') return [...COVER_IMAGE_SIZE];
       if (tagName === 'sheetInitial') return [684, 264];
       if (tagName === 'sheetIntermediate' || tagName === 'sheetFinal')
         return [684, 244];
