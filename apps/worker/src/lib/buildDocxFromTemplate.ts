@@ -238,7 +238,44 @@ function prepareTemplateLayout(zip: PizZip): void {
     /\{%%(?:coverPhoto|sheetInitial|sheetIntermediate|sheetFinal|photo)\}/;
   const parts = file.asText().split(/(<w:p\b[^>]*>.*?<\/w:p>)/gs);
 
+  const keepWithNext = (paragraph: string): string => {
+    if (/<w:keepNext\b/.test(paragraph)) return paragraph;
+    return /<w:pPr\b[^>]*>/.test(paragraph)
+      ? paragraph.replace(/<w:pPr\b[^>]*>/, '$&<w:keepNext/>')
+      : paragraph.replace(/(<w:p\b[^>]*>)/, '$1<w:pPr><w:keepNext/></w:pPr>');
+  };
+  const keepReadingTableTogether = (table: string): string => {
+    const rows = table.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? [];
+    let rowIndex = 0;
+    return table.replace(/<w:tr\b[^>]*>.*?<\/w:tr>/gs, (row) => {
+      let prepared = /<w:cantSplit\b/.test(row)
+        ? row
+        : /<w:trPr\b[^>]*>/.test(row)
+          ? row.replace(/<w:trPr\b[^>]*>/, '$&<w:cantSplit/>')
+          : row.replace(/(<w:tr\b[^>]*>)/, '$1<w:trPr><w:cantSplit/></w:trPr>');
+      if (rowIndex < rows.length - 1) {
+        prepared = prepared.replace(/<w:p\b[^>]*>.*?<\/w:p>/gs, keepWithNext);
+      }
+      rowIndex += 1;
+      return prepared;
+    });
+  };
+
   movePhotographicReportsIntoPhases(parts);
+
+  for (let index = 0; index < parts.length - 3; index += 1) {
+    if (!/w:name="s[345]_[15]"/.test(parts[index] ?? '')) continue;
+    const spacer = parts[index + 2] ?? '';
+    const spacerText = [...spacer.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)]
+      .map((match) => match[1] ?? '')
+      .join('')
+      .trim();
+    if (/^<w:p\b[^>]*>.*<\/w:p>$/s.test(spacer) && spacerText === '') {
+      // Hidden spacers defeat keepNext in LibreOffice/Collabora and can leave
+      // “Draft readings” or “Draft details” alone at the bottom of a page.
+      parts[index + 2] = '';
+    }
+  }
 
   for (let index = 0; index < parts.length; index += 1) {
     const paragraph = parts[index];
@@ -278,32 +315,46 @@ function prepareTemplateLayout(zip: PizZip): void {
           );
     }
     if (
-      (/Draft (?:details|Details)/.test(paragraphText) ||
-        /w:name="s[345]_6"/.test(paragraph)) &&
-      !/<w:hyperlink\b/.test(paragraph) &&
-      !/<w:keepNext\b/.test(prepared)
+      (/w:name="s[345](?:_[156])?"/.test(paragraph) ||
+        /Draft (?:details|Details)/.test(paragraphText)) &&
+      !/<w:hyperlink\b/.test(paragraph)
     ) {
-      prepared = /<w:pPr\b[^>]*>/.test(prepared)
-        ? prepared.replace(/<w:pPr\b[^>]*>/, '$&<w:keepNext/>')
-        : prepared.replace(/(<w:p\b[^>]*>)/, '$1<w:pPr><w:keepNext/></w:pPr>');
+      prepared = keepWithNext(prepared);
     }
     parts[index] = prepared;
   }
 
-  zip.file('word/document.xml', parts.join(''));
+  const documentXml = parts
+    .join('')
+    .replace(
+      /(<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s[345]_1"(?:(?!<\/w:p>).)*<\/w:p>)(<w:tbl\b.*?<\/w:tbl>)/gs,
+      (_match, heading: string, table: string) =>
+        heading + keepReadingTableTogether(table),
+    );
+  zip.file('word/document.xml', documentXml);
 }
 
-function photoGridMetrics(count: number): {
+function scaledSize(
+  size: readonly [number, number],
+  scale: number,
+): readonly [number, number] {
+  return [Math.round(size[0] * scale), Math.round(size[1] * scale)] as const;
+}
+
+function photoGridMetrics(
+  count: number,
+  scale = 1,
+): {
   imageSize: readonly [number, number];
   widthTwips: number;
 } {
   return count >= 5
     ? {
-        imageSize: COMPACT_GRID_PHOTO_SIZE,
+        imageSize: scaledSize(COMPACT_GRID_PHOTO_SIZE, scale),
         widthTwips: COMPACT_PHOTO_GRID_WIDTH_TWIPS,
       }
     : {
-        imageSize: WIDE_GRID_PHOTO_SIZE,
+        imageSize: scaledSize(WIDE_GRID_PHOTO_SIZE, scale),
         widthTwips: WIDE_PHOTO_GRID_WIDTH_TWIPS,
       };
 }
@@ -324,29 +375,6 @@ function photoGridTable(paragraphs: string[], widthTwips: number): string {
     );
   }
   return `<w:tbl><w:tblPr><w:tblW w:w="${widthTwips}" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${cellWidthTwips}"/><w:gridCol w:w="${cellWidthTwips}"/></w:tblGrid>${rows.join('')}</w:tbl>`;
-}
-
-function addPageBreakBefore(paragraph: string): string {
-  if (/<w:pageBreakBefore\b/.test(paragraph)) return paragraph;
-  if (/<w:pPr\b[^>]*>/.test(paragraph))
-    return paragraph.replace(/<w:pPr\b[^>]*>/, '$&<w:pageBreakBefore/>');
-  return paragraph.replace(
-    /(<w:p\b[^>]*>)/,
-    '$1<w:pPr><w:pageBreakBefore/></w:pPr>',
-  );
-}
-
-function addBookmarkPageBreak(xml: string, bookmark: string): string {
-  const bookmarkPosition = xml.indexOf(`w:name="${bookmark}"`);
-  if (bookmarkPosition < 0) return xml;
-  const paragraphStart = Math.max(
-    xml.lastIndexOf('<w:p ', bookmarkPosition),
-    xml.lastIndexOf('<w:p>', bookmarkPosition),
-  );
-  const paragraphEnd = xml.indexOf('</w:p>', bookmarkPosition);
-  if (paragraphStart < 0 || paragraphEnd < 0) return xml;
-  const paragraph = xml.slice(paragraphStart, paragraphEnd + '</w:p>'.length);
-  return `${xml.slice(0, paragraphStart)}${addPageBreakBefore(paragraph)}${xml.slice(paragraphEnd + '</w:p>'.length)}`;
 }
 
 /**
@@ -405,10 +433,6 @@ function arrangePhasePhotosInTwoColumns(
     }
     rebuilt += segment.slice(cursor);
     xml = `${xml.slice(0, start)}${rebuilt}${xml.slice(end)}`;
-    if (expected >= 4 && phase.name !== 'final') {
-      const nextPhase = phase.name === 'initial' ? 's4' : 's5';
-      xml = addBookmarkPageBreak(xml, nextPhase);
-    }
   }
   zip.file('word/document.xml', xml);
 }
@@ -726,33 +750,7 @@ export async function buildReportDocxFromTemplate(
   const template = await readFile(fileURLToPath(TEMPLATE_URL));
   const templateZip = new PizZip(template);
   prepareTemplateLayout(templateZip);
-  const asPng = async (image: Buffer | null | undefined): Promise<Buffer> => {
-    if (image == null || image.length === 0) return EMPTY_PNG;
-    if (
-      image
-        .subarray(0, 8)
-        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-    )
-      return image;
-    return sharp(image).png().toBuffer();
-  };
-  const images = new Map<string, Buffer>();
-  const fixedImages = await Promise.all([
-    asPng(input.coverPhoto),
-    asPng(input.sheetImages.initial),
-    asPng(input.sheetImages.intermediate),
-    asPng(input.sheetImages.final),
-  ]);
-  images.set('coverPhoto', fixedImages[0]!);
-  images.set('sheetInitial', fixedImages[1]!);
-  images.set('sheetIntermediate', fixedImages[2]!);
-  images.set('sheetFinal', fixedImages[3]!);
-  for (const [index, photo] of (input.phasePhotos.initial ?? []).entries())
-    images.set(`photoInitial${index}`, await asPng(photo));
-  for (const [index, photo] of (input.phasePhotos.intermediate ?? []).entries())
-    images.set(`photoIntermediate${index}`, await asPng(photo));
-  for (const [index, photo] of (input.phasePhotos.final ?? []).entries())
-    images.set(`photoFinal${index}`, await asPng(photo));
+  const photoScale = Math.max(0.7, Math.min(1, input.photoScale ?? 1));
   const photoCounts = {
     initial: input.phasePhotos.initial?.length ?? 0,
     intermediate:
@@ -762,12 +760,87 @@ export async function buildReportDocxFromTemplate(
         : (input.phasePhotos.intermediate?.length ?? 0),
     final: input.phasePhotos.final?.length ?? 0,
   };
+  /**
+   * O módulo gratuito sempre grava a mídia com extensão PNG. Para manter o
+   * pacote compatível com Word/Collabora sem inflar JPEGs de câmera para dezenas
+   * de MB, rasterizamos no máximo a 2x o tamanho físico usado no documento.
+   * Isso conserva aproximadamente 192 dpi na impressão e reduz drasticamente
+   * memória, upload e instabilidade de paginação no editor.
+   */
+  const asPng = async (
+    image: Buffer | null | undefined,
+    displaySize: readonly [number, number],
+  ): Promise<Buffer> => {
+    if (image == null || image.length === 0) return EMPTY_PNG;
+    try {
+      return await sharp(image)
+        .rotate()
+        .resize({
+          width: displaySize[0] * 2,
+          height: displaySize[1] * 2,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .png({ compressionLevel: 9, adaptiveFiltering: true })
+        .toBuffer();
+    } catch (error) {
+      // Compatibilidade com PNGs mínimos/legados que Word aceita apesar de CRC
+      // não canônico. JPEG/HEIC inválido continua falhando de forma explícita.
+      const isPng = image
+        .subarray(0, 8)
+        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+      if (isPng) return image;
+      throw error;
+    }
+  };
+  const images = new Map<string, Buffer>();
+  const fixedImages = await Promise.all([
+    asPng(input.coverPhoto, scaledSize(COVER_IMAGE_SIZE, photoScale)),
+    asPng(input.sheetImages.initial, [684, 264]),
+    asPng(input.sheetImages.intermediate, [684, 244]),
+    asPng(input.sheetImages.final, [684, 244]),
+  ]);
+  images.set('coverPhoto', fixedImages[0]!);
+  images.set('sheetInitial', fixedImages[1]!);
+  images.set('sheetIntermediate', fixedImages[2]!);
+  images.set('sheetFinal', fixedImages[3]!);
+  for (const [index, photo] of (input.phasePhotos.initial ?? []).entries())
+    images.set(
+      `photoInitial${index}`,
+      await asPng(
+        photo,
+        photoCounts.initial > 1
+          ? photoGridMetrics(photoCounts.initial, photoScale).imageSize
+          : scaledSize(SINGLE_PHOTO_SIZE, photoScale),
+      ),
+    );
+  for (const [index, photo] of (input.phasePhotos.intermediate ?? []).entries())
+    images.set(
+      `photoIntermediate${index}`,
+      await asPng(
+        photo,
+        photoCounts.intermediate > 1
+          ? photoGridMetrics(photoCounts.intermediate, photoScale).imageSize
+          : scaledSize(SINGLE_PHOTO_SIZE, photoScale),
+      ),
+    );
+  for (const [index, photo] of (input.phasePhotos.final ?? []).entries())
+    images.set(
+      `photoFinal${index}`,
+      await asPng(
+        photo,
+        photoCounts.final > 1
+          ? photoGridMetrics(photoCounts.final, photoScale).imageSize
+          : scaledSize(SINGLE_PHOTO_SIZE, photoScale),
+      ),
+    );
   const imageModule = new ImageModule({
     centered: false,
     fileType: 'docx',
     getImage: (tagValue) => images.get(String(tagValue)) ?? EMPTY_PNG,
     getSize: (_image, _tagValue, tagName) => {
-      if (tagName === 'coverPhoto') return [...COVER_IMAGE_SIZE];
+      if (tagName === 'coverPhoto')
+        return [...scaledSize(COVER_IMAGE_SIZE, photoScale)];
       if (tagName === 'sheetInitial') return [684, 264];
       if (tagName === 'sheetIntermediate' || tagName === 'sheetFinal')
         return [684, 244];
@@ -776,13 +849,14 @@ export async function buildReportDocxFromTemplate(
         (key.startsWith('photoInitial') && photoCounts.initial > 1) ||
         (key.startsWith('photoIntermediate') && photoCounts.intermediate > 1) ||
         (key.startsWith('photoFinal') && photoCounts.final > 1);
-      if (!inMultiPhotoPhase) return [...SINGLE_PHOTO_SIZE];
+      if (!inMultiPhotoPhase)
+        return [...scaledSize(SINGLE_PHOTO_SIZE, photoScale)];
       const count = key.startsWith('photoInitial')
         ? photoCounts.initial
         : key.startsWith('photoIntermediate')
           ? photoCounts.intermediate
           : photoCounts.final;
-      return [...photoGridMetrics(count).imageSize];
+      return [...photoGridMetrics(count, photoScale).imageSize];
     },
   });
   const document = new Docxtemplater(templateZip, {

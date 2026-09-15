@@ -40,6 +40,8 @@ export interface DocxInput {
   acting: { intermediate?: string[][]; final?: string[][] };
   /** Páginas medidas por bookmark (2º passe). Ausente no 1º passe (números em branco). */
   tocPages?: Record<string, number>;
+  /** Escala física das fotografias para a tentativa de layout atual. */
+  photoScale?: number;
 }
 
 // ── helpers de formatação ────────────────────────────────────────────────────

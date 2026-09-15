@@ -30,6 +30,7 @@ import { buildReportDocx, type DocxInput } from '../lib/buildDocx';
 import type { DocxInputMsc, TimeLogRow } from '../lib/buildDocxMsc';
 import { convertDocxToPdf, measureBookmarkPages } from '../lib/soffice';
 import { renderSheetPng } from '../lib/sheetImage';
+import { validateDocumentLayout } from '../lib/documentLayoutQa';
 
 export interface GeneratePdfPayload {
   reportId: string;
@@ -326,7 +327,11 @@ export async function buildWorkingDocx(
       crop: Crop | null;
     }[]) {
       if (!r.slot_id || !r.processed_path) continue;
-      if (!['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'].includes(r.slot_id))
+      if (
+        !['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'].includes(
+          r.slot_id,
+        )
+      )
         continue;
       const buf = await download(svc, r.processed_path);
       if (buf)
@@ -399,12 +404,10 @@ export async function buildWorkingDocx(
       const png = await renderSheetPng(buf, sheet);
       sheetImages[phase] = png;
       // Sobe também para o storage (cache para o render_sheets job).
-      await svc.storage
-        .from('reports')
-        .upload(sheetImagePath(phase), png, {
-          contentType: 'image/png',
-          upsert: true,
-        });
+      await svc.storage.from('reports').upload(sheetImagePath(phase), png, {
+        contentType: 'image/png',
+        upsert: true,
+      });
     } catch (err) {
       console.error(
         `[generate_pdf] render inline de ${phase}/${sheet} falhou:`,
@@ -443,6 +446,9 @@ export async function buildWorkingDocx(
   }
 
   // Monta o .docx em 2 passes (mede páginas dos bookmarks → sumário com nº reais).
+  // Fotografias começam 8% menores que no template. O PDF intermediário passa por
+  // um gate visual; se houver página vazia/quebra causada por foto, reconstruímos
+  // uma vez com escala mais compacta antes de publicar o working.docx.
   const base: DocxInput = {
     data,
     variant: variantStr ?? 'loading',
@@ -459,10 +465,39 @@ export async function buildWorkingDocx(
       final: toStr(tables['fin_figures_acting_as']),
     },
   };
-  const pass1 = await buildReportDocx(base);
-  const pages = await measureBookmarkPages(pass1);
-  const docx = await buildReportDocx({ ...base, tocPages: pages });
-  return { docx, data, variant: variantStr ?? 'loading' };
+  const photoScales = [0.92, 0.84] as const;
+  for (const [index, photoScale] of photoScales.entries()) {
+    const candidate = { ...base, photoScale };
+    const pass1 = await buildReportDocx(candidate);
+    const pages = await measureBookmarkPages(pass1);
+    const docx = await buildReportDocx({ ...candidate, tocPages: pages });
+    const qaPdf = await convertDocxToPdf(docx);
+    const qa = await validateDocumentLayout(qaPdf, reportId);
+    console.log(
+      `[build_working_docx] layout ${reportId}: escala=${photoScale}, páginas=${qa.pageCount}, ` +
+        `vazias=${qa.blankPages.join(',') || 'nenhuma'}, ia_reduzir=${qa.aiRequestedSmallerPhotos}`,
+    );
+    if (qa.ok) return { docx, data, variant: variantStr ?? 'loading' };
+
+    const isLast = index === photoScales.length - 1;
+    if (!isLast) continue;
+    if (qa.blankPages.length > 0) {
+      throw new Error(
+        `[build_working_docx] validação visual reprovou páginas vazias: ${qa.blankPages.join(', ')}.`,
+      );
+    }
+    // A revisão por IA é consultiva: ela aciona a redução automática, mas nunca
+    // bloqueia o relatório se o verificador determinístico aprovou a versão final.
+    if (qa.aiRequestedSmallerPhotos) {
+      console.warn(
+        `[build_working_docx] IA ainda sinalizou o layout compacto: ${qa.aiIssues.join('; ') || 'sem detalhe'}`,
+      );
+    }
+    return { docx, data, variant: variantStr ?? 'loading' };
+  }
+  throw new Error(
+    '[build_working_docx] nenhuma variante de layout foi gerada.',
+  );
 }
 
 /**
@@ -497,7 +532,7 @@ export async function convertWorkingDocxToPdf(
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(
       `[generate_pdf] Não foi possível converter o documento salvo em PDF. ` +
-      `Confirme se o serviço de conversão está disponível e tente novamente. Detalhe: ${detail}`,
+        `Confirme se o serviço de conversão está disponível e tente novamente. Detalhe: ${detail}`,
     );
   }
   const docHash = createHash('sha256').update(docx).digest('hex');

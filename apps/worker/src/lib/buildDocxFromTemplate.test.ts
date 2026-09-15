@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import PizZip from 'pizzip';
+import sharp from 'sharp';
 import { buildReportDocxFromTemplate } from './buildDocxFromTemplate';
 
 const PNG = Buffer.from(
@@ -53,9 +54,49 @@ describe('buildReportDocxFromTemplate', () => {
       /w:name="s[345]_5"/.test(paragraph),
     );
     expect(sheetHeadings).toHaveLength(3);
+    for (const heading of sheetHeadings) {
+      expect(heading).toContain('<w:keepNext/>');
+      expect(heading).not.toContain('<w:pageBreakBefore/>');
+    }
+    for (const phase of [3, 4, 5]) {
+      const readingsEnd = documentXml.indexOf(
+        '</w:p>',
+        documentXml.indexOf(`w:name="s${phase}_1"`),
+      );
+      expect(documentXml.slice(readingsEnd + 6)).toMatch(/^<w:tbl\b/);
+
+      const detailsEnd = documentXml.indexOf(
+        '</w:p>',
+        documentXml.indexOf(`w:name="s${phase}_5"`),
+      );
+      expect(documentXml.slice(detailsEnd + 6)).toMatch(
+        /^<w:p\b(?:(?!<\/w:p>).)*<w:drawing>/s,
+      );
+    }
+    const initialReadingsTable =
+      documentXml.match(
+        /w:name="s3_1"(?:(?!<\/w:p>).)*<\/w:p>(<w:tbl\b.*?<\/w:tbl>)/s,
+      )?.[1] ?? '';
+    const readingRows =
+      initialReadingsTable.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? [];
+    expect(readingRows).toHaveLength(4);
+    for (const row of readingRows) expect(row).toContain('<w:cantSplit/>');
+    for (const row of readingRows.slice(0, -1)) {
+      expect(row).toContain('<w:keepNext/>');
+    }
     expect(
       sheetHeadings.map((paragraph) => paragraph.includes('<w:keepNext/>')),
     ).toEqual([true, true, true]);
+
+    const headingsThatCannotBeOrphans = paragraphs.filter((paragraph) =>
+      /w:name="s[345](?:_[16])?"/.test(paragraph),
+    );
+    expect(headingsThatCannotBeOrphans).toHaveLength(9);
+    expect(
+      headingsThatCannotBeOrphans.every((paragraph) =>
+        paragraph.includes('<w:keepNext/>'),
+      ),
+    ).toBe(true);
 
     for (const bookmark of ['s3_6', 's4_6', 's5_6']) {
       expect(documentXml).toContain(`w:name="${bookmark}"`);
@@ -158,7 +199,7 @@ describe('buildReportDocxFromTemplate', () => {
     expect(documentXml).toContain('<wp:extent cx="2571750" cy="1933575"/>');
     expect(documentXml).toContain('<wp:extent cx="3143250" cy="2362200"/>');
     expect(documentXml).toContain('<wp:extent cx="5181600" cy="3886200"/>');
-    expect(documentXml.match(/<w:cantSplit\/>/g)).toHaveLength(4);
+    expect(documentXml.match(/<w:cantSplit\/>/g)).toHaveLength(16);
     const initialPhotoHeading =
       documentXml.match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s3_6"(?:(?!<\/w:p>).)*<\/w:p>/s,
@@ -168,6 +209,49 @@ describe('buildReportDocxFromTemplate', () => {
       documentXml.match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s4"(?:(?!<\/w:p>).)*<\/w:p>/s,
       )?.[0] ?? '';
-    expect(intermediateHeading).toContain('<w:pageBreakBefore/>');
+    expect(intermediateHeading).not.toContain('<w:pageBreakBefore/>');
+  });
+
+  it('limits embedded photo pixels and supports a compact physical scale', async () => {
+    const largeJpeg = await sharp({
+      create: {
+        width: 2500,
+        height: 1875,
+        channels: 3,
+        background: { r: 80, g: 120, b: 160 },
+      },
+    })
+      .jpeg({ quality: 82 })
+      .toBuffer();
+    const docx = await buildReportDocxFromTemplate({
+      data: {},
+      variant: 'loading',
+      logo: null,
+      coverPhoto: largeJpeg,
+      sheetImages: { initial: PNG, final: PNG },
+      phasePhotos: { initial: [largeJpeg], final: [largeJpeg] },
+      acting: {},
+      photoScale: 0.92,
+    });
+
+    const zip = new PizZip(docx);
+    const media = Object.keys(zip.files).filter((name) =>
+      /^word\/media\/image_generated_\d+\.png$/.test(name),
+    );
+    const largeMedia = await Promise.all(
+      media.map(async (name) => {
+        const bytes = zip.file(name)!.asNodeBuffer();
+        const meta = await sharp(bytes).metadata();
+        return { bytes, width: meta.width ?? 0, height: meta.height ?? 0 };
+      }),
+    );
+    expect(
+      largeMedia.some((image) => image.width === 1000 && image.height === 750),
+    ).toBe(true);
+    expect(
+      Math.max(...largeMedia.map((image) => image.width)),
+    ).toBeLessThanOrEqual(1368);
+    const documentXml = zip.file('word/document.xml')!.asText();
+    expect(documentXml).toContain('<wp:extent cx="4762500" cy="3571875"/>');
   });
 });
