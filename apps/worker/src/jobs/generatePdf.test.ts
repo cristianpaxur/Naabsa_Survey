@@ -1,15 +1,21 @@
 import { createHash } from 'crypto';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import {
   convertWorkingDocxToPdf,
   missingRequiredSheetPhases,
   nextPdfVersion,
 } from './generatePdf';
 
+const convertDocxMock = vi.hoisted(() => vi.fn());
 vi.mock('../lib/soffice', () => ({
-  convertDocxToPdf: vi.fn(async () => Buffer.from('PDF')),
+  convertDocxToPdf: convertDocxMock,
   measureBookmarkPages: vi.fn(async () => ({})),
 }));
+
+beforeEach(() => {
+  convertDocxMock.mockReset();
+  convertDocxMock.mockResolvedValue(Buffer.from('PDF'));
+});
 
 describe('nextPdfVersion (010/T-005, CA-003)', () => {
   it('primeira geração → v1', () => {
@@ -76,6 +82,18 @@ describe('convertWorkingDocxToPdf (012/T-005..T-007, CA-004)', () => {
     expect(out.docx.equals(edited)).toBe(true);
     expect(out.pdf.equals(Buffer.from('PDF'))).toBe(true);
     expect(out.docHash).toBe(createHash('sha256').update(edited).digest('hex'));
+  });
+
+  it('traduz falha do conversor em erro útil para a tela de PDF', async () => {
+    convertDocxMock.mockRejectedValueOnce(new Error('soffice timeout'));
+    const svc = {
+      storage: { from: () => ({ download: async () => ({ data: { arrayBuffer: async () => Buffer.from('DOCX') }, error: null }) }) },
+    };
+    await expect(convertWorkingDocxToPdf(
+      svc as never,
+      'r1',
+      { status: 'approved', approved_docx_path: 'r1/saved.docx' } as never,
+    )).rejects.toThrow('Não foi possível converter o documento salvo em PDF');
   });
 });
 

@@ -10,9 +10,10 @@
  * A edição chama setOverride via Server Action e recebe issues atualizadas
  * no retorno para reflectir o estado sem recarregar a página.
  */
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import type { FieldDef, FieldValue, Issue } from '@naabsa/core';
 import { setOverride, type SetOverrideResult } from '@/lib/actions/review';
+import { formatNumberDraft, parseLocalizedNumber } from '@/lib/localized-number';
 
 interface FieldRowProps {
   reportId: string;
@@ -238,19 +239,7 @@ function FieldInput({
       );
 
     case 'number':
-      return (
-        <input
-          type="number"
-          style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
-          value={typeof value === 'number' ? value : ''}
-          disabled={disabled}
-          step={def.decimals !== undefined ? Math.pow(10, -def.decimals) : 'any'}
-          onChange={(e) => {
-            const n = parseFloat(e.target.value);
-            onChange(isNaN(n) ? null : n);
-          }}
-        />
-      );
+      return <LocalizedNumberInput value={value} onChange={onChange} disabled={disabled} inputStyle={inputStyle} />;
 
     case 'date':
       return (
@@ -304,4 +293,60 @@ function FieldInput({
         </select>
       );
   }
+}
+
+interface LocalizedNumberInputProps {
+  value: FieldValue;
+  onChange: (value: FieldValue) => void;
+  disabled: boolean;
+  inputStyle: React.CSSProperties;
+}
+
+/**
+ * Mantém o texto em edição localmente. Assim uma alteração só é persistida
+ * ao sair do campo (ou pressionar Enter), sem desmontar o input a cada tecla.
+ */
+function LocalizedNumberInput({ value, onChange, disabled, inputStyle }: LocalizedNumberInputProps) {
+  const currentValue = typeof value === 'number' ? value : null;
+  const [draft, setDraft] = useState(() => formatNumberDraft(currentValue));
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) setDraft(formatNumberDraft(currentValue));
+  }, [currentValue, isEditing]);
+
+  function resetDraft() {
+    setDraft(formatNumberDraft(currentValue));
+  }
+
+  function commit() {
+    setIsEditing(false);
+    const parsed = parseLocalizedNumber(draft);
+    if (draft.trim() !== '' && parsed === null) {
+      resetDraft();
+      return;
+    }
+    if (parsed !== currentValue) onChange(parsed);
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
+      value={draft}
+      disabled={disabled}
+      aria-label="Número: aceita vírgula ou ponto decimal"
+      onFocus={() => setIsEditing(true)}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.currentTarget.blur();
+        if (event.key === 'Escape') {
+          resetDraft();
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
 }

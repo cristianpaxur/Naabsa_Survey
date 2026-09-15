@@ -51,6 +51,9 @@ export function PhotosClient({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const aiSuggestedCount = photos.filter((p) => p.aiSuggested).length;
+  const aiFinishedWithoutSuggestion = photos.length > 0
+    && aiSuggestedCount === 0
+    && photos.every((photo) => photo.aiStatus === 'idle' || photo.aiStatus === 'done' || photo.aiStatus === 'error');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -228,6 +231,11 @@ export function PhotosClient({
       </div>
 
       <AiBanner count={aiSuggestedCount} busy={confirmingAi} onConfirmAll={() => void onConfirmAllAi()} />
+      {aiFinishedWithoutSuggestion && (
+        <div role="status" style={{ marginBottom: 16, fontSize: 12.5, color: 'var(--rocha)' }}>
+          A IA não sugeriu alocações para estas fotos. Selecione uma foto na galeria e use “Alocar” no grupo desejado.
+        </div>
+      )}
 
       {refreshError && <div role="alert" style={{ marginBottom: 12 }}>
         {refreshError} <button onClick={() => void refresh()}>Atualizar fotos</button>
@@ -292,7 +300,7 @@ export function PhotosClient({
                 cursor: uploading ? 'wait' : 'pointer',
               }}
             >
-              {uploadWait !== null ? `Aguardando limite de envio (${uploadWait}s)…` : uploading ? 'Enviando…' : '+ Enviar fotos (jpg/png/heic)'}
+              {uploadWait !== null ? `Aguardando limite de envio (${uploadWait}s)…` : uploading ? 'Enviando…' : '+ Enviar fotos (jpg/png/heic, até 15 MB)'}
             </button>
 
             {retryFiles.length > 0 && <div className="photo-card-actions" style={{ marginBottom: 12 }}><button disabled={uploading} onClick={() => void onUpload(retryFiles)}>
@@ -345,6 +353,9 @@ export function PhotosClient({
               photosBySlot={photosBySlot}
               onCrop={(id) => void openCrop(id)}
               onClickAllocate={onClickAllocate}
+              onUnallocate={(id) => void runAction(() => unallocate(reportId, id))}
+              onRemove={(id) => void runAction(() => removePhoto(reportId, id))}
+              busy={busy}
             />
 
             <button

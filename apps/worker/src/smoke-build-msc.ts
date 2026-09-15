@@ -74,6 +74,8 @@ async function main() {
       vessel: [fakePhoto],
       engine_room: [fakePhoto],
       survey_attendance: [fakePhoto],
+      ecr: [fakePhoto],
+      hull: [fakePhoto],
     },
     timeLogRows,
   };

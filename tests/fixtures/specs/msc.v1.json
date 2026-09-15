@@ -9,10 +9,10 @@
     "notes": [
       "Contrato v2 (multi-aba). Fingerprint: Summary!A5 = 'ATTENDANCE'.",
       "Variantes vazias (msc é um tipo único, sem loading/discharge).",
-      "Planilha SABRINA tem 8 abas; só Summary/Time Log/Sludge/Qtt Sumary/LOG Audit estão no escopo da spec v1. LNG, VacuoAr, Vessel Ullage ficam em ignore_sheets (a tabela de Ullage é input do operador, não sai no relatório).",
+      "Planilha SABRINA tem 8 abas; Summary/Time Log/Sludge/Qtt Sumary/LOG Audit estão no escopo da spec v1. LNG, VacuoAr, Vessel Ullage ficam em ignore_sheets (a tabela de Ullage é input do operador, não sai no relatório).",
       "Time Log: cabeçalho em linha 4 (Date/Time/x/Time2), dados 5–16. Colunas usadas: B (evento), F (data), G (hora), H (flag), I (hora fim). Range: Time Log!B4:I16.",
       "Qtt Sumary: células F11..F19 guardam totais por grade (R HS, R VLS, DISTILLATES). Para v1 o builder só lê os valores disponíveis; ausentes viram '—' no DOCX.",
-      "Foto slots: vessel / engine_room / survey_attendance (mín. 1 cada, obrigatórios). Capa não tem slot dedicado — vem do slot vessel[0] se presente."
+      "Foto slots: vessel / engine_room / survey_attendance / ecr / hull. A capa não tem slot dedicado — vem do slot vessel[0] se presente. Fotos são opcionais para o fluxo de revisão."
     ]
   },
 
@@ -23,7 +23,7 @@
 
   "source": {
     "fingerprint": { "sheet": "Summary", "cell": "A5", "expect": "ATTENDANCE" },
-    "ignore_sheets": ["LOG Audit", "LNG", "VacuoAr", "Vessel Ullage"],
+    "ignore_sheets": ["LNG", "VacuoAr", "Vessel Ullage"],
 
     "common": {
       "fields": {
@@ -76,7 +76,49 @@
         "temp_service":          { "sheet": "Time Log", "cell": "C37", "type": "string", "label": "Service tanks",     "section": "Temperaturas" },
         "temp_do":               { "sheet": "Time Log", "cell": "C38", "type": "string", "label": "DO storage",        "section": "Temperaturas" },
         "temp_engine_room":      { "sheet": "Time Log", "cell": "C39", "type": "number", "decimals": 0, "unit": "°C", "label": "Engine room (°C)", "section": "Temperaturas" },
-        "temp_sea_water":        { "sheet": "Time Log", "cell": "C40", "type": "number", "decimals": 0, "unit": "°C", "label": "Sea water (°C)",   "section": "Temperaturas" }
+        "temp_sea_water":        { "sheet": "Time Log", "cell": "C40", "type": "number", "decimals": 0, "unit": "°C", "label": "Sea water (°C)",   "section": "Temperaturas" },
+
+        "vrs_updated":           { "sheet": "Time Log", "cell": "G32", "type": "string", "label": "VRS atualizado", "section": "Documentos" },
+        "logbook_updated":       { "sheet": "Time Log", "cell": "C33", "type": "string", "label": "Logbook atualizado", "section": "Documentos" },
+
+        "grade_1_surveyor":      { "sheet": "Qtt Sumary", "cell": "F11", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 1 — surveyor", "section": "Quantidades" },
+        "grade_1_vrs":           { "sheet": "Qtt Sumary", "cell": "F12", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 1 — VRS", "section": "Quantidades" },
+        "grade_1_difference":    { "sheet": "Qtt Sumary", "cell": "F13", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 1 — diferença", "section": "Quantidades" },
+        "grade_1_percentage":    { "sheet": "Qtt Sumary", "cell": "F14", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 1 — percentual", "section": "Quantidades" },
+        "grade_2_surveyor":      { "sheet": "Qtt Sumary", "cell": "F16", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 2 — surveyor", "section": "Quantidades" },
+        "grade_2_vrs":           { "sheet": "Qtt Sumary", "cell": "F17", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 2 — VRS", "section": "Quantidades" },
+        "grade_2_difference":    { "sheet": "Qtt Sumary", "cell": "F18", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 2 — diferença", "section": "Quantidades" },
+        "grade_2_percentage":    { "sheet": "Qtt Sumary", "cell": "F19", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 2 — percentual", "section": "Quantidades" },
+        "grade_3_surveyor":      { "sheet": "Qtt Sumary", "cell": "F21", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 3 — surveyor", "section": "Quantidades" },
+        "grade_3_vrs":           { "sheet": "Qtt Sumary", "cell": "F22", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 3 — VRS", "section": "Quantidades" },
+        "grade_3_difference":    { "sheet": "Qtt Sumary", "cell": "F23", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 3 — diferença", "section": "Quantidades" },
+        "grade_3_percentage":    { "sheet": "Qtt Sumary", "cell": "F24", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 3 — percentual", "section": "Quantidades" },
+        "grade_4_surveyor":      { "sheet": "Qtt Sumary", "cell": "F26", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 4 — surveyor", "section": "Quantidades" },
+        "grade_4_vrs":           { "sheet": "Qtt Sumary", "cell": "F27", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 4 — VRS", "section": "Quantidades" },
+        "grade_4_difference":    { "sheet": "Qtt Sumary", "cell": "F28", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 4 — diferença", "section": "Quantidades" },
+        "grade_4_percentage":    { "sheet": "Qtt Sumary", "cell": "F29", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 4 — percentual", "section": "Quantidades" },
+
+        "sludge_surveyor":       { "sheet": "Qtt Sumary", "cell": "F31", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge — surveyor", "section": "Sludge" },
+        "sludge_berthing":       { "sheet": "Qtt Sumary", "cell": "F32", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge — berthing report", "section": "Sludge" },
+        "sludge_difference":     { "sheet": "Qtt Sumary", "cell": "F33", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge — diferença", "section": "Sludge" },
+        "sludge_percentage":     { "sheet": "Qtt Sumary", "cell": "F34", "type": "number", "decimals": 2, "unit": "%", "label": "Sludge — percentual", "section": "Sludge" },
+        "last_discharge_date":   { "sheet": "Sludge", "cell": "D27", "type": "date", "format": "YYYY-MM-DD", "label": "Última descarga", "section": "Sludge" },
+        "last_discharge_quantity": { "sheet": "Sludge", "cell": "D28", "type": "number", "decimals": 3, "unit": "m³", "label": "Última descarga — quantidade", "section": "Sludge" },
+        "retained_after_last_discharge": { "sheet": "Sludge", "cell": "D29", "type": "number", "decimals": 3, "unit": "m³", "label": "Retido após última descarga", "section": "Sludge" },
+        "sludge_generated_chief": { "sheet": "Sludge", "cell": "D31", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge gerado — comandante", "section": "Sludge" },
+        "consumption_chief":      { "sheet": "Sludge", "cell": "D32", "type": "number", "decimals": 3, "unit": "mt", "label": "Consumo — comandante", "section": "Sludge" },
+        "sludge_rate_chief":      { "sheet": "Sludge", "cell": "D33", "type": "number", "decimals": 3, "unit": "%", "label": "Taxa de sludge — comandante", "section": "Sludge" },
+        "retained_surveyor":      { "sheet": "Sludge", "cell": "D37", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge ROB — surveyor", "section": "Sludge" },
+        "sludge_generated_surveyor": { "sheet": "Sludge", "cell": "D38", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge gerado — surveyor", "section": "Sludge" },
+        "consumption_surveyor":   { "sheet": "Sludge", "cell": "D39", "type": "number", "decimals": 3, "unit": "mt", "label": "Consumo — surveyor", "section": "Sludge" },
+        "sludge_difference_surveyor": { "sheet": "Sludge", "cell": "D40", "type": "number", "decimals": 3, "unit": "m³", "label": "Diferença de sludge — surveyor", "section": "Sludge" },
+        "sludge_rate_surveyor":   { "sheet": "Sludge", "cell": "D41", "type": "number", "decimals": 3, "unit": "%", "label": "Taxa de sludge — surveyor", "section": "Sludge" },
+        "retained_after_discharge": { "sheet": "Sludge", "cell": "D42", "type": "number", "decimals": 3, "unit": "m³", "label": "Retido após descarga", "section": "Sludge" },
+
+        "flowmeter_logbook_total": { "sheet": "LOG Audit", "cell": "E36", "type": "number", "decimals": 3, "unit": "mt", "label": "Total logbook", "section": "Flowmeter" },
+        "flowmeter_total":       { "sheet": "LOG Audit", "cell": "E37", "type": "number", "decimals": 3, "unit": "mt", "label": "Total flowmeter", "section": "Flowmeter" },
+        "flowmeter_difference":  { "sheet": "LOG Audit", "cell": "E38", "type": "number", "decimals": 3, "unit": "mt", "label": "Diferença flowmeter", "section": "Flowmeter" },
+        "flowmeter_accuracy":    { "sheet": "LOG Audit", "cell": "E39", "type": "number", "decimals": 2, "unit": "%", "label": "Acurácia flowmeter", "section": "Flowmeter" }
       }
     },
 
@@ -94,8 +136,10 @@
   ],
 
   "photo_slots": [
-    { "id": "vessel",            "label": "Vessel (capa)",         "aspect": "4:3", "required": true, "min": 1 },
-    { "id": "engine_room",       "label": "Engine room",           "aspect": "4:3", "required": true, "min": 1 },
-    { "id": "survey_attendance", "label": "Survey attendance",     "aspect": "4:3", "required": true, "min": 1 }
+    { "id": "vessel",            "label": "Vessel (capa)",         "aspect": "4:3", "required": false },
+    { "id": "engine_room",       "label": "Engine room",           "aspect": "4:3", "required": false },
+    { "id": "survey_attendance", "label": "Survey attendance",     "aspect": "4:3", "required": false },
+    { "id": "ecr",               "label": "ECR (Engine Control Room)", "aspect": "4:3", "required": false },
+    { "id": "hull",              "label": "Hull (casco)",          "aspect": "4:3", "required": false }
   ]
 }

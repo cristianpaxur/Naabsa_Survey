@@ -317,6 +317,8 @@ export async function buildWorkingDocx(
       vessel: [],
       engine_room: [],
       survey_attendance: [],
+      ecr: [],
+      hull: [],
     };
     for (const r of (photoRows ?? []) as {
       slot_id: string | null;
@@ -324,7 +326,7 @@ export async function buildWorkingDocx(
       crop: Crop | null;
     }[]) {
       if (!r.slot_id || !r.processed_path) continue;
-      if (!['vessel', 'engine_room', 'survey_attendance'].includes(r.slot_id))
+      if (!['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'].includes(r.slot_id))
         continue;
       const buf = await download(svc, r.processed_path);
       if (buf)
@@ -488,7 +490,16 @@ export async function convertWorkingDocxToPdf(
     throw new Error(
       '[generate_pdf] Não foi possível ler a versão salva. Tente novamente.',
     );
-  const pdf = await convertDocxToPdf(docx);
+  let pdf: Buffer;
+  try {
+    pdf = await convertDocxToPdf(docx);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `[generate_pdf] Não foi possível converter o documento salvo em PDF. ` +
+      `Confirme se o serviço de conversão está disponível e tente novamente. Detalhe: ${detail}`,
+    );
+  }
   const docHash = createHash('sha256').update(docx).digest('hex');
   return { pdf, docx, docHash };
 }

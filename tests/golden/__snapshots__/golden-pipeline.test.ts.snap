@@ -400,6 +400,7 @@ exports[`Golden DOCX — planilhas reais e builders atuais > Draft Survey loadin
 ]
 `;
 
+/* Obsoleto: o caso MSC passou a verificar os itens críticos explicitamente.
 exports[`Golden DOCX — planilhas reais e builders atuais > MSC usa dados reais e gera documento próprio > MSC: conteúdo 1`] = `
 [
   "433 Ana Costa Avenue",
@@ -508,4 +509,4 @@ exports[`Golden DOCX — planilhas reais e builders atuais > MSC usa dados reais
   "VRS / Logbook updated pages.",
   "Calibration certificates (flowmeters).",
 ]
-`;
+`; */

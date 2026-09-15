@@ -6,10 +6,10 @@
  *
  * Entrada: dados efetivos (Summary + Time Log + Sludge) + tabelas extraidas
  * (time_log, sludge_misc, sludge_tanks_before/after) + fotos (vessel /
- * engine_room / survey_attendance).
+ * engine_room / survey_attendance / ecr / hull).
  *
  * Espelha buildDocx.ts (draft_survey), mas o MSC tem:
- *  - 3 secoes de fotos (sem fase initial/intermediate/final).
+ *  - 5 secoes de fotos (sem fase initial/intermediate/final).
  *  - 1 time_log tabular (12 eventos: Surveyor arrived → Surveyor left).
  *  - Sem variantes (nao usa VARIANT.loading/discharge).
  */
@@ -42,7 +42,13 @@ export interface DocxInputMsc {
   data: Data;
   logo: Buffer | null;
   coverPhoto?: Buffer | null;
-  photos: { vessel?: Buffer[]; engine_room?: Buffer[]; survey_attendance?: Buffer[] };
+  photos: {
+    vessel?: Buffer[];
+    engine_room?: Buffer[];
+    survey_attendance?: Buffer[];
+    ecr?: Buffer[];
+    hull?: Buffer[];
+  };
   /**
    * Linhas do Time Log já normalizadas: cada entry tem data (string YYYY-MM-DD)
    * e horas (string HH:MM). O caller (generatePdf) lê as células da planilha
@@ -186,34 +192,37 @@ const SLOT_LABELS: Record<keyof DocxInputMsc['photos'], string> = {
   vessel: 'Vessel',
   engine_room: 'Engine Room',
   survey_attendance: 'Survey attendance',
+  ecr: 'ECR (Engine Control Room)',
+  hull: 'Hull',
 };
 
 export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   const { data, logo } = input;
-  // Cada slot de foto vira uma secao propria (4. Vessel / 5. Engine Room / 6. Survey attendance),
-  // cada uma com subitem "Photographic Report" no fim. A antiga secao "4. Photographic Report"
-  // deixa de existir no sumario.
-  const photoSlots = (['vessel', 'engine_room', 'survey_attendance'] as const);
-  const firstPhotoSec = 4;
-  const attachNum = firstPhotoSec + photoSlots.length;
+  const photoSlots = (['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'] as const);
+  const isRobOnly = /\brob\b/i.test(v(data['appointed_service'], '')) && !/sludge/i.test(v(data['appointed_service'], ''));
+  const hasLastAttendance = isAffirmative(data['last_attendance']);
 
   // Sumario (id de bookmark + rotulo + nivel). Fonte unica para Contents e corpo.
   const toc: { id: string; label: string; level: 1 | 2 }[] = [];
   const sec = (n: number, label: string) => toc.push({ id: `s${n}`, label: `${n}. ${label}`, level: 1 });
   const sub = (n: number, m: number, label: string) => toc.push({ id: `s${n}_${m}`, label: `${n}.${m} ${label}`, level: 2 });
   sec(1, "Vessel's details (Ship's Particulars)");
-  sec(2, 'Time log');
+  sec(2, 'Background');
   sub(2, 1, 'Found at Survey');
   sub(2, 2, 'Purifiers Settings');
   sub(2, 3, 'Temperature');
   sub(2, 4, 'Specific Gravities');
-  sub(2, 5, 'Time log');
-  sec(3, 'Gross volume — m³');
+  sub(2, 5, 'Gross volume — m³');
+  sub(2, 6, 'Sludge Disposal');
+  sub(2, 7, 'Sludge rate production');
+  sub(2, 8, 'Consumption x Flowmeter');
+  if (hasLastAttendance) sub(2, 9, 'Last attendance');
+  sub(2, 10, 'Time log');
+  sec(3, 'Photographic report');
   for (const [i, key] of photoSlots.entries()) {
-    sec(firstPhotoSec + i, SLOT_LABELS[key]);
-    sub(firstPhotoSec + i, 1, 'Photographic Report');
+    sub(3, i + 1, SLOT_LABELS[key]);
   }
-  sec(attachNum, 'Attachment');
+  sec(4, 'Attachment');
 
   // ── Cabecalho (logo + tagline + regua) ──
   const header = createNaabsaHeader(logo, 'default');
@@ -296,12 +305,14 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
     kvRow('Light ship', `${num(data['light_ship'], 2)} t`),
   ] }));
 
-  // ── 2. Time log ──
+  // ── 2. Background ──
   body.push(sectionTitle('s2', toc.find((e) => e.id === 's2')!.label));
 
   // 2.1 Found at Survey
   body.push(subTitle('s2_1', '2.1 Found at Survey'));
-  body.push(para([run('We did attend vessel on '), run(fmtDateShort(data['berthing_date'])), run(', to disclose the total of fuel remaining on board, to compare it with vessel’s logbook and to verify the total amount of sludge disposed.')]));
+  body.push(para([run('We did attend vessel on '), run(fmtDateShort(data['berthing_date'])), run(isRobOnly
+    ? ', to disclose the total of fuel remaining on board and to compare it with vessel’s logbook.'
+    : ', to disclose the total of fuel remaining on board, to compare it with vessel’s logbook and to verify the total amount of sludge disposed.')]));
   body.push(para([run('The opening and closing soundings took place with cargo operation/movement in progress.')]));
   body.push(para([run('The purifiers were found switched off and no transfers were carried out.')]));
   if (data['surveyed_by']) {
@@ -332,23 +343,47 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   body.push(subTitle('s2_4', '2.4 Specific Gravities'));
   body.push(para([run('Applied according to the vessel’s records (BDNs) presented by Chief Engineer at time of survey.')]));
 
-  // ── 3. Gross volume — m³ ──
-  body.push(sectionTitle('s3', toc.find((e) => e.id === 's3')!.label));
+  // 2.5 Gross volume — m³
+  body.push(subTitle('s2_5', '2.5 Gross volume — m³'));
   body.push(para([run('Calculated according to the ship’s tanks sounding table provided by Chief Engineer at time of survey. All corrections were applied accordingly.')]));
-  body.push(para([run('After calculations, the logbook and VRS were updated according to the figures disclosed by surveyor.')]));
-
-  // Tabela de time log (eventos) — vem pré-normalizada de generatePdf.
-  if ((input.timeLogRows ?? []).length > 0) {
-    body.push(subTitle('s2_5', '2.5 Time log'));
-    body.push(timeLogTable(input.timeLogRows!));
+  body.push(gradeComparisonTable(data));
+  const updatedDocuments = [
+    isAffirmative(data['logbook_updated']) ? 'logbook' : null,
+    isAffirmative(data['vrs_updated']) ? 'VRS' : null,
+  ].filter((item): item is string => item !== null);
+  if (updatedDocuments.length > 0) {
+    body.push(para([run(`After calculations, the ${updatedDocuments.join(' and ')} ${updatedDocuments.length === 1 ? 'was' : 'were'} updated according to the figures disclosed by surveyor.`)]));
   }
 
-  // ── 4/5/6. Seções de fotos (cada slot vira seção própria com subitem Photographic Report) ──
+  body.push(subTitle('s2_6', '2.6 Sludge Disposal'));
+  if (isRobOnly) body.push(para([run('This attendance covers ROB only; no sludge disposal calculation was requested.')]));
+  else body.push(sludgeDisposalTable(data));
+
+  body.push(subTitle('s2_7', '2.7 Sludge rate production'));
+  if (isRobOnly) body.push(para([run('—', { color: GREY })]));
+  else body.push(sludgeRateTable(data));
+
+  body.push(subTitle('s2_8', '2.8 Consumption x Flowmeter'));
+  body.push(flowmeterTable(data));
+
+  if (hasLastAttendance) {
+    body.push(subTitle('s2_9', '2.9 Last attendance'));
+    body.push(para([run('Previous attendance information was provided in the vessel records.')]));
+  }
+
+  // Tabela de time log (eventos) — vem pré-normalizada de generatePdf.
+  body.push(subTitle('s2_10', '2.10 Time log'));
+  if ((input.timeLogRows ?? []).length > 0) {
+    body.push(timeLogTable(input.timeLogRows!));
+  } else {
+    body.push(para([run('—', { color: GREY })]));
+  }
+
+  // ── 3. Photographic report ──
+  body.push(new Paragraph({ children: [new PageBreak()] }));
+  body.push(sectionTitle('s3', toc.find((e) => e.id === 's3')!.label));
   for (const [i, key] of photoSlots.entries()) {
-    const n = firstPhotoSec + i;
-    body.push(new Paragraph({ children: [new PageBreak()] }));
-    body.push(sectionTitle(`s${n}`, toc.find((e) => e.id === `s${n}`)!.label));
-    body.push(subTitle(`s${n}_1`, `${n}.1 Photographic Report`));
+    body.push(subTitle(`s3_${i + 1}`, `3.${i + 1} ${SLOT_LABELS[key]}`));
     const photos = input.photos[key] ?? [];
     if (photos.length > 0) {
       for (const ph of photos) body.push(img(ph, 150));
@@ -358,11 +393,11 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   }
 
   // ── Attachment ──
-  body.push(sectionTitle(`s${attachNum}`, toc.find((e) => e.id === `s${attachNum}`)!.label));
-  body.push(para([run('Sludge removal certificates.')]));
-  body.push(para([run('Sludge disposal receipts.')]));
-  body.push(para([run('VRS / Logbook updated pages.')]));
-  body.push(para([run('Calibration certificates (flowmeters).')]));
+  body.push(sectionTitle('s4', toc.find((e) => e.id === 's4')!.label));
+  for (const attachment of [
+    'Survey Report', 'Berthing message', 'VRS updated', 'Last manual sounding',
+    'Logbook update', 'Sludge removal certificates',
+  ]) body.push(para([run(attachment)]));
 
   const doc = new Document({
     evenAndOddHeaderAndFooters: true,
@@ -409,6 +444,83 @@ function personRow(label: string, lines: string[]): TableRow {
     new TableCell({ width: { size: 38, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, margins: { top: 30, bottom: 30, left: 100, right: 80 }, children: [new Paragraph({ children: [run(label, { bold: true })] })] }),
     new TableCell({ width: { size: 62, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, margins: { top: 30, bottom: 30, left: 100, right: 80 }, children: lines.map((l, i) => new Paragraph({ spacing: { after: 0 }, children: [run(l, { bold: i === 0 })] })) }),
   ] });
+}
+
+function isAffirmative(value: FieldValue | undefined): boolean {
+  if (value === true) return true;
+  if (typeof value !== 'string') return false;
+  return /^(yes|y|sim|true|x|updated|attached)$/i.test(value.trim());
+}
+
+function reportTable(headers: string[], rows: string[][]): Table {
+  const cell = (text: string, bold = false) => new TableCell({
+    borders: allBorders(),
+    margins: { top: 30, bottom: 30, left: 70, right: 70 },
+    verticalAlign: VerticalAlign.CENTER,
+    children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(text, { size: 18, bold })] })],
+  });
+  const width = Math.floor(10100 / headers.length);
+  return new Table({
+    width: { size: 10100, type: WidthType.DXA },
+    columnWidths: headers.map(() => width),
+    layout: TableLayoutType.FIXED,
+    borders: allBorders(),
+    rows: [
+      new TableRow({ children: headers.map((header) => cell(header, true)) }),
+      ...rows.map((row) => new TableRow({ children: row.map((entry) => cell(entry)) })),
+    ],
+  });
+}
+
+function m3(value: FieldValue | undefined): string {
+  return typeof value === 'number' ? `${grp(value, 3)} m³` : '—';
+}
+
+function mt(value: FieldValue | undefined): string {
+  return typeof value === 'number' ? `${grp(value, 3)} mt` : '—';
+}
+
+function percent(value: FieldValue | undefined): string {
+  return typeof value === 'number' ? `${grp(value, 2)} %` : '—';
+}
+
+function gradeComparisonTable(data: Data): Table {
+  const rows: string[][] = [];
+  for (const number of [1, 2, 3, 4]) {
+    if (!isAffirmative(data[`grade_${number}_present`])) continue;
+    rows.push([
+      v(data[`grade_${number}`]),
+      mt(data[`grade_${number}_surveyor`]),
+      mt(data[`grade_${number}_vrs`]),
+      mt(data[`grade_${number}_difference`]),
+      percent(data[`grade_${number}_percentage`]),
+    ]);
+  }
+  return reportTable(['Grade', 'Surveyor', 'VRS', 'Difference', '%'], rows.length > 0 ? rows : [['—', '—', '—', '—', '—']]);
+}
+
+function sludgeDisposalTable(data: Data): Table {
+  return reportTable(['Item', 'Vessel records', 'Surveyor figures'], [
+    ['Sludge at berthing', m3(data['sludge_berthing']), m3(data['sludge_surveyor'])],
+    ['Difference', m3(data['sludge_difference']), percent(data['sludge_percentage'])],
+    ['Last discharge', fmtDateShort(data['last_discharge_date']), m3(data['last_discharge_quantity'])],
+    ['Retained after discharge', m3(data['retained_after_last_discharge']), m3(data['retained_after_discharge'])],
+  ]);
+}
+
+function sludgeRateTable(data: Data): Table {
+  return reportTable(['Item', 'Vessel records', 'Surveyor figures'], [
+    ['Sludge generated', m3(data['sludge_generated_chief']), m3(data['sludge_generated_surveyor'])],
+    ['Logbook consumption', mt(data['consumption_chief']), mt(data['consumption_surveyor'])],
+    ['Sludge rate', percent(data['sludge_rate_chief']), percent(data['sludge_rate_surveyor'])],
+  ]);
+}
+
+function flowmeterTable(data: Data): Table {
+  return reportTable(['Logbook total', 'Flowmeter total', 'Difference', 'Accuracy'], [[
+    mt(data['flowmeter_logbook_total']), mt(data['flowmeter_total']),
+    mt(data['flowmeter_difference']), percent(data['flowmeter_accuracy']),
+  ]]);
 }
 
 function timeLogTable(rows: TimeLogRow[]): Table {

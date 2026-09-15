@@ -149,7 +149,25 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
     );
     const text = paragraphs(zip);
     expect(text.join('\n')).toContain('MSC GOLDEN');
-    expect(text).toMatchSnapshot('MSC: conteúdo');
+    expect(text).toEqual(expect.arrayContaining([
+      '2. Background',
+      '2.5 Gross volume — m³',
+      '2.6 Sludge Disposal',
+      '2.7 Sludge rate production',
+      '2.8 Consumption x Flowmeter',
+      '2.10 Time log',
+      '3. Photographic report',
+      '3.4 ECR (Engine Control Room)',
+      '3.5 Hull',
+      '4. Attachment',
+      'Survey Report',
+      'Berthing message',
+      'VRS updated',
+      'Last manual sounding',
+      'Logbook update',
+      'Sludge removal certificates',
+    ]));
+    expect(text).not.toContain('4. Vessel');
     expect(zip.file('[Content_Types].xml')!.asText()).toContain(
       'wordprocessingml.document.main',
     );

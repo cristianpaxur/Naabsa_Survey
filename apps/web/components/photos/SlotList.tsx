@@ -13,14 +13,18 @@ function counterColor(have: number): string {
 function AllocatedThumb({
   photo,
   onCrop,
+  onUnallocate,
+  onRemove,
+  busy,
 }: {
   photo: UIPhoto;
   onCrop: (photoId: string) => void;
+  onUnallocate: (photoId: string) => void;
+  onRemove: (photoId: string) => void;
+  busy: boolean;
 }) {
   return (
-    <button
-      onClick={() => onCrop(photo.id)}
-      title="Recortar"
+    <div
       style={{
         position: 'relative',
         width: 120,
@@ -29,14 +33,17 @@ function AllocatedThumb({
         overflow: 'hidden',
         background: '#2b3647',
         flex: 'none',
-        cursor: 'pointer',
-        border: 'none',
-        padding: 0,
       }}
     >
-      {photo.thumbUrl && (
-        <PhotoImage src={photo.thumbUrl} label={photo.label} retryable={false} />
-      )}
+      <button
+        onClick={() => onCrop(photo.id)}
+        title="Recortar"
+        style={{ width: '100%', height: '100%', border: 'none', padding: 0, cursor: 'pointer', background: 'transparent' }}
+      >
+        {photo.thumbUrl && (
+          <PhotoImage src={photo.thumbUrl} label={photo.label} retryable={false} />
+        )}
+      </button>
       <span
         style={{
           position: 'absolute',
@@ -60,9 +67,40 @@ function AllocatedThumb({
           }}
         />
       </span>
-    </button>
+      <div style={{ position: 'absolute', top: 5, left: 5, display: 'flex', gap: 4 }}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onUnallocate(photo.id)}
+          title="Desalocar foto"
+          style={thumbActionStyle}
+        >
+          Desalocar
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onRemove(photo.id)}
+          title="Remover foto definitivamente"
+          style={{ ...thumbActionStyle, background: '#a22b2b' }}
+        >
+          Remover
+        </button>
+      </div>
+    </div>
   );
 }
+
+const thumbActionStyle: React.CSSProperties = {
+  border: 'none',
+  borderRadius: 4,
+  padding: '3px 5px',
+  background: '#16294d',
+  color: '#fff',
+  fontSize: 9,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
 
 /** Dropzone tracejada "Alocar" — também alvo do drop e do clique fallback. */
 function AllocateDropzone({
@@ -113,9 +151,12 @@ interface SlotRowProps {
   photos: UIPhoto[];
   onCrop: (photoId: string) => void;
   onClickAllocate: (slotId: string) => void;
+  onUnallocate: (photoId: string) => void;
+  onRemove: (photoId: string) => void;
+  busy: boolean;
 }
 
-function SlotRow({ slot, photos, onCrop, onClickAllocate }: SlotRowProps) {
+function SlotRow({ slot, photos, onCrop, onClickAllocate, onUnallocate, onRemove, busy }: SlotRowProps) {
   const have = photos.length;
   const max = slot.max ?? '∞';
   const color = counterColor(have);
@@ -136,7 +177,7 @@ function SlotRow({ slot, photos, onCrop, onClickAllocate }: SlotRowProps) {
         style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 'none' }}
       >
         {photos.map((p) => (
-          <AllocatedThumb key={p.id} photo={p} onCrop={onCrop} />
+          <AllocatedThumb key={p.id} photo={p} onCrop={onCrop} onUnallocate={onUnallocate} onRemove={onRemove} busy={busy} />
         ))}
         {!slotFull && (
           <AllocateDropzone
@@ -226,6 +267,9 @@ export interface SlotListProps {
   photosBySlot: Record<string, UIPhoto[]>;
   onCrop: (photoId: string) => void;
   onClickAllocate: (slotId: string) => void;
+  onUnallocate: (photoId: string) => void;
+  onRemove: (photoId: string) => void;
+  busy: boolean;
 }
 
 /**
@@ -237,6 +281,9 @@ export function SlotList({
   photosBySlot,
   onCrop,
   onClickAllocate,
+  onUnallocate,
+  onRemove,
+  busy,
 }: SlotListProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -266,6 +313,9 @@ export function SlotList({
           photos={photosBySlot[slot.id] ?? []}
           onCrop={onCrop}
           onClickAllocate={onClickAllocate}
+          onUnallocate={onUnallocate}
+          onRemove={onRemove}
+          busy={busy}
         />
       ))}
     </div>
