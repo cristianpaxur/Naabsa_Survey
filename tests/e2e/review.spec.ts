@@ -33,6 +33,6 @@ test('diferença de 1% gera aviso sem bloquear confirmação', async ({ page }) 
   const id = await seedReport(ids, 'extracted', false, true);
   await login(page);
   await page.goto(`/reports/${id}/review`);
-  await expect(page.getByText('Diferença final acima de 0,5% entre figuras — revisar antes de aprovar.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Diferença final fora do limite de ±0,5% entre figuras — revisar antes de aprovar.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: /Confirmar dados/ })).toBeEnabled();
 });

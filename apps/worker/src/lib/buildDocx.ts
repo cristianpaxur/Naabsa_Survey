@@ -61,7 +61,7 @@ const ton = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${g
 const meters = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${x.toFixed(2)} m` : v(x));
 const num = (x: FieldValue | undefined, d: number): string => (typeof x === 'number' ? x.toFixed(d) : v(x));
 function signedMt(x: FieldValue | undefined): string { return typeof x === 'number' ? `${x >= 0 ? '+' : '-'} ${grp(Math.abs(x), 3)} MT` : v(x); }
-function signedPct(x: FieldValue | undefined): string { return typeof x === 'number' ? `${x >= 0 ? '+' : '-'} ${grp(Math.abs(x) * 100, 3)} %` : v(x); }
+function signedPct(x: FieldValue | undefined): string { return typeof x === 'number' ? `${x >= 0 ? '+' : '-'} ${grp(Math.abs(x), 3)} %` : v(x); }
 
 // Pares de variante (modelo: roxo = loading, verde = discharge).
 const VARIANT = {

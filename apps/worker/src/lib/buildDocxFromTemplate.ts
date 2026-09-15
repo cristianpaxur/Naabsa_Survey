@@ -426,7 +426,7 @@ function signedMt(raw: FieldValue | undefined): string {
 
 function signedPercent(raw: FieldValue | undefined): string {
   if (typeof raw !== 'number') return value(raw);
-  return `${raw >= 0 ? '+' : '-'} ${grouped(Math.abs(raw) * 100, 3)} %`;
+  return `${raw >= 0 ? '+' : '-'} ${grouped(Math.abs(raw), 3)} %`;
 }
 
 function sideLabels(raw: FieldValue | undefined): {

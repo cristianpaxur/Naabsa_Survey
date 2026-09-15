@@ -7,6 +7,7 @@ const directory = fileURLToPath(new URL('../migrations/', import.meta.url));
 const db = new PGlite();
 const userId = '00000000-0000-4000-8000-000000000001';
 const reportId = '00000000-0000-4000-8000-000000000002';
+const currentReportId = '00000000-0000-4000-8000-000000000004';
 const sessionId = '00000000-0000-4000-8000-000000000003';
 let historicalSpec = '';
 let typeId = '';
@@ -50,8 +51,22 @@ beforeAll(async () => {
     'insert into reports(id,report_type_id,spec_id,created_by) values ($1,$2,$3,$4)',
     [reportId, typeId, historicalSpec, userId],
   );
-  for (const file of files.filter((f) => f >= '0009'))
+  for (const file of files.filter((f) => f >= '0009' && f < '0015'))
     await db.exec(load(file));
+  const activeBeforePercentageFix = await db.query<{ active_spec_id: string }>(
+    'select active_spec_id from report_types where id=$1',
+    [typeId],
+  );
+  await db.query(
+    'insert into reports(id,report_type_id,spec_id,created_by) values ($1,$2,$3,$4)',
+    [
+      currentReportId,
+      typeId,
+      activeBeforePercentageFix.rows[0]!.active_spec_id,
+      userId,
+    ],
+  );
+  for (const file of files.filter((f) => f >= '0015')) await db.exec(load(file));
   await db.exec(
     'grant usage on schema public,auth to authenticated; grant select on all tables in schema public to authenticated; grant execute on all functions in schema auth to authenticated;',
   );
@@ -66,7 +81,7 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
     const result = await db.query<{
       spec: {
         source: { common: { fields: { port: { section: string } } } };
-        validations: { field: string; max: number }[];
+        validations: { field: string; max: number; message: string }[];
       };
       active_spec_id: string;
     }>(
@@ -81,16 +96,26 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
       result.rows[0]!.spec.validations.find(
         (r) => r.field === 'fin_fig_diff_pct',
       )?.max,
-    ).toBe(0.005);
+    ).toBe(0.5);
+    expect(
+      result.rows[0]!.spec.validations.find(
+        (r) => r.field === 'fin_fig_diff_pct',
+      )?.message,
+    ).toBe('Diferença final fora do limite de ±0,5% entre figuras — revisar antes de aprovar.');
     const old = await db.query<{ spec_id: string }>(
       'select spec_id from reports where id=$1',
       [reportId],
     );
     expect(old.rows[0]!.spec_id).toBe(historicalSpec);
+    const inProgress = await db.query<{ spec_id: string }>(
+      'select spec_id from reports where id=$1',
+      [currentReportId],
+    );
+    expect(inProgress.rows[0]!.spec_id).toBe(result.rows[0]!.active_spec_id);
   });
   it('repetir a correção não duplica specs nem auditoria', async () => {
     const before = await db.query('select count(*) from report_specs');
-    await db.exec(load('0010_repair_specs.sql'));
+    await db.exec(load('0015_fix_draft_survey_percentage.sql'));
     expect((await db.query('select count(*) from report_specs')).rows).toEqual(
       before.rows,
     );
@@ -104,7 +129,7 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
       JSON.stringify({ sub: userId, session_id: sessionId }),
     ]);
     await db.exec('set role authenticated');
-    expect((await db.query('select id from reports')).rows).toHaveLength(1);
+    expect((await db.query('select id from reports')).rows).toHaveLength(2);
     await db.exec('reset role');
     await db.exec(
       "update user_access set status='inactive' where email='unit@example.test'",

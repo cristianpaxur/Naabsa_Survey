@@ -69,7 +69,7 @@ export async function seedReport(ids: string[], status: 'extracted' | 'in_review
   if (profile?.status !== 'active') throw new Error('E2E exige operador ativo exclusivo de testes');
   const workbook = await draftWorkbook('MV REVISÃO E2E', missingDate);
   const result = runExtraction(workbook, spec, 'discharge');
-  if (warning) result.data.fin_fig_diff_pct = 0.01;
+  if (warning) result.data.fin_fig_diff_pct = 1;
   const report = checked(await svc.from('reports').insert({ report_type_id: type.id, spec_id: type.active_spec_id,
     variant: 'discharge', status, created_by: profile.user_id, vessel_name: 'MV REVISÃO E2E',
     extracted_data: result.data, extraction_issues: result.issues, operator_overrides: {},

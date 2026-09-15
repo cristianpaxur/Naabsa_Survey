@@ -21,10 +21,38 @@ export function repairDictionary() {
     const match = sql.match(new RegExp(`${slug}_spec := '([\\s\\S]*?)'::jsonb`));
     if (!match) throw new Error(`Spec histórico ${slug} não encontrado.`);
     const old = JSON.parse(match[1].replaceAll("''", "'"));
-    const current = JSON.parse(readFileSync(resolve(root, `tests/fixtures/specs/${slug}.v1.json`), 'utf8'));
+    const current = migrationRepairFixture(
+      slug,
+      JSON.parse(readFileSync(resolve(root, `tests/fixtures/specs/${slug}.v1.json`), 'utf8')),
+    );
     walk(old, current);
   }
   return pairs;
+}
+
+/**
+ * A migration 0010 é histórica e não pode mudar quando a fixture evolui.
+ * Mantém somente os textos que aquela migration originalmente reparava; os
+ * limites numéricos são tratados pela migration 0015, que cria uma nova spec.
+ */
+function migrationRepairFixture(slug, fixture) {
+  if (slug !== 'draft_survey') return fixture;
+  const historical = JSON.parse(JSON.stringify(fixture));
+  historical._meta.notes = historical._meta.notes.map((note) =>
+    note.startsWith('int_fig_diff_pct e fin_fig_diff_pct')
+      ? "int_fig_diff_pct e fin_fig_diff_pct guardam fracao (0.0398); o builder multiplica por 100 para exibir '%'."
+      : note,
+  );
+  historical.validations = historical.validations.map((rule) =>
+    rule.field === 'fin_fig_diff_pct' && rule.rule === 'range'
+      ? {
+          ...rule,
+          message:
+            'Diferença final acima de 0,5% entre figuras — revisar antes de aprovar.',
+        }
+      : rule,
+  );
+  return historical;
 }
 
 export function renderMigration() {

@@ -77,10 +77,10 @@ function fmtSignedMt(v: FieldValue | undefined): string {
   return `${v >= 0 ? '+' : '-'} ${fmtThousands(Math.abs(v), 3)} MT`;
 }
 
-/** Diferença percentual (campo guarda fração: 0.01592 → "+ 1.592 %"). */
+/** Diferença percentual em pontos percentuais: 0.362 → "+ 0.362 %". */
 function fmtSignedPct(v: FieldValue | undefined): string {
   if (typeof v !== 'number') return v == null ? '—' : String(v);
-  return `${v >= 0 ? '+' : '-'} ${fmtThousands(Math.abs(v) * 100, 3)} %`;
+  return `${v >= 0 ? '+' : '-'} ${fmtThousands(Math.abs(v), 3)} %`;
 }
 
 const MONTHS = [

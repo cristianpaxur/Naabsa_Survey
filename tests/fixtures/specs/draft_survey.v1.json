@@ -11,7 +11,7 @@
       "Contrato v2: campos com `sheet` por campo, fingerprint com `sheet`, `variant_source` (Capa!L4) e `tables` (range-based). O validateSpec/extractor atuais (contrato v1, aba única) precisam ser estendidos antes de validar/extrair este spec — ver implementation/003 T-013..T-016.",
       "Ranges de `tables` marcados como provisorios: confirmar limites contra o render nativo (003/T-016).",
       "DATAS (2026-06-23): os mirrors Capa!L7/L8/L9 são fórmulas dynamic-array LET que o ExcelJS NÃO avalia (result=Invalid Date → NaN). Lemos as datas direto das células-fonte avaliáveis Inicial!C7, Intermediario!C5, final!C5 (type=date → ISO; o builder formata em inglês 'Month Dth, YYYY'). Horas (M/N) seguem na Capa, que o ExcelJS avalia.",
-      "int_fig_diff_pct e fin_fig_diff_pct guardam fracao (0.0398); o builder multiplica por 100 para exibir '%'."
+      "int_fig_diff_pct e fin_fig_diff_pct guardam o percentual já em pontos percentuais (0.0398 representa 0.0398%)."
     ]
   },
 
@@ -150,7 +150,7 @@
   "validations": [
     { "rule": "range", "field": "loa", "min": 50, "max": 400, "level": "warning", "message": "LOA fora do intervalo usual (50–400 m) — confira a célula Capa!C20." },
     { "rule": "range", "field": "summer_dwt", "min": 0, "max": 500000, "level": "warning", "message": "Summer DWT fora do intervalo usual — confira a célula Capa!C26." },
-    { "rule": "range", "field": "fin_fig_diff_pct", "min": -0.005, "max": 0.005, "level": "warning", "message": "Diferença final acima de 0,5% entre figuras — revisar antes de aprovar." }
+    { "rule": "range", "field": "fin_fig_diff_pct", "min": -0.5, "max": 0.5, "level": "warning", "message": "Diferença final fora do limite de ±0,5% entre figuras — revisar antes de aprovar." }
   ],
 
   "photo_slots": [
