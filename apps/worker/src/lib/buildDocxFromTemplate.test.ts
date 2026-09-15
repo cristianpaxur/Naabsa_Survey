@@ -34,13 +34,18 @@ describe('buildReportDocxFromTemplate', () => {
         paragraph.includes('<w:jc w:val="center"/>'),
       ),
     ).toBe(true);
-    expect(documentXml.match(/<w:pageBreakBefore\/>/g)).toHaveLength(1);
+    expect(documentXml.match(/<w:pageBreakBefore\/>/g)).toHaveLength(2);
     const contentsParagraph =
       documentXml.match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>).)*<w:t>Contents<\/w:t>(?:(?!<\/w:p>).)*<\/w:p>/s,
       )?.[0] ?? '';
     expect(contentsParagraph).toContain('<w:pageBreakBefore/>');
-    expect(documentXml).toContain('<wp:extent cx="4572000" cy="3429000"/>');
+    const backgroundParagraph =
+      documentXml.match(
+        /<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s1"(?:(?!<\/w:p>).)*<\/w:p>/s,
+      )?.[0] ?? '';
+    expect(backgroundParagraph).toContain('<w:pageBreakBefore/>');
+    expect(documentXml).toContain('<wp:extent cx="5181600" cy="3886200"/>');
 
     const paragraphs =
       documentXml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>).)*<\/w:p>/gs) ?? [];
@@ -146,8 +151,23 @@ describe('buildReportDocxFromTemplate', () => {
     expect(intermediate.match(/<w:tc>/g)).toHaveLength(2);
     expect(final).not.toContain('<w:tbl>');
     expect(final.match(/<w:drawing>/g)).toHaveLength(1);
+    expect(initial).toContain('<w:tblW w:w="9360" w:type="dxa"/>');
+    expect(initial).toContain('<w:gridCol w:w="4680"/>');
+    expect(intermediate).toContain('<w:tblW w:w="10260" w:type="dxa"/>');
+    expect(intermediate).toContain('<w:gridCol w:w="5130"/>');
     expect(documentXml).toContain('<wp:extent cx="2571750" cy="1933575"/>');
-    expect(documentXml).toContain('<wp:extent cx="5400675" cy="4048125"/>');
+    expect(documentXml).toContain('<wp:extent cx="3143250" cy="2362200"/>');
+    expect(documentXml).toContain('<wp:extent cx="5181600" cy="3886200"/>');
     expect(documentXml.match(/<w:cantSplit\/>/g)).toHaveLength(4);
+    const initialPhotoHeading =
+      documentXml.match(
+        /<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s3_6"(?:(?!<\/w:p>).)*<\/w:p>/s,
+      )?.[0] ?? '';
+    expect(initialPhotoHeading).not.toContain('<w:pageBreakBefore/>');
+    const intermediateHeading =
+      documentXml.match(
+        /<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s4"(?:(?!<\/w:p>).)*<\/w:p>/s,
+      )?.[0] ?? '';
+    expect(intermediateHeading).toContain('<w:pageBreakBefore/>');
   });
 });

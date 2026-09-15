@@ -25,11 +25,17 @@ const EMPTY_PNG = Buffer.from(
   'base64',
 );
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
-const COVER_IMAGE_SIZE = [480, 360] as const;
-const SINGLE_PHOTO_SIZE = [567, 425] as const;
-const GRID_PHOTO_SIZE = [270, 203] as const;
-const PHOTO_GRID_WIDTH_TWIPS = 9360;
-const PHOTO_GRID_CELL_WIDTH_TWIPS = PHOTO_GRID_WIDTH_TWIPS / 2;
+// The approved source uses a 5.66 x 4.25 in 4:3 photograph. At the image
+// module's 96 px/in conversion this is 544 x 408 px.
+const COVER_IMAGE_SIZE = [544, 408] as const;
+const SINGLE_PHOTO_SIZE = [544, 408] as const;
+const COMPACT_GRID_PHOTO_SIZE = [270, 203] as const;
+const COMPACT_PHOTO_GRID_WIDTH_TWIPS = 9360;
+// Two rows or fewer can use the complete 7.125 in source body width. Five or
+// six photos use the compact source-derived geometry so the 2 x 3 grid still
+// fits directly below the phase spreadsheet image.
+const WIDE_GRID_PHOTO_SIZE = [330, 248] as const;
+const WIDE_PHOTO_GRID_WIDTH_TWIPS = 10260;
 const MONTHS = [
   'January',
   'February',
@@ -263,7 +269,7 @@ function prepareTemplateLayout(zip: PizZip): void {
       .join('')
       .replace(/&nbsp;/g, ' ')
       .trim();
-    if (paragraphText === 'Contents') {
+    if (paragraphText === 'Contents' || /w:name="s1"/.test(paragraph)) {
       prepared = /<w:pPr\b[^>]*>/.test(prepared)
         ? prepared.replace(/<w:pPr\b[^>]*>/, '$&<w:pageBreakBefore/>')
         : prepared.replace(
@@ -287,18 +293,60 @@ function prepareTemplateLayout(zip: PizZip): void {
   zip.file('word/document.xml', parts.join(''));
 }
 
-function photoGridCell(paragraph: string | undefined): string {
-  return `<w:tc><w:tcPr><w:tcW w:w="${PHOTO_GRID_CELL_WIDTH_TWIPS}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${paragraph ?? '<w:p/>'}</w:tc>`;
+function photoGridMetrics(count: number): {
+  imageSize: readonly [number, number];
+  widthTwips: number;
+} {
+  return count >= 5
+    ? {
+        imageSize: COMPACT_GRID_PHOTO_SIZE,
+        widthTwips: COMPACT_PHOTO_GRID_WIDTH_TWIPS,
+      }
+    : {
+        imageSize: WIDE_GRID_PHOTO_SIZE,
+        widthTwips: WIDE_PHOTO_GRID_WIDTH_TWIPS,
+      };
 }
 
-function photoGridTable(paragraphs: string[]): string {
+function photoGridCell(
+  paragraph: string | undefined,
+  cellWidthTwips: number,
+): string {
+  return `<w:tc><w:tcPr><w:tcW w:w="${cellWidthTwips}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${paragraph ?? '<w:p/>'}</w:tc>`;
+}
+
+function photoGridTable(paragraphs: string[], widthTwips: number): string {
+  const cellWidthTwips = widthTwips / 2;
   const rows: string[] = [];
   for (let index = 0; index < paragraphs.length; index += 2) {
     rows.push(
-      `<w:tr><w:trPr><w:cantSplit/></w:trPr>${photoGridCell(paragraphs[index])}${photoGridCell(paragraphs[index + 1])}</w:tr>`,
+      `<w:tr><w:trPr><w:cantSplit/></w:trPr>${photoGridCell(paragraphs[index], cellWidthTwips)}${photoGridCell(paragraphs[index + 1], cellWidthTwips)}</w:tr>`,
     );
   }
-  return `<w:tbl><w:tblPr><w:tblW w:w="${PHOTO_GRID_WIDTH_TWIPS}" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${PHOTO_GRID_CELL_WIDTH_TWIPS}"/><w:gridCol w:w="${PHOTO_GRID_CELL_WIDTH_TWIPS}"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+  return `<w:tbl><w:tblPr><w:tblW w:w="${widthTwips}" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${cellWidthTwips}"/><w:gridCol w:w="${cellWidthTwips}"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+}
+
+function addPageBreakBefore(paragraph: string): string {
+  if (/<w:pageBreakBefore\b/.test(paragraph)) return paragraph;
+  if (/<w:pPr\b[^>]*>/.test(paragraph))
+    return paragraph.replace(/<w:pPr\b[^>]*>/, '$&<w:pageBreakBefore/>');
+  return paragraph.replace(
+    /(<w:p\b[^>]*>)/,
+    '$1<w:pPr><w:pageBreakBefore/></w:pPr>',
+  );
+}
+
+function addBookmarkPageBreak(xml: string, bookmark: string): string {
+  const bookmarkPosition = xml.indexOf(`w:name="${bookmark}"`);
+  if (bookmarkPosition < 0) return xml;
+  const paragraphStart = Math.max(
+    xml.lastIndexOf('<w:p ', bookmarkPosition),
+    xml.lastIndexOf('<w:p>', bookmarkPosition),
+  );
+  const paragraphEnd = xml.indexOf('</w:p>', bookmarkPosition);
+  if (paragraphStart < 0 || paragraphEnd < 0) return xml;
+  const paragraph = xml.slice(paragraphStart, paragraphEnd + '</w:p>'.length);
+  return `${xml.slice(0, paragraphStart)}${addPageBreakBefore(paragraph)}${xml.slice(paragraphEnd + '</w:p>'.length)}`;
 }
 
 /**
@@ -322,6 +370,7 @@ function arrangePhasePhotosInTwoColumns(
   for (const phase of phases) {
     const expected = counts[phase.name];
     if (expected < 2) continue;
+    const metrics = photoGridMetrics(expected);
     const start = xml.indexOf(`w:name="${phase.bookmark}"`);
     if (start < 0)
       throw new Error(`Documento renderizado sem bookmark ${phase.bookmark}.`);
@@ -348,11 +397,18 @@ function arrangePhasePhotosInTwoColumns(
     for (const [index, match] of paragraphs.entries()) {
       rebuilt += segment.slice(cursor, match.index);
       if (index === 0)
-        rebuilt += photoGridTable(paragraphs.map((item) => item[0]));
+        rebuilt += photoGridTable(
+          paragraphs.map((item) => item[0]),
+          metrics.widthTwips,
+        );
       cursor = (match.index ?? 0) + match[0].length;
     }
     rebuilt += segment.slice(cursor);
     xml = `${xml.slice(0, start)}${rebuilt}${xml.slice(end)}`;
+    if (expected >= 4 && phase.name !== 'final') {
+      const nextPhase = phase.name === 'initial' ? 's4' : 's5';
+      xml = addBookmarkPageBreak(xml, nextPhase);
+    }
   }
   zip.file('word/document.xml', xml);
 }
@@ -720,7 +776,13 @@ export async function buildReportDocxFromTemplate(
         (key.startsWith('photoInitial') && photoCounts.initial > 1) ||
         (key.startsWith('photoIntermediate') && photoCounts.intermediate > 1) ||
         (key.startsWith('photoFinal') && photoCounts.final > 1);
-      return inMultiPhotoPhase ? [...GRID_PHOTO_SIZE] : [...SINGLE_PHOTO_SIZE];
+      if (!inMultiPhotoPhase) return [...SINGLE_PHOTO_SIZE];
+      const count = key.startsWith('photoInitial')
+        ? photoCounts.initial
+        : key.startsWith('photoIntermediate')
+          ? photoCounts.intermediate
+          : photoCounts.final;
+      return [...photoGridMetrics(count).imageSize];
     },
   });
   const document = new Docxtemplater(templateZip, {
