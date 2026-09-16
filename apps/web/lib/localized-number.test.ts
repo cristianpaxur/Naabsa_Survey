@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLocalizedNumber } from './localized-number';
+import { formatNumberDraft, parseLocalizedNumber } from './localized-number';
 
 describe('parseLocalizedNumber', () => {
   it.each([
@@ -17,5 +17,17 @@ describe('parseLocalizedNumber', () => {
     expect(parseLocalizedNumber('')).toBeNull();
     expect(parseLocalizedNumber('280,5m')).toBeNull();
     expect(parseLocalizedNumber('1..2')).toBeNull();
+  });
+});
+
+describe('formatNumberDraft', () => {
+  it('preserva as casas decimais definidas pelo spec', () => {
+    expect(formatNumberDraft(81, 1)).toBe('81.0');
+    expect(formatNumberDraft(12, 1)).toBe('12.0');
+  });
+
+  it('mantém o comportamento livre quando o spec não define precisão', () => {
+    expect(formatNumberDraft(81)).toBe('81');
+    expect(formatNumberDraft(null, 1)).toBe('');
   });
 });

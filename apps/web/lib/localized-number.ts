@@ -29,6 +29,11 @@ export function parseLocalizedNumber(raw: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function formatNumberDraft(value: number | null): string {
-  return value === null ? '' : String(value);
+export function formatNumberDraft(
+  value: number | null,
+  decimals?: number,
+): string {
+  if (value === null) return '';
+  if (decimals === undefined) return String(value);
+  return value.toFixed(decimals);
 }

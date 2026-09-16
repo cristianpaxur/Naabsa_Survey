@@ -59,7 +59,7 @@ function grp(n: number, dec: number): string {
   return `${neg ? '-' : ''}${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${d ? '.' + d : ''}`;
 }
 const mt = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 3)} MT` : v(x));
-const ton = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 0)} mt` : v(x));
+const ton = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 1)} mt` : v(x));
 const meters = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${x.toFixed(2)} m` : v(x));
 const num = (x: FieldValue | undefined, d: number): string => (typeof x === 'number' ? x.toFixed(d) : v(x));
 function signedMt(x: FieldValue | undefined): string { return typeof x === 'number' ? `${x >= 0 ? '+' : '-'} ${grp(Math.abs(x), 3)} MT` : v(x); }

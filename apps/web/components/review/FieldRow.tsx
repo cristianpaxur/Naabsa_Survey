@@ -239,7 +239,15 @@ function FieldInput({
       );
 
     case 'number':
-      return <LocalizedNumberInput value={value} onChange={onChange} disabled={disabled} inputStyle={inputStyle} />;
+      return (
+        <LocalizedNumberInput
+          value={value}
+          decimals={def.decimals}
+          onChange={onChange}
+          disabled={disabled}
+          inputStyle={inputStyle}
+        />
+      );
 
     case 'date':
       return (
@@ -297,6 +305,7 @@ function FieldInput({
 
 interface LocalizedNumberInputProps {
   value: FieldValue;
+  decimals?: number;
   onChange: (value: FieldValue) => void;
   disabled: boolean;
   inputStyle: React.CSSProperties;
@@ -306,17 +315,17 @@ interface LocalizedNumberInputProps {
  * Mantém o texto em edição localmente. Assim uma alteração só é persistida
  * ao sair do campo (ou pressionar Enter), sem desmontar o input a cada tecla.
  */
-function LocalizedNumberInput({ value, onChange, disabled, inputStyle }: LocalizedNumberInputProps) {
+function LocalizedNumberInput({ value, decimals, onChange, disabled, inputStyle }: LocalizedNumberInputProps) {
   const currentValue = typeof value === 'number' ? value : null;
-  const [draft, setDraft] = useState(() => formatNumberDraft(currentValue));
+  const [draft, setDraft] = useState(() => formatNumberDraft(currentValue, decimals));
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    if (!isEditing) setDraft(formatNumberDraft(currentValue));
-  }, [currentValue, isEditing]);
+    if (!isEditing) setDraft(formatNumberDraft(currentValue, decimals));
+  }, [currentValue, decimals, isEditing]);
 
   function resetDraft() {
-    setDraft(formatNumberDraft(currentValue));
+    setDraft(formatNumberDraft(currentValue, decimals));
   }
 
   function commit() {

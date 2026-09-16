@@ -47,18 +47,34 @@ export function buildReviewPrompt(
   variant: string | null,
   data: Record<string, FieldValue>,
 ): { system: string; userText: string } {
-  const fields = collectFields(spec, variant).map(([name, def]) => ({
-    field: name,
-    label: def.label,
-    type: def.type,
-    ...(def.unit ? { unit: def.unit } : {}),
-    ...(def.min != null ? { min: def.min } : {}),
-    ...(def.max != null ? { max: def.max } : {}),
-    value: data[name] ?? null,
-  }));
+  const fields = collectFields(spec, variant).map(([name, def]) => {
+    const value = data[name] ?? null;
+    return {
+      field: name,
+      label: def.label,
+      type: def.type,
+      ...(def.unit ? { unit: def.unit } : {}),
+      ...(def.type === 'number' && def.decimals != null
+        ? {
+            decimals: def.decimals,
+            display_value:
+              typeof value === 'number'
+                ? value.toFixed(def.decimals)
+                : value,
+          }
+        : {}),
+      ...(def.min != null ? { min: def.min } : {}),
+      ...(def.max != null ? { max: def.max } : {}),
+      value,
+    };
+  });
   const system =
     'Você é um revisor de dados de Draft Survey (vistoria marítima de calado). ' +
-    'Receberá campos extraídos de uma planilha (rótulo, tipo, unidade, limites e valor). ' +
+    'Receberá campos extraídos de uma planilha (rótulo, tipo, unidade, limites, precisão de exibição e valor). ' +
+    'Zeros decimais à direita são metadados de exibição: o JSON numérico 81 e o display_value 81.0 representam o mesmo valor informado. ' +
+    'Nos campos net_tonnage, gross_tonnage e summer_dwt com decimals=1 e valor positivo menor que 1000, ' +
+    'a planilha de Draft Survey usa a convenção de milhares de toneladas (por exemplo, 81.0 representa cerca de 81 mil toneladas). ' +
+    'Aplique essa convenção antes de comparar tonelagem com as dimensões do navio e não sinalize truncamento apenas por essa escala. ' +
     'Sinalize APENAS valores claramente suspeitos: fora dos limites, formato implausível ou ' +
     'contradições óbvias entre campos relacionados. Não invente campos. Seja conservador — ' +
     'poucos avisos, alta precisão. Nunca bloqueie; apenas sugira.';

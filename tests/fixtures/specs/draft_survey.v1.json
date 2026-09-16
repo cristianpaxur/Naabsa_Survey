@@ -52,9 +52,9 @@
         "lbp": { "sheet": "Capa", "cell": "C21", "type": "number", "decimals": 2, "unit": "m", "label": "LBP", "section": "Particulars do navio" },
         "depth_moulded": { "sheet": "Capa", "cell": "C22", "type": "number", "decimals": 2, "unit": "m", "label": "Pontal moldado", "section": "Particulars do navio" },
         "breadth_moulded": { "sheet": "Capa", "cell": "C23", "type": "number", "decimals": 2, "unit": "m", "label": "Boca moldada", "section": "Particulars do navio" },
-        "net_tonnage": { "sheet": "Capa", "cell": "C24", "type": "number", "decimals": 0, "unit": "mt", "label": "Net tonnage", "section": "Particulars do navio" },
-        "gross_tonnage": { "sheet": "Capa", "cell": "C25", "type": "number", "decimals": 0, "unit": "mt", "label": "Gross tonnage", "section": "Particulars do navio" },
-        "summer_dwt": { "sheet": "Capa", "cell": "C26", "type": "number", "decimals": 0, "unit": "mt", "label": "Summer DWT", "section": "Particulars do navio" },
+        "net_tonnage": { "sheet": "Capa", "cell": "C24", "type": "number", "decimals": 1, "unit": "mt", "label": "Net tonnage", "section": "Particulars do navio" },
+        "gross_tonnage": { "sheet": "Capa", "cell": "C25", "type": "number", "decimals": 1, "unit": "mt", "label": "Gross tonnage", "section": "Particulars do navio" },
+        "summer_dwt": { "sheet": "Capa", "cell": "C26", "type": "number", "decimals": 1, "unit": "mt", "label": "Summer DWT", "section": "Particulars do navio" },
 
         "captain": { "sheet": "Capa", "cell": "C28", "type": "string", "label": "Comandante", "section": "Comando" },
         "chief_officer": { "sheet": "Capa", "cell": "C29", "type": "string", "label": "Imediato", "section": "Comando" },
