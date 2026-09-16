@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { approve, beginDocumentSave, confirmDocumentSave, getEditorUrl, getPdfStatus, retryBuildWorkingDocx, retryGeneratePdf } from './editor';
+import { approve, beginDocumentSave, confirmDocumentSave, getEditorUrl, getPdfStatus, reopenDocumentEditor, retryBuildWorkingDocx, retryGeneratePdf } from './editor';
 
 const memory = vi.hoisted(() => ({
   row: {} as Record<string, unknown>, events: [] as { action: string; payload: unknown }[],
@@ -105,5 +105,17 @@ describe('aprovação da versão salva e recuperação de filas', () => {
     expect(await retryBuildWorkingDocx('r1')).toEqual({ ok: true });
     expect(enqueueBuild).toHaveBeenLastCalledWith({ reportId: 'r1', generation: 'g1' }, { dedupe: false });
     expect(await getEditorUrl('r1')).toEqual({ pending: true });
+  });
+  it('reabertura explícita libera lock órfão somente durante edição', async () => {
+    memory.row.wopi_lock = 'lock-antigo';
+    memory.row.wopi_lock_expires_at = '2099-01-01T00:00:00.000Z';
+    expect(await reopenDocumentEditor('r1')).toEqual({ ok: true });
+    expect(memory.row).toMatchObject({ wopi_lock: null, wopi_lock_expires_at: null });
+    expect(memory.events[0]).toMatchObject({ action: 'wopi_lock_released' });
+
+    memory.row.status = 'approved';
+    memory.row.wopi_lock = 'lock-ativo';
+    expect(await reopenDocumentEditor('r1')).toHaveProperty('error');
+    expect(memory.row.wopi_lock).toBe('lock-ativo');
   });
 });

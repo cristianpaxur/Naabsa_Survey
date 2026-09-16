@@ -150,6 +150,46 @@ export async function getEditorUrl(
 }
 
 /**
+ * Encerra um lock WOPI órfão antes de recriar o iframe do editor.
+ *
+ * O Collabora mantém o lock por até 30 minutos. Se o iframe, navegador ou
+ * container for interrompido antes do UNLOCK, uma nova sessão recebe 409 e é
+ * aberta somente para leitura. Esta ação só é chamada pelo botão explícito
+ * "Reabrir editor", depois que o iframe anterior é desmontado.
+ */
+export async function reopenDocumentEditor(
+  reportId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (report?.status !== 'editing' || !report.working_docx_path) {
+    return { error: 'Documento não disponível para reabrir em edição.' };
+  }
+
+  const { error, count } = await supabase
+    .from('reports')
+    .update({ wopi_lock: null, wopi_lock_expires_at: null } as never, { count: 'exact' })
+    .eq('id', reportId)
+    .eq('status', 'editing');
+  if (error || count !== 1) {
+    return { error: 'Não foi possível liberar a sessão anterior do editor. Tente novamente.' };
+  }
+
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'wopi_lock_released',
+    payload: { reason: 'explicit_editor_reopen' },
+  });
+  return { ok: true };
+}
+
+/**
  * Pré-visualização FIEL: enfileira a geração do PDF REAL (mesmo do download) sem
  * transicionar o estado. Remove o preview anterior para o polling detectar o novo.
  */

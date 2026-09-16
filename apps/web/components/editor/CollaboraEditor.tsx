@@ -2,7 +2,7 @@
 
 import './editor.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { beginDocumentSave, confirmDocumentSave, getEditorUrl, retryBuildWorkingDocx } from '@/lib/actions/editor';
+import { beginDocumentSave, confirmDocumentSave, getEditorUrl, reopenDocumentEditor, retryBuildWorkingDocx } from '@/lib/actions/editor';
 import type { ReportStatus } from '@/lib/state-machine';
 import { PreviewPanel } from './PreviewPanel';
 import { isCollaboraSaveSessionInvalid, requestCollaboraSave } from './collabora-save';
@@ -41,6 +41,7 @@ export function CollaboraEditor({
   useEffect(() => () => saveAbort.current?.abort(), []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [needsReopen, setNeedsReopen] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [iframeReady, setIframeReady] = useState(false);
   const [buildFailed, setBuildFailed] = useState(false);
@@ -142,7 +143,7 @@ export function CollaboraEditor({
   }
 
   const readOnly = initialStatus !== 'editing';
-  const busy = saving || needsReopen || !iframeReady || state !== 'ready';
+  const busy = saving || reopening || needsReopen || !iframeReady || state !== 'ready';
 
   return (
     <div className="ed-shell">
@@ -190,17 +191,33 @@ export function CollaboraEditor({
               <button
                 className="ed-btn"
                 style={{ marginLeft: 12 }}
-                onClick={() => {
+                disabled={reopening}
+                onClick={async () => {
                   // A ação é explícita: fechar o iframe pode descartar texto
-                  // ainda não salvo. O key novo cria outro browsing context.
+                  // ainda não salvo. Desmonta primeiro para impedir que a
+                  // sessão antiga renove o lock enquanto o servidor o libera.
+                  setReopening(true);
                   setSaveReceipt(undefined);
-                  setNeedsReopen(false);
                   setIframeReady(false);
+                  setUrl(null);
+                  setState('loading');
+                  const result = await reopenDocumentEditor(reportId).catch(() => ({
+                    error: 'Falha de conexão ao liberar a sessão anterior do editor.',
+                  }));
+                  if ('error' in result) {
+                    setSaveError(result.error);
+                    setState('error');
+                    setReopening(false);
+                    return;
+                  }
+                  setNeedsReopen(false);
                   setIframeKey((key) => key + 1);
                   setSaveError('Editor reaberto. Confira o texto antes de salvar e aprovar.');
+                  setReopening(false);
+                  load();
                 }}
               >
-                Reabrir editor
+                {reopening ? 'Reabrindo…' : 'Reabrir editor'}
               </button>
             </>
           )}
