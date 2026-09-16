@@ -17,6 +17,10 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  collaboraConversionUrl,
+  convertDocxToPdfWithCollabora,
+} from './collaboraConversion';
 
 export function findSoffice(): string {
   const cands = [
@@ -168,8 +172,17 @@ async function convert(docx: Buffer, ext: 'pdf' | 'png', timeoutMs: number): Pro
   }
 }
 
-/** Converte um .docx (buffer) para PDF. */
-export const convertDocxToPdf = (docx: Buffer) => convert(docx, 'pdf', 120000);
+/**
+ * Converte um .docx para PDF. Quando o Collabora está configurado, delega a ele
+ * para que Preview/PDF usem exatamente o mesmo motor e a mesma versão do editor.
+ * O LibreOffice local permanece como fallback apenas para desenvolvimento sem
+ * Collabora.
+ */
+export async function convertDocxToPdf(docx: Buffer): Promise<Buffer> {
+  const endpoint = collaboraConversionUrl();
+  if (endpoint) return convertDocxToPdfWithCollabora(docx, endpoint);
+  return convert(docx, 'pdf', 120000);
+}
 /** 1ª página em PNG (debug). */
 export const convertDocxFirstPagePng = (docx: Buffer) => convert(docx, 'png', 90000);
 
