@@ -29,7 +29,11 @@ export async function GET(
   const f = (files ?? []).find((x) => x.name === filename);
   if (error || !f) return new NextResponse(null, { status: 404 });
   const size = Number((f?.metadata as { size?: number } | undefined)?.size ?? 0);
-  const lastModified = f?.updated_at ?? new Date(0).toISOString();
+  // Precisa ser exatamente o mesmo valor devolvido pelo PutFile. O timestamp
+  // do objeto no Storage é atribuído depois do upload e pode diferir alguns
+  // segundos de `working_docx_saved_at`; misturar os dois faz o Collabora
+  // concluir incorretamente que outro processo alterou o documento.
+  const lastModified = report.working_docx_saved_at ?? f?.updated_at ?? new Date(0).toISOString();
 
   return NextResponse.json({
     BaseFileName: `${(report.vessel_name ?? 'relatorio').replace(/[^\w.-]+/g, '_')}.docx`,
