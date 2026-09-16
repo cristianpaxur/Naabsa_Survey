@@ -25,6 +25,8 @@ export interface BaseFieldDef {
   section: string;
   /** Sufixo de exibição no PDF (ex.: "m", "mt", "MT", "°", "cm"). */
   unit?: string;
+  /** `false` para campos derivados que não devem ser avaliados pela IA. */
+  ai_review?: boolean;
   required?: boolean;
   /** Validações numéricas/derivadas por campo. */
   min?: number;

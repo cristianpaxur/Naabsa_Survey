@@ -47,27 +47,29 @@ export function buildReviewPrompt(
   variant: string | null,
   data: Record<string, FieldValue>,
 ): { system: string; userText: string } {
-  const fields = collectFields(spec, variant).map(([name, def]) => {
-    const value = data[name] ?? null;
-    return {
-      field: name,
-      label: def.label,
-      type: def.type,
-      ...(def.unit ? { unit: def.unit } : {}),
-      ...(def.type === 'number' && def.decimals != null
-        ? {
-            decimals: def.decimals,
-            display_value:
-              typeof value === 'number'
-                ? value.toFixed(def.decimals)
-                : value,
-          }
-        : {}),
-      ...(def.min != null ? { min: def.min } : {}),
-      ...(def.max != null ? { max: def.max } : {}),
-      value,
-    };
-  });
+  const fields = collectFields(spec, variant)
+    .filter(([, def]) => def.ai_review !== false)
+    .map(([name, def]) => {
+      const value = data[name] ?? null;
+      return {
+        field: name,
+        label: def.label,
+        type: def.type,
+        ...(def.unit ? { unit: def.unit } : {}),
+        ...(def.type === 'number' && def.decimals != null
+          ? {
+              decimals: def.decimals,
+              display_value:
+                typeof value === 'number'
+                  ? value.toFixed(def.decimals)
+                  : value,
+            }
+          : {}),
+        ...(def.min != null ? { min: def.min } : {}),
+        ...(def.max != null ? { max: def.max } : {}),
+        value,
+      };
+    });
   const system =
     'Você é um revisor de dados de Draft Survey (vistoria marítima de calado). ' +
     'Receberá campos extraídos de uma planilha (rótulo, tipo, unidade, limites, precisão de exibição e valor). ' +
@@ -249,6 +251,7 @@ export async function aiReview(
     const cells = new Map<string, string | null>();
     const effective: Record<string, FieldValue> = {};
     for (const [name, def] of collectFields(spec, r.variant)) {
+      if (def.ai_review === false) continue;
       cells.set(name, def.cell ?? null);
       effective[name] = resolveFieldValue(
         name,

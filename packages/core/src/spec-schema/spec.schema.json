@@ -125,6 +125,7 @@
         "label": { "type": "string", "minLength": 1 },
         "section": { "type": "string", "minLength": 1 },
         "unit": { "type": "string" },
+        "ai_review": { "type": "boolean" },
         "required": { "type": "boolean" },
         "min": { "type": "number" },
         "max": { "type": "number" },
