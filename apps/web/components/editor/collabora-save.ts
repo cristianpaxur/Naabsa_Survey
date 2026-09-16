@@ -32,9 +32,11 @@ export function requestCollaboraSave(host: Window, editor: Window, origin: strin
       try {
         const message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (message?.MessageId !== 'Action_Save_Resp') return;
-        // SDK: 'unmodified' confirma explicitamente ausência de alterações
-        // pendentes. Não é o mesmo que sucesso ausente ou timeout.
-        if (typeof message.Values?.success === 'boolean' && message.Values.result === 'unmodified') finish(undefined, 'unmodified');
+        // O Collabora atual devolve `wasModified: false`; versões antigas
+        // também podem usar `result: "unmodified"`.
+        const unmodified = (message.Values?.success === true && message.Values.wasModified === false) ||
+          (typeof message.Values?.success === 'boolean' && message.Values.result === 'unmodified');
+        if (unmodified) finish(undefined, 'unmodified');
         else finish(message.Values?.success === true ? undefined : new Error('O editor não confirmou o salvamento.'));
       } catch { /* Mensagens de outros recursos do editor. */ }
     };
@@ -45,7 +47,7 @@ export function requestCollaboraSave(host: Window, editor: Window, origin: strin
     try {
       sent = true;
       editor.postMessage(JSON.stringify({ MessageId: 'Action_Save', Values: {
-        Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: false,
+        Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: true,
       } }), origin);
     } catch { finish(new Error('Não foi possível solicitar o salvamento.')); }
   });

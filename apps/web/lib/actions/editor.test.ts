@@ -4,12 +4,13 @@ import { approve, beginDocumentSave, confirmDocumentSave, getEditorUrl, getPdfSt
 const memory = vi.hoisted(() => ({
   row: {} as Record<string, unknown>, events: [] as { action: string; payload: unknown }[],
   beforeUpdate: undefined as (() => void) | undefined,
+  beforeRead: undefined as (() => void) | undefined,
 }));
 const enqueuePdf = vi.hoisted(() => vi.fn());
 const enqueueBuild = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/queue', () => ({ enqueueGeneratePdf: enqueuePdf, enqueueBuildWorkingDocx: enqueueBuild, enqueuePreviewPdf: vi.fn() }));
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: () => ({ storage: {} }) }));
-vi.mock('@/lib/wopi/token', () => ({ signToken: () => 'token' }));
+vi.mock('@/lib/wopi/token', () => ({ signToken: () => 'token', WOPI_TOKEN_TTL_SECONDS: 10 * 60 * 60 }));
 vi.mock('@/lib/wopi/discovery', () => ({ getEditorUrlSrc: async () => 'https://office.test/edit?' }));
 vi.mock('@/lib/audit', () => ({ audit: async (_client: unknown, event: { action: string; payload: unknown }) => { memory.events.unshift(event); } }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
@@ -21,7 +22,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
       select: () => query,
       eq: (key: string, value: unknown) => { filters.push([key, value]); return query; },
       in: () => query, order: () => query, limit: () => query,
-      maybeSingle: async () => ({ data: { ...memory.row }, error: null }),
+      maybeSingle: async () => { memory.beforeRead?.(); return { data: { ...memory.row }, error: null }; },
       update: (value: Record<string, unknown>) => { patch = value; return query; },
       then: (resolve: (value: unknown) => unknown) => {
         if (table === 'audit_log') return Promise.resolve(resolve({ data: memory.events }));
@@ -37,7 +38,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
 
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubEnv('WOPI_TOKEN_SECRET', 'test-editor-secret');
-  memory.events = []; memory.beforeUpdate = undefined;
+  memory.events = []; memory.beforeUpdate = undefined; memory.beforeRead = undefined;
   memory.row = { id: 'r1', status: 'editing', working_docx_path: 'r1/working/one.docx',
     working_docx_revision: 1, working_docx_generation: 'g1', approved_docx_revision: null, pdf_paths: [] };
   enqueuePdf.mockResolvedValue('job-pdf'); enqueueBuild.mockResolvedValue('job-build');
@@ -53,10 +54,20 @@ async function save(): Promise<string> {
 }
 
 describe('aprovação da versão salva e recuperação de filas', () => {
+  it('informa ao Collabora a expiração futura do token WOPI', async () => {
+    const result = await getEditorUrl('r1');
+    if (!('url' in result)) throw new Error('editor URL ausente');
+    const ttl = Number(new URL(result.url).searchParams.get('access_token_ttl'));
+    expect(ttl).toBeGreaterThan(Date.now() + 9 * 60 * 60 * 1000);
+  });
   it('servidor rejeita aprovação sem recibo e sem novo PutFile confirmado', async () => {
     expect(await approve('r1')).toHaveProperty('error');
     const request = await beginDocumentSave('r1');
-    expect(await confirmDocumentSave('r1', 'token' in request ? request.token : '')).toHaveProperty('error');
+    vi.useFakeTimers();
+    const confirmation = confirmDocumentSave('r1', 'token' in request ? request.token : '');
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(await confirmation).toHaveProperty('error');
+    vi.useRealTimers();
     expect(enqueuePdf).not.toHaveBeenCalled();
     expect(memory.row.status).toBe('editing');
   });
@@ -72,6 +83,20 @@ describe('aprovação da versão salva e recuperação de filas', () => {
     expect(await confirmDocumentSave('r1', request.token, 'unmodified')).toHaveProperty('receipt');
     memory.row.working_docx_revision = 2;
     expect(await confirmDocumentSave('r1', request.token, 'unmodified')).toHaveProperty('error');
+  });
+  it('aguarda o PutFile terminar depois do Action_Save_Resp', async () => {
+    const request = await beginDocumentSave('r1');
+    if (!('token' in request)) throw new Error('begin failed');
+    let reads = 0;
+    memory.beforeRead = () => {
+      reads += 1;
+      if (reads === 2) {
+        memory.row.working_docx_revision = 2;
+        memory.row.working_docx_path = 'r1/working/delayed.docx';
+      }
+    };
+    expect(await confirmDocumentSave('r1', request.token)).toHaveProperty('receipt');
+    expect(reads).toBeGreaterThanOrEqual(2);
   });
   it('CAS rejeita edição concorrente à aprovação', async () => {
     const receipt = await save();

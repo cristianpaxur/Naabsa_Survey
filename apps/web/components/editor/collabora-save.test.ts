@@ -47,6 +47,15 @@ describe('confirmação de salvamento Collabora', () => {
     response({ success: false, result: 'unmodified' });
     await expect(saving).resolves.toBe('unmodified');
   });
+  it('reconhece wasModified=false retornado pelo Collabora atual', async () => {
+    const saving = requestCollaboraSave(host as unknown as Window, editor as unknown as Window, 'https://office.test');
+    response({ success: true, wasModified: false });
+    await expect(saving).resolves.toBe('unmodified');
+    const command = JSON.parse(editor.postMessage.mock.calls[0]?.[0] as string) as {
+      Values: { DontSaveIfUnmodified: boolean };
+    };
+    expect(command.Values.DontSaveIfUnmodified).toBe(true);
+  });
   it('A atrasado após timeout não pode confirmar tentativa B na mesma sessão', async () => {
     const first = requestCollaboraSave(host as unknown as Window, editor as unknown as Window, 'https://office.test');
     const timedOut = expect(first).rejects.toThrow('Tempo esgotado');

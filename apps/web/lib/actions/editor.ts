@@ -8,7 +8,7 @@ import type { ReportStatus } from '@/lib/state-machine';
 import { readSaveProof, signSaveProof } from '@/lib/document-save-proof';
 import { enqueueBuildWorkingDocx, enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
 import { latestJobOutcome, type AuditEventRow, type JobOutcome } from '@/lib/job-failure';
-import { signToken } from '@/lib/wopi/token';
+import { signToken, WOPI_TOKEN_TTL_SECONDS } from '@/lib/wopi/token';
 import { getEditorUrlSrc } from '@/lib/wopi/discovery';
 
 export type ApproveResult = { ok: true } | { error: string; approved?: boolean };
@@ -60,15 +60,26 @@ export async function confirmDocumentSave(reportId: string, token: string, outco
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
   const request = readSaveProof(token, 'request', reportId, user.id);
-  const report = await loadReport(supabase, reportId);
-  if (!request || report?.status !== 'editing' || !report.working_docx_path ||
-      (outcome === 'unmodified'
-        ? report.working_docx_revision !== request.revision || report.working_docx_path !== request.path
-        : outcome !== 'saved' || report.working_docx_revision <= request.revision)) {
+  if (!request) {
     return { error: 'O servidor ainda não confirmou o salvamento. Volte ao editor e tente salvar novamente.' };
   }
-  return { receipt: signSaveProof({ kind: 'saved', reportId, userId: user.id,
-    revision: report.working_docx_revision, path: report.working_docx_path }) };
+
+  // O Action_Save_Resp chega antes de o PutFile terminar. Aguarda a revisão
+  // persistida em vez de rejeitar imediatamente uma gravação ainda em voo.
+  const attempts = outcome === 'saved' ? 20 : 1;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const report = await loadReport(supabase, reportId);
+    if (report?.status !== 'editing' || !report.working_docx_path) break;
+    const confirmed = outcome === 'unmodified'
+      ? report.working_docx_revision === request.revision && report.working_docx_path === request.path
+      : report.working_docx_revision > request.revision;
+    if (confirmed) {
+      return { receipt: signSaveProof({ kind: 'saved', reportId, userId: user.id,
+        revision: report.working_docx_revision, path: report.working_docx_path }) };
+    }
+    if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return { error: 'O servidor ainda não confirmou o salvamento. Volte ao editor e tente salvar novamente.' };
 }
 
 /** Congela exatamente a revisão confirmada; um save concorrente invalida o recibo. */
@@ -141,11 +152,12 @@ export async function getEditorUrl(
   }
 
   const canWrite = report.status === 'editing';
-  const token = signToken({ reportId, userId: user.id, canWrite });
+  const accessTokenTtl = (Math.floor(Date.now() / 1000) + WOPI_TOKEN_TTL_SECONDS) * 1000;
+  const token = signToken({ reportId, userId: user.id, canWrite }, WOPI_TOKEN_TTL_SECONDS);
   const urlsrc = await getEditorUrlSrc('docx');
   const wopiSrc = `${process.env['WOPI_PUBLIC_URL'] ?? ''}/api/wopi/files/${reportId}`;
   const sep = urlsrc.endsWith('?') || urlsrc.endsWith('&') ? '' : urlsrc.includes('?') ? '&' : '?';
-  const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${encodeURIComponent(token)}&lang=pt-BR`;
+  const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${encodeURIComponent(token)}&access_token_ttl=${accessTokenTtl}&lang=pt-BR`;
   return { url };
 }
 

@@ -8,6 +8,9 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+/** Duração recomendada pelo WOPI para uma sessão normal de edição. */
+export const WOPI_TOKEN_TTL_SECONDS = 10 * 60 * 60;
+
 export interface WopiClaims {
   reportId: string;
   userId: string;
@@ -29,10 +32,10 @@ function hmac(data: string, secret: string): string {
   return createHmac('sha256', secret).update(data).digest('base64url');
 }
 
-/** Emite um access_token assinado com TTL (default 60 min). */
+/** Emite um access_token assinado com TTL (default 10 h). */
 export function signToken(
   claims: Omit<WopiClaims, 'exp' | 'iat'>,
-  ttlSeconds = 3600,
+  ttlSeconds = WOPI_TOKEN_TTL_SECONDS,
   secret?: string,
 ): string {
   const s = getSecret(secret);
