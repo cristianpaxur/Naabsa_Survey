@@ -65,6 +65,43 @@ Antes de iniciar a versão nova, aplique `pnpm db:migrate` no ambiente identific
 com web/worker antigos parados e backup disponível. O runner usa transação e ledger
 de checksums. O spec ativo é versionado em `report_specs` (imutável).
 
+### 3.1. Deploy da precisão decimal (`0019_report_number_formats.sql`)
+
+Execute esta atualização na ordem abaixo. Não inicie web ou worker da nova versão
+antes de concluir a migration.
+
+1. Confirme no banco persistente de destino que ainda não existe um checksum
+   registrado para `0019_report_number_formats.sql`:
+
+   ```sql
+   select name, checksum, applied_at
+   from naabsa_internal.migrations
+   where name = '0019_report_number_formats.sql';
+   ```
+
+   A consulta deve retornar zero linhas antes da primeira aplicação. Se retornar
+   qualquer registro, aborte o deploy e reconcilie o histórico da migration; não
+   sobrescreva o checksum nem execute uma versão diferente de `0019` sobre o banco.
+
+2. Com backup disponível e web/worker antigos parados, execute `pnpm db:migrate` e
+   confirme que `0019_report_number_formats.sql` foi registrada com sucesso.
+3. Faça deploy de web e worker a partir do mesmo commit e só então inicie ambos.
+4. Crie um relatório de smoke cuja planilha exiba, em campos numéricos distintos,
+   `81.0`, `12.00` e `24.000`. Na revisão, confirme os mesmos zeros à direita.
+5. Altere um desses valores na revisão para quatro casas decimais (por exemplo,
+   `81.0000`), salve, recarregue a página e confirme que valor e representação
+   persistiram.
+6. Gere o DOCX e o PDF e compare os três valores originais e o valor editado com a
+   revisão. As representações devem ser idênticas em todas as etapas.
+
+**Rollback:** reverta web e worker juntos para o mesmo commit anterior, mas mantenha
+as colunas JSONB `extracted_number_formats` e `operator_number_formats`. Não reverta
+`0019` nem remova essas colunas; a versão anterior da aplicação pode ignorá-las e
+uma remoção destruiria metadados de apresentação já persistidos.
+
+Os passos 4–6 são o gate manual pós-deploy. Eles só devem ser executados no ambiente
+publicado após autorização explícita de deploy; a verificação local não os substitui.
+
 ## 4. Filas e jobs (pg-boss)
 
 Consumidos pelo `worker` (ver `apps/worker/src/index.ts`):
