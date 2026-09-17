@@ -10,12 +10,14 @@ import { getServiceClient } from '../lib/supabase';
 import { randomUUID } from 'node:crypto';
 import {
   collectFields,
-  displayDecimalsForField,
+  formatNumberWithDecimals,
   isCalculatedDifferenceField,
+  resolveDisplayDecimals,
   resolveFieldValue,
   type ReportSpec,
   type FieldValue,
   type Issue,
+  type NumberFormatMap,
 } from '@naabsa/core';
 import {
   callLLM,
@@ -48,6 +50,7 @@ export function buildReviewPrompt(
   spec: ReportSpec,
   variant: string | null,
   data: Record<string, FieldValue>,
+  displayDecimals: NumberFormatMap,
 ): { system: string; userText: string } {
   const fields = collectFields(spec, variant)
     .filter(
@@ -57,20 +60,18 @@ export function buildReviewPrompt(
     .map(([name, def]) => {
       const value = data[name] ?? null;
       const decimals =
-        def.type === 'number'
-          ? displayDecimalsForField(name, def.decimals)
-          : undefined;
+        def.type === 'number' ? displayDecimals[name] : undefined;
       return {
         field: name,
         label: def.label,
         type: def.type,
         ...(def.unit ? { unit: def.unit } : {}),
-        ...(decimals != null
+        ...(def.type === 'number'
           ? {
-              decimals,
+              ...(decimals !== undefined ? { decimals } : {}),
               display_value:
                 typeof value === 'number'
-                  ? value.toFixed(decimals)
+                  ? formatNumberWithDecimals(value, decimals)
                   : value,
             }
           : {}),
@@ -130,7 +131,7 @@ export async function aiReview(
   const { data: report, error: reportError } = await svc
     .from('reports')
     .select(
-      'spec_id, variant, extracted_data, operator_overrides, extraction_issues, status, data_revision, ai_review',
+      'spec_id, variant, extracted_data, extracted_number_formats, operator_overrides, operator_number_formats, extraction_issues, status, data_revision, ai_review',
     )
     .eq('id', reportId)
     .is('deleted_at', null)
@@ -143,8 +144,10 @@ export async function aiReview(
     spec_id: string;
     variant: string | null;
     extracted_data: Record<string, FieldValue> | null;
+    extracted_number_formats: NumberFormatMap | null;
     extraction_issues: Issue[] | null;
     operator_overrides: Record<string, FieldValue> | null;
+    operator_number_formats: NumberFormatMap | null;
     data_revision: number;
     ai_review: {
       status?: string;
@@ -154,6 +157,7 @@ export async function aiReview(
       attempt?: number;
       data?: Record<string, FieldValue>;
       dependencies?: Record<string, string[]>;
+      numberFormats?: NumberFormatMap;
     } | null;
     status: string;
   } | null;
@@ -187,6 +191,7 @@ export async function aiReview(
   const baseState = {
     data: r.ai_review?.data,
     dependencies: r.ai_review?.dependencies,
+    numberFormats: r.ai_review?.numberFormats,
     runId,
     executionId,
     revision: r.data_revision,
@@ -254,11 +259,13 @@ export async function aiReview(
     throw new RetryableAiReviewError(
       'Não foi possível consultar o spec para a revisão de IA.',
     );
+  let snapshotState = baseState;
   try {
     const spec = (specRow as { spec: ReportSpec } | null)?.spec;
     if (!spec) throw new Error('spec_missing');
     const cells = new Map<string, string | null>();
     const effective: Record<string, FieldValue> = {};
+    const numberFormats: NumberFormatMap = {};
     for (const [name, def] of collectFields(spec, r.variant)) {
       if (def.ai_review === false || isCalculatedDifferenceField(name))
         continue;
@@ -268,9 +275,31 @@ export async function aiReview(
         r.operator_overrides ?? {},
         r.extracted_data,
       );
+      const decimals = resolveDisplayDecimals(
+        name,
+        def,
+        r.extracted_number_formats ?? {},
+        r.operator_number_formats ?? {},
+        r.operator_overrides ?? {},
+      );
+      if (decimals !== undefined) numberFormats[name] = decimals;
     }
+    snapshotState = { ...baseState, data: effective, numberFormats };
+    const { data: snapshotted } = await persist({
+      ai_review: {
+        ...snapshotState,
+        status: 'running',
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    if (!snapshotted) return;
     const valid = new Set(cells.keys());
-    const { system, userText } = buildReviewPrompt(spec, r.variant, effective);
+    const { system, userText } = buildReviewPrompt(
+      spec,
+      r.variant,
+      effective,
+      numberFormats,
+    );
     const text = await callLLM(
       {
         purpose: 'ai_review',
@@ -315,7 +344,7 @@ export async function aiReview(
     const { data: saved } = await persist({
       extraction_issues: [...kept, ...aiIssues],
       ai_review: {
-        ...baseState,
+        ...snapshotState,
         status: 'done',
         updatedAt: new Date().toISOString(),
         data: effective,
@@ -323,19 +352,17 @@ export async function aiReview(
       },
     });
     if (!saved) return; // dados/etapa mudaram enquanto a IA respondia
-    await svc
-      .from('audit_log')
-      .insert({
-        report_id: reportId,
-        actor: null,
-        action: 'ai_review',
-        payload: { warnings: aiIssues.length, revision: r.data_revision },
-      } as never);
+    await svc.from('audit_log').insert({
+      report_id: reportId,
+      actor: null,
+      action: 'ai_review',
+      payload: { warnings: aiIssues.length, revision: r.data_revision },
+    } as never);
   } catch (error) {
     if (error instanceof RetryableAiReviewError) throw error;
     await persist({
       ai_review: {
-        ...baseState,
+        ...snapshotState,
         status: 'error',
         updatedAt: new Date().toISOString(),
         error:
