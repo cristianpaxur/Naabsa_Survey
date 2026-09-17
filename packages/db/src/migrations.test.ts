@@ -204,13 +204,52 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
     expect(inProgress.rows[0]!.extraction_issues).toEqual([]);
     expect(inProgress.rows[0]!.ai_review).toBeNull();
   });
-  it('repetir as correções não duplica specs nem auditoria', async () => {
+  it('reaplica migrações sem duplicar estado e valida as constraints de formatos', async () => {
     const before = await db.query('select count(*) from report_specs');
     const auditBefore = await db.query('select count(*) from audit_log');
     await db.exec(load('0015_fix_draft_survey_percentage.sql'));
     await db.exec(load('0017_fix_draft_survey_derived_review.sql'));
     await db.exec(load('0018_ignore_draft_survey_differences.sql'));
-    await db.exec(load('0019_report_number_formats.sql'));
+    await db.exec('begin');
+    try {
+      await db.exec(load('0019_report_number_formats.sql'));
+      const lockTimeout = await db.query<{ lock_timeout: string }>(
+        "select current_setting('lock_timeout') as lock_timeout",
+      );
+      expect(lockTimeout.rows[0]!.lock_timeout).toBe('5s');
+
+      const constraints = await db.query<{
+        conname: string;
+        occurrences: number;
+        convalidated: boolean;
+      }>(`
+        select conname,
+               count(*)::integer as occurrences,
+               bool_and(convalidated) as convalidated
+        from pg_constraint
+        where conrelid = 'public.reports'::regclass
+          and conname in (
+            'reports_extracted_number_formats_object',
+            'reports_operator_number_formats_object'
+          )
+        group by conname
+        order by conname
+      `);
+      expect(constraints.rows).toEqual([
+        {
+          conname: 'reports_extracted_number_formats_object',
+          occurrences: 1,
+          convalidated: true,
+        },
+        {
+          conname: 'reports_operator_number_formats_object',
+          occurrences: 1,
+          convalidated: true,
+        },
+      ]);
+    } finally {
+      await db.exec('rollback');
+    }
     expect((await db.query('select count(*) from report_specs')).rows).toEqual(
       before.rows,
     );
