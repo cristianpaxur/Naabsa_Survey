@@ -3,7 +3,7 @@ import { getReviewStatus, setOverride, retryAiReview } from './review';
 
 const memory = vi.hoisted(() => ({ user: true, row: {} as Record<string, any>, concurrent: false }));
 const request = vi.hoisted(() => vi.fn(async () => {}));
-const auditLog = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => {}));
+const auditLog = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('@/lib/request-ai-review', () => ({ requestAiReview: request }));
 vi.mock('@/lib/audit', () => ({ audit: auditLog }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
