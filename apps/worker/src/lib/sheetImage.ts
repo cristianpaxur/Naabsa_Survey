@@ -170,18 +170,14 @@ export async function renderSheetPng(
   for (const ws of wb.worksheets) {
     ws.state = ws.name === sheetName ? 'visible' : 'hidden';
   }
-  // Gridlines ativas: o print do Excel mostra a grade cinza-fina entre as
-  // células, que é o estilo "spreadsheet" usado na capa do relatório.
-  // O `showGridLines: true` (default) deixa a grade visível; o template tem
-  // cores de fundo (azul/rosa/branco) que continuam delimitando os blocos.
+  // O print do relatório deve sair sem as linhas de grade, como o print da
+  // fase Initial no modelo aprovado.
   target.views = (target.views?.length ? target.views : [{}]).map(
-    (v) => ({ ...v, showGridLines: true }) as never,
+    (v) => ({ ...v, showGridLines: false }) as never,
   );
 
-  // Remove bordas CUSTOMIZADAS das células: o template define bordas pretas
-  // grossas em todas as células, o que sobrepõe as gridlines finas. Mantendo
-  // só as gridlines (cinza-claro) e os fills coloridos, o print fica
-  // parecido com a visualização normal do Excel.
+  // Remove bordas CUSTOMIZADAS das células para preservar apenas os fills
+  // coloridos do template, sem linhas adicionais no print.
   for (let r = 1; r <= target.rowCount; r++) {
     const row = target.getRow(r);
     for (let c = 1; c <= target.columnCount; c++) {
