@@ -28,7 +28,7 @@ import {
 } from './naabsaDocumentLayout';
 
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
-import type { FieldValue } from '@naabsa/core';
+import { formatNumberWithDecimals, type FieldValue, type NumberFormatMap } from '@naabsa/core';
 
 const NAVY = '002060';
 const GREY = '7F7F7F';
@@ -38,8 +38,10 @@ const TITLE_FONT = 'Tahoma';
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
 
 type Data = Record<string, FieldValue>;
+type NumericField = (name: string, fallback?: number, suffix?: string, grouped?: boolean, signed?: boolean) => string;
 export interface DocxInputMsc {
   data: Data;
+  numberFormats?: NumberFormatMap;
   logo: Buffer | null;
   coverPhoto?: Buffer | null;
   photos: {
@@ -82,13 +84,6 @@ function fmtDate(x: FieldValue | undefined): string {
   if (!m) return String(x);
   return `${MONTHS[+m[2]! - 1]} ${+m[3]!}${ord(+m[3]!)}, ${+m[1]!}`;
 }
-function grp(n: number, dec: number): string {
-  const neg = n < 0; const f = Math.abs(n).toFixed(dec); const [i, d] = f.split('.');
-  return `${neg ? '-' : ''}${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${d ? '.' + d : ''}`;
-}
-const ton = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 0)} mt` : v(x));
-const meters = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${x.toFixed(2)} m` : v(x));
-const num = (x: FieldValue | undefined, d: number): string => (typeof x === 'number' ? x.toFixed(d) : v(x));
 function fmtDateShort(x: unknown): string {
   // dd/mm/yyyy a partir de Date ou YYYY-MM-DD (para Time Log).
   if (x == null) return '—';
@@ -198,6 +193,14 @@ const SLOT_LABELS: Record<keyof DocxInputMsc['photos'], string> = {
 
 export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   const { data, logo } = input;
+  const numericField: NumericField = (name, fallback, suffix = '', grouped = false, signed = false) => {
+    const value = data[name];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    const number = formatNumberWithDecimals(
+      signed ? Math.abs(value) : value, input.numberFormats?.[name] ?? fallback, grouped,
+    );
+    return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
+  };
   const photoSlots = (['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'] as const);
   const isRobOnly = /\brob\b/i.test(v(data['appointed_service'], '')) && !/sludge/i.test(v(data['appointed_service'], ''));
   const hasLastAttendance = isAffirmative(data['last_attendance']);
@@ -295,14 +298,14 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
     kvRow('Call sign', v(data['call_sign'])),
     kvRow('IMO number', v(data['imo'])),
     kvRow('Type', v(data['type'])),
-    kvRow('Delivered', v(data['delivered'])),
-    kvRow('LOA', meters(data['loa'])),
-    kvRow('LBP', meters(data['lbp'])),
-    kvRow('Breadth', meters(data['breadth'])),
-    kvRow('Depth', meters(data['depth'])),
-    kvRow('Net tonnage', ton(data['net_tonnage'])),
-    kvRow('Gross tonnage', ton(data['gross_tonnage'])),
-    kvRow('Light ship', `${num(data['light_ship'], 2)} t`),
+    kvRow('Delivered', numericField('delivered')),
+    kvRow('LOA', numericField('loa', 2, ' m')),
+    kvRow('LBP', numericField('lbp', 2, ' m')),
+    kvRow('Breadth', numericField('breadth', 2, ' m')),
+    kvRow('Depth', numericField('depth', 2, ' m')),
+    kvRow('Net tonnage', numericField('net_tonnage', 0, ' mt', true)),
+    kvRow('Gross tonnage', numericField('gross_tonnage', 0, ' mt', true)),
+    kvRow('Light ship', `${numericField('light_ship', 2)} t`),
   ] }));
 
   // ── 2. Background ──
@@ -322,9 +325,9 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   // 2.2 Purifiers Settings
   body.push(subTitle('s2_2', '2.2 Purifiers Settings'));
   body.push(new Table({ width: { size: 9860, type: WidthType.DXA }, columnWidths: [...KV_COLS], layout: TableLayoutType.FIXED, borders: tableNoBorders, rows: [
-    kvRow('Temperature', `${num(data['purifier_temp'], 0)} °C`),
+    kvRow('Temperature', `${numericField('purifier_temp', 0)} °C`),
     kvRow('Flow setting by each purifier', `${v(data['purifier_flow'])} m³`),
-    kvRow('Bowl discharging frequency', `${num(data['purifier_bowl_freq'], 0)} minutes`),
+    kvRow('Bowl discharging frequency', `${numericField('purifier_bowl_freq', 0)} minutes`),
   ] }));
 
   // 2.3 Temperature
@@ -333,10 +336,10 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   body.push(para([run(`Service tanks – ${v(data['temp_service'], 'Glass thermometer')}`)]));
   body.push(para([run(`Diesel oil storage and Service tanks – Infrared thermometer: ${v(data['temp_do'], 'ER')}`)]));
   if (data['temp_engine_room'] != null) {
-    body.push(para([run(`Engine room temperature: ${num(data['temp_engine_room'], 0)} °C`)]));
+    body.push(para([run(`Engine room temperature: ${numericField('temp_engine_room', 0)} °C`)]));
   }
   if (data['temp_sea_water'] != null) {
-    body.push(para([run(`Sea water temperature: ${num(data['temp_sea_water'], 0)} °C`)]));
+    body.push(para([run(`Sea water temperature: ${numericField('temp_sea_water', 0)} °C`)]));
   }
 
   // 2.4 Specific Gravities
@@ -346,7 +349,7 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   // 2.5 Gross volume — m³
   body.push(subTitle('s2_5', '2.5 Gross volume — m³'));
   body.push(para([run('Calculated according to the ship’s tanks sounding table provided by Chief Engineer at time of survey. All corrections were applied accordingly.')]));
-  body.push(gradeComparisonTable(data));
+  body.push(gradeComparisonTable(data, numericField));
   const updatedDocuments = [
     isAffirmative(data['logbook_updated']) ? 'logbook' : null,
     isAffirmative(data['vrs_updated']) ? 'VRS' : null,
@@ -357,14 +360,14 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
 
   body.push(subTitle('s2_6', '2.6 Sludge Disposal'));
   if (isRobOnly) body.push(para([run('This attendance covers ROB only; no sludge disposal calculation was requested.')]));
-  else body.push(sludgeDisposalTable(data));
+  else body.push(sludgeDisposalTable(data, numericField));
 
   body.push(subTitle('s2_7', '2.7 Sludge rate production'));
   if (isRobOnly) body.push(para([run('—', { color: GREY })]));
-  else body.push(sludgeRateTable(data));
+  else body.push(sludgeRateTable(numericField));
 
   body.push(subTitle('s2_8', '2.8 Consumption x Flowmeter'));
-  body.push(flowmeterTable(data));
+  body.push(flowmeterTable(numericField));
 
   if (hasLastAttendance) {
     body.push(subTitle('s2_9', '2.9 Last attendance'));
@@ -472,54 +475,42 @@ function reportTable(headers: string[], rows: string[][]): Table {
   });
 }
 
-function m3(value: FieldValue | undefined): string {
-  return typeof value === 'number' ? `${grp(value, 3)} m³` : '—';
-}
-
-function mt(value: FieldValue | undefined): string {
-  return typeof value === 'number' ? `${grp(value, 3)} mt` : '—';
-}
-
-function percent(value: FieldValue | undefined): string {
-  return typeof value === 'number' ? `${grp(value, 2)} %` : '—';
-}
-
-function gradeComparisonTable(data: Data): Table {
+function gradeComparisonTable(data: Data, numericField: NumericField): Table {
   const rows: string[][] = [];
   for (const number of [1, 2, 3, 4]) {
     if (!isAffirmative(data[`grade_${number}_present`])) continue;
     rows.push([
       v(data[`grade_${number}`]),
-      mt(data[`grade_${number}_surveyor`]),
-      mt(data[`grade_${number}_vrs`]),
-      mt(data[`grade_${number}_difference`]),
-      percent(data[`grade_${number}_percentage`]),
+      numericField(`grade_${number}_surveyor`, 3, ' mt', true),
+      numericField(`grade_${number}_vrs`, 3, ' mt', true),
+      numericField(`grade_${number}_difference`, 3, ' mt', true),
+      numericField(`grade_${number}_percentage`, 2, ' %', true),
     ]);
   }
   return reportTable(['Grade', 'Surveyor', 'VRS', 'Difference', '%'], rows.length > 0 ? rows : [['—', '—', '—', '—', '—']]);
 }
 
-function sludgeDisposalTable(data: Data): Table {
+function sludgeDisposalTable(data: Data, numericField: NumericField): Table {
   return reportTable(['Item', 'Vessel records', 'Surveyor figures'], [
-    ['Sludge at berthing', m3(data['sludge_berthing']), m3(data['sludge_surveyor'])],
-    ['Difference', m3(data['sludge_difference']), percent(data['sludge_percentage'])],
-    ['Last discharge', fmtDateShort(data['last_discharge_date']), m3(data['last_discharge_quantity'])],
-    ['Retained after discharge', m3(data['retained_after_last_discharge']), m3(data['retained_after_discharge'])],
+    ['Sludge at berthing', numericField('sludge_berthing', 3, ' m³', true), numericField('sludge_surveyor', 3, ' m³', true)],
+    ['Difference', numericField('sludge_difference', 3, ' m³', true), numericField('sludge_percentage', 2, ' %', true)],
+    ['Last discharge', fmtDateShort(data['last_discharge_date']), numericField('last_discharge_quantity', 3, ' m³', true)],
+    ['Retained after discharge', numericField('retained_after_last_discharge', 3, ' m³', true), numericField('retained_after_discharge', 3, ' m³', true)],
   ]);
 }
 
-function sludgeRateTable(data: Data): Table {
+function sludgeRateTable(numericField: NumericField): Table {
   return reportTable(['Item', 'Vessel records', 'Surveyor figures'], [
-    ['Sludge generated', m3(data['sludge_generated_chief']), m3(data['sludge_generated_surveyor'])],
-    ['Logbook consumption', mt(data['consumption_chief']), mt(data['consumption_surveyor'])],
-    ['Sludge rate', percent(data['sludge_rate_chief']), percent(data['sludge_rate_surveyor'])],
+    ['Sludge generated', numericField('sludge_generated_chief', 3, ' m³', true), numericField('sludge_generated_surveyor', 3, ' m³', true)],
+    ['Logbook consumption', numericField('consumption_chief', 3, ' mt', true), numericField('consumption_surveyor', 3, ' mt', true)],
+    ['Sludge rate', numericField('sludge_rate_chief', 2, ' %', true), numericField('sludge_rate_surveyor', 2, ' %', true)],
   ]);
 }
 
-function flowmeterTable(data: Data): Table {
+function flowmeterTable(numericField: NumericField): Table {
   return reportTable(['Logbook total', 'Flowmeter total', 'Difference', 'Accuracy'], [[
-    mt(data['flowmeter_logbook_total']), mt(data['flowmeter_total']),
-    mt(data['flowmeter_difference']), percent(data['flowmeter_accuracy']),
+    numericField('flowmeter_logbook_total', 3, ' mt', true), numericField('flowmeter_total', 3, ' mt', true),
+    numericField('flowmeter_difference', 3, ' mt', true), numericField('flowmeter_accuracy', 2, ' %', true),
   ]]);
 }
 

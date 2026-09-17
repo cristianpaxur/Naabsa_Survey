@@ -4,12 +4,14 @@ import {
   buildDraftSurvey,
   collectFields,
   resolveFieldValue,
+  resolveDisplayDecimals,
   runExtraction,
   type ReportSpec,
   type FieldValue,
   type TipTapDoc,
   type PhotoAlloc,
   type BuilderInput,
+  type NumberFormatMap,
 } from '@naabsa/core';
 import type { ServerClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -80,6 +82,8 @@ export interface AssembleInput {
   variant: string | null;
   extracted: Record<string, FieldValue>;
   overrides: Record<string, FieldValue> | null;
+  extractedNumberFormats?: NumberFormatMap | null;
+  operatorNumberFormats?: NumberFormatMap | null;
 }
 
 /**
@@ -162,8 +166,16 @@ export async function assembleDocument(
     input.overrides,
   );
   const photos = await loadAllocatedPhotos(supabase, reportId);
+  const numberFormats: NumberFormatMap = {};
+  for (const [name, def] of collectFields(input.spec, input.variant)) {
+    const decimals = resolveDisplayDecimals(
+      name, def, input.extractedNumberFormats ?? {},
+      input.operatorNumberFormats ?? {}, input.overrides ?? {},
+    );
+    if (decimals !== undefined) numberFormats[name] = decimals;
+  }
   const tables = await loadTables(supabase, reportId, input.spec, input.variant);
   const sheetImages = await loadSheetImages(reportId);
 
-  return builder({ spec: input.spec, variant: input.variant, data, tables, photos, sheetImages });
+  return builder({ spec: input.spec, variant: input.variant, data, numberFormats, tables, photos, sheetImages });
 }

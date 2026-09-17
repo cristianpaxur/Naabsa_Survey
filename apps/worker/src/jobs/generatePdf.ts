@@ -18,9 +18,11 @@ import {
   runExtraction,
   collectFields,
   resolveFieldValue,
+  resolveDisplayDecimals,
   resolveVariant,
   type ReportSpec,
   type FieldValue,
+  type NumberFormatMap,
 } from '@naabsa/core';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -141,6 +143,8 @@ export interface ReportRow {
   spec_id: string;
   extracted_data: unknown;
   operator_overrides: unknown;
+  extracted_number_formats?: NumberFormatMap | null;
+  operator_number_formats?: NumberFormatMap | null;
   spreadsheet_path: string | null;
   created_by: string | null;
   pdf_paths: string[] | null;
@@ -155,7 +159,7 @@ export async function loadReport(
   const { data, error } = await svc
     .from('reports')
     .select(
-      'status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, spreadsheet_path, created_by, pdf_paths, report_types(slug)',
+      'status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, spreadsheet_path, created_by, pdf_paths, report_types(slug)',
     )
     .eq('id', reportId)
     .is('deleted_at', null)
@@ -296,6 +300,14 @@ export async function buildWorkingDocx(
     FieldValue
   >;
   const data = effectiveData(spec, variant, extracted, overrides);
+  const numberFormats: NumberFormatMap = {};
+  for (const [name, def] of collectFields(spec, variant)) {
+    const decimals = resolveDisplayDecimals(
+      name, def, row.extracted_number_formats ?? {},
+      row.operator_number_formats ?? {}, overrides,
+    );
+    if (decimals !== undefined) numberFormats[name] = decimals;
+  }
   const tables: Record<string, FieldValue[][]> = wb
     ? runExtraction(wb, spec, variant).tables
     : {};
@@ -344,6 +356,7 @@ export async function buildWorkingDocx(
     const timeLogRows: TimeLogRow[] = wb ? readTimeLog(wb) : [];
     const base: DocxInputMsc = {
       data,
+      numberFormats,
       logo,
       photos,
       timeLogRows,
@@ -451,6 +464,7 @@ export async function buildWorkingDocx(
   // uma vez com escala mais compacta antes de publicar o working.docx.
   const base: DocxInput = {
     data,
+    numberFormats,
     variant: variantStr ?? 'loading',
     logo,
     coverPhoto: bySlot['cover']?.[0] ?? null,

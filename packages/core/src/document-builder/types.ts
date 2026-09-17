@@ -4,7 +4,7 @@
  */
 
 import type { TipTapDoc } from './nodes';
-import type { ReportSpec, FieldValue } from '../types';
+import type { ReportSpec, FieldValue, NumberFormatMap } from '../types';
 
 /** Foto alocada em um slot, com URL assinada para render. */
 export interface PhotoAlloc {
@@ -22,6 +22,8 @@ export interface BuilderInput {
   variant: string | null;
   /** Valores efetivos (extracted_data + overrides já resolvidos). */
   data: Record<string, FieldValue>;
+  /** Precisão efetiva por campo, resolvida antes da montagem. */
+  numberFormats?: NumberFormatMap;
   /** Matrizes das tabelas range-based (v2) — usado pelas grades em T-012. */
   tables: Record<string, FieldValue[][]>;
   photos: PhotoAlloc[];

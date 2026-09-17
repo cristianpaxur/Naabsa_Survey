@@ -1,6 +1,9 @@
 import { createHash } from 'crypto';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
+import PizZip from 'pizzip';
 import {
+  buildWorkingDocx,
+  loadReport,
   convertWorkingDocxToPdf,
   missingRequiredSheetPhases,
   nextPdfVersion,
@@ -11,10 +14,65 @@ vi.mock('../lib/soffice', () => ({
   convertDocxToPdf: convertDocxMock,
   measureBookmarkPages: vi.fn(async () => ({})),
 }));
+vi.mock('../lib/documentLayoutQa', () => ({
+  validateDocumentLayout: async () => ({ ok: true, pageCount: 1, blankPages: [], aiRequestedSmallerPhotos: false }),
+}));
 
 beforeEach(() => {
   convertDocxMock.mockReset();
   convertDocxMock.mockResolvedValue(Buffer.from('PDF'));
+});
+
+describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
+  it.each(['draft_survey', 'msc'])('carrega e resolve mapas no builder %s', async (slug) => {
+    const stored = {
+      status: 'editing', working_docx_path: null, working_docx_revision: 0,
+      working_docx_generation: 'g1', approved_docx_path: null, approved_docx_revision: null,
+      variant: slug === 'msc' ? null : 'loading', spec_id: 's1',
+      extracted_data: { summer_dwt: 80, net_tonnage: 12000, loa: 228.9 },
+      operator_overrides: { summer_dwt: 81 },
+      extracted_number_formats: { summer_dwt: 0, net_tonnage: 0 },
+      operator_number_formats: { summer_dwt: 1, net_tonnage: 2 },
+      spreadsheet_path: null, created_by: null, pdf_paths: [], report_types: { slug },
+    };
+    const spec = { report_type: slug, version: 1, source: { sheet: 'Capa',
+      common: { fields: {
+        summer_dwt: { cell: 'A1', type: 'number', decimals: 3 },
+        net_tonnage: { cell: 'A2', type: 'number', decimals: 3 },
+        loa: { cell: 'A3', type: 'number', decimals: 3 },
+      } }, by_variant: {},
+    }, validations: [], photo_slots: [] };
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==', 'base64');
+    const svc = {
+      from: (table: string) => {
+        let columns = '';
+        const query = {
+          select: (selected: string) => { columns = selected; return query; },
+          eq: () => query, is: () => query, not: () => query,
+          single: async () => ({ data: table === 'report_specs' ? { spec } :
+            Object.fromEntries(Object.entries(stored).filter(([key]) => columns.includes(key))), error: null }),
+          order: async () => ({ data: [], error: null }),
+        };
+        return query;
+      },
+      storage: { from: () => ({ download: async () => ({ data: { arrayBuffer: async () => png }, error: null }) }) },
+    };
+    const row = await loadReport(svc as never, 'r1');
+    expect(row).not.toBeNull();
+    const built = await buildWorkingDocx(svc as never, 'r1', row!);
+    const xml = new PizZip(built.docx).file('word/document.xml')!.asText();
+    const rowText = (label: string) => {
+      const entry = (xml.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? []).find((row) =>
+        [...row.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)].map((match) => match[1]).join('').toLowerCase().includes(label.toLowerCase()));
+      expect(entry).toBeDefined();
+      return [...entry!.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)].map((match) => match[1]).join('');
+    };
+    if (slug === 'draft_survey') expect(rowText('Summer DWT').match(/81(?:\.\d+)?/g)).toEqual(['81.0']);
+    expect(rowText('Net tonnage').match(/12,000(?:\.\d+)?/g)).toEqual(['12,000']);
+    expect(rowText('LOA').match(/228(?:\.\d+)?/g)).toEqual(['228.900']);
+    expect(built.data).toEqual({ summer_dwt: 81, net_tonnage: 12000, loa: 228.9 });
+    if (slug === 'draft_survey') expect(convertDocxMock.mock.calls[0]?.[0]).toEqual(built.docx);
+  });
 });
 
 describe('nextPdfVersion (010/T-005, CA-003)', () => {
@@ -73,6 +131,8 @@ describe('convertWorkingDocxToPdf (012/T-005..T-007, CA-004)', () => {
       spec_id: 's1',
       extracted_data: {},
       operator_overrides: {},
+      extracted_number_formats: { summer_dwt: 0 },
+      operator_number_formats: { summer_dwt: 3 },
       spreadsheet_path: null,
       created_by: null,
       pdf_paths: [],

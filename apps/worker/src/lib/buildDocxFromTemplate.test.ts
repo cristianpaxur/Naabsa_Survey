@@ -2,11 +2,86 @@ import { describe, expect, it } from 'vitest';
 import PizZip from 'pizzip';
 import sharp from 'sharp';
 import { buildReportDocxFromTemplate } from './buildDocxFromTemplate';
+import { buildReportDocxLegacy } from './buildDocx';
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==',
   'base64',
 );
+
+function documentText(docx: Buffer): string {
+  const xml = new PizZip(docx).file('word/document.xml')!.asText();
+  return [...xml.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)]
+    .map((match) => match[1]).join('\n');
+}
+
+describe.each([
+  ['template', buildReportDocxFromTemplate],
+  ['rollback nativo', buildReportDocxLegacy],
+] as const)('precisão Draft Survey: %s', (_name, build) => {
+  it('aplica precisão ao campo numérico Delivered, antes exibido como texto', async () => {
+    const text = documentText(await build({
+      data: { delivered: 1981 }, numberFormats: { delivered: 1 },
+      variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+    }));
+    expect(text.split('\n').filter((value) => /^1981(?:\.\d+)?$/.test(value))).toEqual(['1981.0']);
+  });
+  it.each([[0, '81'], [1, '81.0'], [2, '81.00'], [3, '81.000']] as const)(
+    'renderiza Summer DWT com %i casas sem outro literal concorrente',
+    async (decimals, expected) => {
+      const docx = await build({
+        data: { summer_dwt: 81 }, numberFormats: { summer_dwt: decimals },
+        variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+      });
+      const xml = new PizZip(docx).file('word/document.xml')!.asText();
+      const row = (xml.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? [])
+        .find((entry) => entry.includes('Summer DWT'));
+      expect(row).toBeDefined();
+      const text = [...row!.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)]
+        .map((match) => match[1]).join('');
+      expect(text.match(/81(?:\.\d+)?/g)).toEqual([expected]);
+    },
+  );
+
+  it('aplica o mapa em particulares, leituras e figures sem alterar acting-as', async () => {
+    const docx = await build({
+      data: { loa: 228.9, net_tonnage: 12345, init_fwd_mean: 4.5,
+        init_fwd_corr: 4.5, init_heel: 0, init_deflection: 2,
+        fin_fig_shore_scale: 1250, fin_fig_naabsa: 1250, fin_fig_vessel: 1250,
+        fin_fig_diff_mt: -1.5, fin_fig_diff_pct: 0.12 },
+      numberFormats: { loa: 3, net_tonnage: 0, init_fwd_mean: 1,
+        init_fwd_corr: 2, init_heel: 0, init_deflection: 2,
+        fin_fig_shore_scale: 1, fin_fig_naabsa: 1, fin_fig_vessel: 1,
+        fin_fig_diff_mt: 1, fin_fig_diff_pct: 2 },
+      variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {},
+      acting: { final: [['Role'], ["Terminal's Surveyor", '', '', '', '', '', '', '', '5000']] },
+    });
+    const text = documentText(docx);
+    const xml = new PizZip(docx).file('word/document.xml')!.asText();
+    const rows = (xml.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? []).map((row) =>
+      [...row.matchAll(/<w:tc\b[^>]*>(.*?)<\/w:tc>/gs)].map((cell) =>
+        [...cell[1]!.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)].map((match) => match[1]).join('')).join(' '));
+    const numbersInRow = (label: string) => rows.find((row) => row.includes(label))
+      ?.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/g);
+    expect(numbersInRow('LOA')).toEqual(['228.900']);
+    expect(numbersInRow('Net tonnage')).toEqual(['12,345']);
+    expect(numbersInRow('Fwd')).toEqual(['4.5', '4.50']);
+    expect(numbersInRow('Ms')).toEqual(['0']);
+    expect(numbersInRow('Aft')).toEqual(['2.00']);
+    for (const expected of ['1,250.0 MT', '- 1.5 MT', '+ 0.12 %', '5,000.000 MT']) expect(text).toContain(expected);
+    expect(text).not.toContain('1,250.000 MT');
+    expect(text).not.toContain('- 1.500 MT');
+  });
+
+  it('omite números não finitos e aceita mapas ausentes', async () => {
+    const text = documentText(await build({
+      data: { summer_dwt: Number.NaN, loa: Infinity, init_fwd_mean: null,
+        init_heel: -Infinity, fin_fig_diff_mt: Infinity },
+      variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+    }));
+    expect(text).not.toMatch(/NaN|Infinity|null|undefined/);
+  });
+});
 
 describe('buildReportDocxFromTemplate', () => {
   it('renders image paragraphs as valid sibling paragraphs for Collabora', async () => {

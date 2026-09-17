@@ -11,10 +11,10 @@ import Docxtemplater from 'docxtemplater';
 import ImageModule from 'docxtemplater-image-module-free';
 import PizZip from 'pizzip';
 import sharp from 'sharp';
-import type { FieldValue } from '@naabsa/core';
+import { formatNumberWithDecimals, type FieldValue } from '@naabsa/core';
 import type { DocxInput } from './buildDocx';
 
-type Data = Record<string, FieldValue>;
+type NumericField = (name: string, fallback?: number, suffix?: string, grouped?: boolean, signed?: boolean) => string;
 
 const TEMPLATE_URL = new URL(
   '../../../../templates/draft_survey.clean.docx',
@@ -487,26 +487,8 @@ function grouped(number: number, decimals: number): string {
   return `${negative ? '-' : ''}${formattedInteger}${fraction == null ? '' : `.${fraction}`}`;
 }
 
-function numeric(raw: FieldValue | undefined, decimals: number): string {
-  return typeof raw === 'number' ? raw.toFixed(decimals) : value(raw);
-}
-
-function groupedNumeric(raw: FieldValue | undefined, decimals: number): string {
-  return typeof raw === 'number' ? grouped(raw, decimals) : value(raw);
-}
-
 function mt(raw: FieldValue | undefined): string {
-  return typeof raw === 'number' ? `${grouped(raw, 3)} MT` : value(raw);
-}
-
-function signedMt(raw: FieldValue | undefined): string {
-  if (typeof raw !== 'number') return value(raw);
-  return `${raw >= 0 ? '+' : '-'} ${grouped(Math.abs(raw), 3)} MT`;
-}
-
-function signedPercent(raw: FieldValue | undefined): string {
-  if (typeof raw !== 'number') return value(raw);
-  return `${raw >= 0 ? '+' : '-'} ${grouped(Math.abs(raw), 3)} %`;
+  return typeof raw === 'number' && Number.isFinite(raw) ? `${grouped(raw, 3)} MT` : '—';
 }
 
 function sideLabels(raw: FieldValue | undefined): {
@@ -545,22 +527,22 @@ function figureLine(label: string, amount: string): string {
 
 function figureLines(
   prefix: 'int' | 'fin',
-  data: Data,
+  numericField: NumericField,
   officialLabel: string,
   acting: string[][],
 ): string[] {
   const lines = [
     figureLine(
       `${officialLabel} figures (Official)`,
-      mt(data[`${prefix}_fig_shore_scale`]),
+      numericField(`${prefix}_fig_shore_scale`, 3, ' MT', true),
     ),
-    figureLine('NAABSA’s surveyor figures', mt(data[`${prefix}_fig_naabsa`])),
+    figureLine('NAABSA’s surveyor figures', numericField(`${prefix}_fig_naabsa`, 3, ' MT', true)),
     figureLine(
       'Difference as per our figures',
-      `${signedMt(data[`${prefix}_fig_diff_mt`])} or ${signedPercent(data[`${prefix}_fig_diff_pct`])}`,
+      `${numericField(`${prefix}_fig_diff_mt`, 3, ' MT', true, true)} or ${numericField(`${prefix}_fig_diff_pct`, 3, ' %', true, true)}`,
     ),
     '',
-    figureLine('Vessel’s figures', mt(data[`${prefix}_fig_vessel`])),
+    figureLine('Vessel’s figures', numericField(`${prefix}_fig_vessel`, 3, ' MT', true)),
   ];
   for (const row of acting.slice(1, 4)) {
     const role = String(row[0] ?? '').trim();
@@ -615,6 +597,14 @@ function tocData(
 
 function makeTemplateData(input: DocxInput): Record<string, unknown> {
   const data = input.data;
+  const numericField: NumericField = (name, fallback, suffix = '', grouped = false, signed = false) => {
+    const value = data[name];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+    const number = formatNumberWithDecimals(
+      signed ? Math.abs(value) : value, input.numberFormats?.[name] ?? fallback, grouped,
+    );
+    return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
+  };
   const variant = VARIANT[input.variant];
   const hasIntermediate =
     data['intermediate_date'] != null && data['intermediate_date'] !== '';
@@ -624,13 +614,13 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
   const draftReadings = `${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`;
   const intermediateFigures = figureLines(
     'int',
-    data,
+    numericField,
     variant.officialFig,
     intermediateActing,
   );
   const finalFigures = figureLines(
     'fin',
-    data,
+    numericField,
     variant.officialFig,
     finalActing,
   );
@@ -661,14 +651,14 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     register_port: value(data['register_port']),
     call_sign: value(data['call_sign']),
     vessel_type: value(data['vessel_type']),
-    delivered: value(data['delivered']),
-    loa: numeric(data['loa'], 2),
-    lbp: numeric(data['lbp'], 2),
-    depth_moulded: numeric(data['depth_moulded'], 2),
-    breadth_moulded: numeric(data['breadth_moulded'], 2),
-    net_tonnage: groupedNumeric(data['net_tonnage'], 3),
-    gross_tonnage: groupedNumeric(data['gross_tonnage'], 3),
-    summer_dwt: groupedNumeric(data['summer_dwt'], 3),
+    delivered: numericField('delivered'),
+    loa: numericField('loa', 2),
+    lbp: numericField('lbp', 2),
+    depth_moulded: numericField('depth_moulded', 2),
+    breadth_moulded: numericField('breadth_moulded', 2),
+    net_tonnage: numericField('net_tonnage', 3, '', true),
+    gross_tonnage: numericField('gross_tonnage', 3, '', true),
+    summer_dwt: numericField('summer_dwt', 3, '', true),
     hasIntermediate,
     final_no: hasIntermediate ? 5 : 4,
     initial_narrative: initialNarrative,
@@ -690,41 +680,41 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     ...Object.fromEntries(
       finalFigures.map((line, index) => [`fin_figure_line_${index + 1}`, line]),
     ),
-    init_trim_obs: numeric(data['init_trim_obs'], 4),
-    init_fwd_mean: numeric(data['init_fwd_mean'], 3),
-    init_fwd_corr: numeric(data['init_fwd_corr'], 4),
-    init_trim_corr: numeric(data['init_trim_corr'], 4),
-    init_mid_mean: numeric(data['init_mid_mean'], 3),
-    init_mid_corr: numeric(data['init_mid_corr'], 4),
-    init_heel: numeric(data['init_heel'], 2),
+    init_trim_obs: numericField('init_trim_obs', 4),
+    init_fwd_mean: numericField('init_fwd_mean', 3),
+    init_fwd_corr: numericField('init_fwd_corr', 4),
+    init_trim_corr: numericField('init_trim_corr', 4),
+    init_mid_mean: numericField('init_mid_mean', 3),
+    init_mid_corr: numericField('init_mid_corr', 4),
+    init_heel: numericField('init_heel', 2),
     init_heel_side: value(data['init_heel_side'], ''),
-    init_aft_mean: numeric(data['init_aft_mean'], 3),
-    init_aft_corr: numeric(data['init_aft_corr'], 4),
-    init_deflection: numeric(data['init_deflection'], 1),
+    init_aft_mean: numericField('init_aft_mean', 3),
+    init_aft_corr: numericField('init_aft_corr', 4),
+    init_deflection: numericField('init_deflection', 1),
     init_deflection_type: value(data['init_deflection_type'], ''),
-    int_trim_obs: numeric(data['int_trim_obs'], 4),
-    int_fwd_mean: numeric(data['int_fwd_mean'], 3),
-    int_fwd_corr: numeric(data['int_fwd_corr'], 4),
-    int_trim_corr: numeric(data['int_trim_corr'], 4),
-    int_mid_mean: numeric(data['int_mid_mean'], 3),
-    int_mid_corr: numeric(data['int_mid_corr'], 4),
-    int_list: numeric(data['int_list'], 2),
+    int_trim_obs: numericField('int_trim_obs', 4),
+    int_fwd_mean: numericField('int_fwd_mean', 3),
+    int_fwd_corr: numericField('int_fwd_corr', 4),
+    int_trim_corr: numericField('int_trim_corr', 4),
+    int_mid_mean: numericField('int_mid_mean', 3),
+    int_mid_corr: numericField('int_mid_corr', 4),
+    int_list: numericField('int_list', 2),
     int_list_side: value(data['int_list_side'], ''),
-    int_aft_mean: numeric(data['int_aft_mean'], 3),
-    int_aft_corr: numeric(data['int_aft_corr'], 4),
-    int_deflection: numeric(data['int_deflection'], 1),
+    int_aft_mean: numericField('int_aft_mean', 3),
+    int_aft_corr: numericField('int_aft_corr', 4),
+    int_deflection: numericField('int_deflection', 1),
     int_deflection_type: value(data['int_deflection_type'], ''),
-    fin_trim_obs: numeric(data['fin_trim_obs'], 4),
-    fin_fwd_mean: numeric(data['fin_fwd_mean'], 3),
-    fin_fwd_corr: numeric(data['fin_fwd_corr'], 4),
-    fin_trim_corr: numeric(data['fin_trim_corr'], 4),
-    fin_mid_mean: numeric(data['fin_mid_mean'], 3),
-    fin_mid_corr: numeric(data['fin_mid_corr'], 4),
-    fin_list: numeric(data['fin_list'], 2),
+    fin_trim_obs: numericField('fin_trim_obs', 4),
+    fin_fwd_mean: numericField('fin_fwd_mean', 3),
+    fin_fwd_corr: numericField('fin_fwd_corr', 4),
+    fin_trim_corr: numericField('fin_trim_corr', 4),
+    fin_mid_mean: numericField('fin_mid_mean', 3),
+    fin_mid_corr: numericField('fin_mid_corr', 4),
+    fin_list: numericField('fin_list', 2),
     fin_list_side: value(data['fin_list_side'], ''),
-    fin_aft_mean: numeric(data['fin_aft_mean'], 3),
-    fin_aft_corr: numeric(data['fin_aft_corr'], 4),
-    fin_deflection: numeric(data['fin_deflection'], 1),
+    fin_aft_mean: numericField('fin_aft_mean', 3),
+    fin_aft_corr: numericField('fin_aft_corr', 4),
+    fin_deflection: numericField('fin_deflection', 1),
     fin_deflection_type: value(data['fin_deflection_type'], ''),
     // This image module treats object values as pre-resolved relationship data,
     // so template values are stable string keys resolved by getImage below.

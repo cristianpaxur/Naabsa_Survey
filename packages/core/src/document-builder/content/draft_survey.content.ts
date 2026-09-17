@@ -27,6 +27,7 @@ import {
 } from '../nodes';
 import type { BuilderInput } from '../types';
 import type { FieldValue } from '../../types';
+import { formatNumberWithDecimals } from '../../number-format';
 
 const W = 150;
 const H = 100;
@@ -47,40 +48,11 @@ function fmtThousands(v: number, decimals: number): string {
   return `${neg ? '-' : ''}${grouped}${dec ? '.' + dec : ''}`;
 }
 
-function fmtNum(v: FieldValue | undefined, dec: number, fallback = '—'): string {
-  if (v === null || v === undefined) return fallback;
-  if (typeof v === 'number') return v.toFixed(dec);
-  return String(v);
-}
-
-/** Número em metros: "228.99 m". */
-function fmtMeters(v: FieldValue | undefined): string {
-  if (typeof v === 'number') return `${v.toFixed(2)} m`;
-  return v == null ? '—' : String(v);
-}
-
-/** Tonelagem com três casas decimais: "27,239.000 mt". */
-function fmtTon(v: FieldValue | undefined): string {
-  if (typeof v === 'number') return `${fmtThousands(v, 3)} mt`;
-  return v == null ? '—' : String(v);
-}
-
 /** Figura de carga: "5,079.578 MT". */
 function fmtMt(v: FieldValue | undefined): string {
-  if (typeof v === 'number') return `${fmtThousands(v, 3)} MT`;
+  if (typeof v === 'number' && Number.isFinite(v)) return `${fmtThousands(v, 3)} MT`;
+  if (typeof v === 'number') return '—';
   return v == null ? '—' : String(v);
-}
-
-/** Diferença com sinal: "+ 79.578 MT" / "- 12.500 MT". */
-function fmtSignedMt(v: FieldValue | undefined): string {
-  if (typeof v !== 'number') return v == null ? '—' : String(v);
-  return `${v >= 0 ? '+' : '-'} ${fmtThousands(Math.abs(v), 3)} MT`;
-}
-
-/** Diferença percentual em pontos percentuais: 0.362 → "+ 0.362 %". */
-function fmtSignedPct(v: FieldValue | undefined): string {
-  if (typeof v !== 'number') return v == null ? '—' : String(v);
-  return `${v >= 0 ? '+' : '-'} ${fmtThousands(Math.abs(v), 3)} %`;
 }
 
 const MONTHS = [
@@ -239,10 +211,18 @@ const BALLAST_FINAL = 'The ballast quantity and fresh water was informed by Chie
 // ── Builder principal ──────────────────────────────────────────────────────
 
 export function buildDraftSurveyContent(
-  input: Pick<BuilderInput, 'data' | 'photos' | 'tables' | 'sheetImages'>,
+  input: Pick<BuilderInput, 'data' | 'photos' | 'tables' | 'sheetImages' | 'numberFormats'>,
   variant: 'loading' | 'discharge',
 ): TipTapNode[] {
   const { data, photos, tables } = input;
+  const numericField = (name: string, fallback?: number, suffix = '', grouped = false, signed = false): string => {
+    const value = data[name];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    const number = formatNumberWithDecimals(
+      signed ? Math.abs(value) : value, input.numberFormats?.[name] ?? fallback, grouped,
+    );
+    return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
+  };
   const sheetImages = input.sheetImages ?? {};
   const V = VARIANT_TEXT[variant];
 
@@ -371,14 +351,14 @@ export function buildDraftSurveyContent(
         ['Call sign', fmtVal(data['call_sign'])],
         ['IMO number', fmtVal(data['imo'])],
         ['Type', fmtVal(data['vessel_type'])],
-        ['Delivered', fmtVal(data['delivered'])],
-        ['LOA', fmtMeters(data['loa'])],
-        ['LBP', fmtMeters(data['lbp'])],
-        ['Depth moulded', fmtMeters(data['depth_moulded'])],
-        ['Breadth moulded', fmtMeters(data['breadth_moulded'])],
-        ['Net tonnage', fmtTon(data['net_tonnage'])],
-        ['Gross tonnage', fmtTon(data['gross_tonnage'])],
-        ['Summer DWT', fmtTon(data['summer_dwt'])],
+        ['Delivered', numericField('delivered')],
+        ['LOA', numericField('loa', 2, ' m')],
+        ['LBP', numericField('lbp', 2, ' m')],
+        ['Depth moulded', numericField('depth_moulded', 2, ' m')],
+        ['Breadth moulded', numericField('breadth_moulded', 2, ' m')],
+        ['Net tonnage', numericField('net_tonnage', 3, ' mt', true)],
+        ['Gross tonnage', numericField('gross_tonnage', 3, ' mt', true)],
+        ['Summer DWT', numericField('summer_dwt', 3, ' mt', true)],
       ],
     }),
   ];
@@ -452,14 +432,14 @@ export function buildDraftSurveyContent(
     if (!p.hasFigures || !p.figPrefix) return [];
     const fp = p.figPrefix;
     return [
-      leaderLine({ label: 'Shore Scale/BsL figures (Official)', value: fmtMt(data[`${fp}_fig_shore_scale`]) }),
-      leaderLine({ label: "NAABSA's surveyor figures", value: fmtMt(data[`${fp}_fig_naabsa`]) }),
+      leaderLine({ label: 'Shore Scale/BsL figures (Official)', value: numericField(`${fp}_fig_shore_scale`, 3, ' MT', true) }),
+      leaderLine({ label: "NAABSA's surveyor figures", value: numericField(`${fp}_fig_naabsa`, 3, ' MT', true) }),
       leaderLine({
         label: 'Difference as per our figures',
-        value: `${fmtSignedMt(data[`${fp}_fig_diff_mt`])} or ${fmtSignedPct(data[`${fp}_fig_diff_pct`])}`,
+        value: `${numericField(`${fp}_fig_diff_mt`, 3, ' MT', true, true)} or ${numericField(`${fp}_fig_diff_pct`, 3, ' %', true, true)}`,
       }),
       paragraph([]),
-      leaderLine({ label: "Vessel's figures", value: fmtMt(data[`${fp}_fig_vessel`]) }),
+      leaderLine({ label: "Vessel's figures", value: numericField(`${fp}_fig_vessel`, 3, ' MT', true) }),
       ...(p.actingAsTableId ? actingAsLines(tables[p.actingAsTableId]) : []),
     ];
   }
@@ -469,19 +449,19 @@ export function buildDraftSurveyContent(
     const x = p.prefix;
     const heelVal =
       data[p.heelField] != null
-        ? `${fmtNum(data[p.heelField], 2)}° ${fmtVal(data[p.heelSideField], '')}`.trim()
+        ? `${numericField(p.heelField, 2)}° ${fmtVal(data[p.heelSideField], '')}`.trim()
         : '—';
     const deflVal =
       data[`${x}_deflection`] != null
-        ? `${fmtNum(data[`${x}_deflection`], 1)} cm ${fmtVal(data[`${x}_deflection_type`], '')}`.trim()
+        ? `${numericField(`${x}_deflection`, 1)} cm ${fmtVal(data[`${x}_deflection_type`], '')}`.trim()
         : '—';
     return dataTable({
       tableId: `${x}_readings`,
       headers: ['Draft Mark', 'Means', 'Mean corrected', '', '', ''],
       rows: [
-        ['Fwd', fmtNum(data[`${x}_fwd_mean`], 3), fmtNum(data[`${x}_fwd_corr`], 4), '', 'Trim obs', `${fmtNum(data[`${x}_trim_obs`], 4)} m`],
-        ['Ms', fmtNum(data[`${x}_mid_mean`], 3), fmtNum(data[`${x}_mid_corr`], 4), '', 'Trim correct', `${fmtNum(data[`${x}_trim_corr`], 4)} m`],
-        ['Aft', fmtNum(data[`${x}_aft_mean`], 3), fmtNum(data[`${x}_aft_corr`], 4), '', p.heelLabel, heelVal],
+        ['Fwd', numericField(`${x}_fwd_mean`, 3), numericField(`${x}_fwd_corr`, 4), '', 'Trim obs', `${numericField(`${x}_trim_obs`, 4)} m`],
+        ['Ms', numericField(`${x}_mid_mean`, 3), numericField(`${x}_mid_corr`, 4), '', 'Trim correct', `${numericField(`${x}_trim_corr`, 4)} m`],
+        ['Aft', numericField(`${x}_aft_mean`, 3), numericField(`${x}_aft_corr`, 4), '', p.heelLabel, heelVal],
         ['', '', '', '', 'Deflection', deflVal],
       ],
     });

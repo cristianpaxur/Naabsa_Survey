@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildWorkingDocx } from './buildWorkingDocx';
+import PizZip from 'pizzip';
 
 const state = vi.hoisted(() => ({
   row: {} as Record<string, unknown>, objects: new Map<string, Buffer>(),
@@ -9,6 +10,13 @@ const assemble = vi.hoisted(() => vi.fn());
 const upload = vi.hoisted(() => vi.fn());
 vi.mock('./generatePdf', () => ({
   loadReport: async () => ({ ...state.row }), buildWorkingDocx: (...args: unknown[]) => assemble(...args),
+}));
+vi.mock('../lib/soffice', () => ({
+  measureBookmarkPages: async () => ({}),
+  convertDocxToPdf: async () => Buffer.from('PDF'),
+}));
+vi.mock('../lib/documentLayoutQa', () => ({
+  validateDocumentLayout: async () => ({ ok: true, pageCount: 1, blankPages: [], aiRequestedSmallerPhotos: false }),
 }));
 vi.mock('../lib/supabase', () => ({ getServiceClient: () => ({
   storage: { from: () => ({ upload }) },
@@ -31,6 +39,9 @@ vi.mock('../lib/supabase', () => ({ getServiceClient: () => ({
   }),
 }) }));
 
+// Carrega as dependências do builder na coleta, fora do orçamento de cada teste.
+const realAssembly = await vi.importActual<typeof import('./generatePdf')>('./generatePdf');
+
 beforeEach(() => {
   vi.clearAllMocks(); state.objects.clear(); state.failDb = false; state.loseDbResponse = false;
   state.row = { id: 'r1', status: 'editing', working_docx_generation: 'g1', working_docx_revision: 0, working_docx_path: null };
@@ -42,6 +53,41 @@ beforeEach(() => {
 });
 
 describe('montagem inicial com CAS', () => {
+  it('publica DOCX real com a precisão efetiva carregada no relatório', async () => {
+    Object.assign(state.row, {
+      type_slug: 'draft_survey', variant: 'loading', spec_id: 's1', spreadsheet_path: null,
+      extracted_data: { delivered: 1980, summer_dwt: 81 }, operator_overrides: { delivered: 1981 },
+      extracted_number_formats: { delivered: 0, summer_dwt: 0 }, operator_number_formats: { delivered: 1 },
+    });
+    const spec = { report_type: 'draft_survey', version: 1, source: { sheet: 'Capa',
+      common: { fields: { delivered: { cell: 'A1', type: 'number', decimals: 0 },
+        summer_dwt: { cell: 'A2', type: 'number', decimals: 3 } } }, by_variant: {},
+    }, validations: [], photo_slots: [] };
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==', 'base64');
+    const source = {
+      from: (table: string) => {
+        const query = {
+          select: () => query, eq: () => query, is: () => query, not: () => query,
+          single: async () => ({ data: table === 'report_specs' ? { spec } : null }),
+          order: async () => ({ data: [] }),
+        };
+        return query;
+      },
+      storage: { from: () => ({ download: async () => ({ data: { arrayBuffer: async () => png }, error: null }) }) },
+    };
+    assemble.mockImplementation((_svc, reportId, row) => realAssembly.buildWorkingDocx(source as never, reportId, row));
+    await buildWorkingDocx({ reportId: 'r1', generation: 'g1' });
+    const published = state.objects.get(state.row.working_docx_path as string)!;
+    const xml = new PizZip(published).file('word/document.xml')!.asText();
+    const text = [...xml.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)].map((match) => match[1]);
+    expect(text.filter((value) => /^1981(?:\.\d+)?$/.test(value!))).toEqual(['1981.0']);
+    const tonnageRow = (xml.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? [])
+      .find((row) => row.includes('Summer DWT'))!;
+    const tonnageText = [...tonnageRow.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)].map((match) => match[1]).join('');
+    expect(tonnageText.match(/81(?:\.\d+)?/g)).toEqual(['81']);
+    expect(state.row.working_docx_revision).toBe(1);
+  });
+
   it('publica uma vez; execução repetida preserva edições humanas', async () => {
     await buildWorkingDocx({ reportId: 'r1', generation: 'g1' });
     const path = state.row.working_docx_path as string;

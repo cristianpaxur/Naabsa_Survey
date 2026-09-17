@@ -19,7 +19,7 @@ import {
 
 /** Entrelinha confortável (~1.15) para o texto corrido — ar entre as linhas. */
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
-import type { FieldValue } from '@naabsa/core';
+import { formatNumberWithDecimals, type FieldValue, type NumberFormatMap } from '@naabsa/core';
 import { buildReportDocxFromTemplate } from './buildDocxFromTemplate';
 
 const NAVY = '002060';
@@ -30,8 +30,10 @@ const TITLE_FONT = 'Tahoma';
 const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
 
 type Data = Record<string, FieldValue>;
+type NumericField = (name: string, fallback?: number, suffix?: string, grouped?: boolean, signed?: boolean) => string;
 export interface DocxInput {
   data: Data;
+  numberFormats?: NumberFormatMap;
   variant: 'loading' | 'discharge';
   logo: Buffer | null;
   coverPhoto?: Buffer | null;
@@ -58,13 +60,7 @@ function grp(n: number, dec: number): string {
   const neg = n < 0; const f = Math.abs(n).toFixed(dec); const [i, d] = f.split('.');
   return `${neg ? '-' : ''}${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${d ? '.' + d : ''}`;
 }
-const mt = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 3)} MT` : v(x));
-const ton = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${grp(x, 3)} mt` : v(x));
-const meters = (x: FieldValue | undefined): string => (typeof x === 'number' ? `${x.toFixed(2)} m` : v(x));
-const num = (x: FieldValue | undefined, d: number): string => (typeof x === 'number' ? x.toFixed(d) : v(x));
-function signedMt(x: FieldValue | undefined): string { return typeof x === 'number' ? `${x >= 0 ? '+' : '-'} ${grp(Math.abs(x), 3)} MT` : v(x); }
-function signedPct(x: FieldValue | undefined): string { return typeof x === 'number' ? `${x >= 0 ? '+' : '-'} ${grp(Math.abs(x), 3)} %` : v(x); }
-
+const mt = (x: FieldValue | undefined): string => (typeof x === 'number' && Number.isFinite(x) ? `${grp(x, 3)} MT` : '—');
 // Pares de variante (modelo: roxo = loading, verde = discharge).
 const VARIANT = {
   loading: { verb: 'load', bl: 'bound to', done: 'loaded', official: 'Shore scale', officialFig: 'Shore Scale' },
@@ -139,6 +135,14 @@ function img(buf: Buffer, widthMm: number): Paragraph {
 /** @deprecated Kept only as an explicit rollback path for the template migration. */
 export async function buildReportDocxLegacy(input: DocxInput): Promise<Buffer> {
   const { data, logo } = input;
+  const numericField: NumericField = (name, fallback, suffix = '', grouped = false, signed = false) => {
+    const value = data[name];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    const number = formatNumberWithDecimals(
+      signed ? Math.abs(value) : value, input.numberFormats?.[name] ?? fallback, grouped,
+    );
+    return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
+  };
   const V = VARIANT[input.variant];
   const hasInter = data['intermediate_date'] != null;
 
@@ -238,10 +242,10 @@ export async function buildReportDocxLegacy(input: DocxInput): Promise<Buffer> {
   body.push(sectionTitle('s2', numTitle(2, "Ship's Particulars")));
   body.push(new Table({ width: { size: 9860, type: WidthType.DXA }, columnWidths: [...KV_COLS], layout: TableLayoutType.FIXED, borders: tableNoBorders, rows: [
     kvRow('Flag', v(data['flag'])), kvRow('Port registry', v(data['register_port'])), kvRow('Call sign', v(data['call_sign'])),
-    kvRow('IMO number', v(data['imo'])), kvRow('Type', v(data['vessel_type'])), kvRow('Delivered', v(data['delivered'])),
-    kvRow('LOA', meters(data['loa'])), kvRow('LBP', meters(data['lbp'])), kvRow('Depth moulded', meters(data['depth_moulded'])),
-    kvRow('Breadth moulded', meters(data['breadth_moulded'])), kvRow('Net tonnage', ton(data['net_tonnage'])),
-    kvRow('Gross tonnage', ton(data['gross_tonnage'])), kvRow('Summer DWT', ton(data['summer_dwt'])),
+    kvRow('IMO number', v(data['imo'])), kvRow('Type', v(data['vessel_type'])), kvRow('Delivered', numericField('delivered')),
+    kvRow('LOA', numericField('loa', 2, ' m')), kvRow('LBP', numericField('lbp', 2, ' m')), kvRow('Depth moulded', numericField('depth_moulded', 2, ' m')),
+    kvRow('Breadth moulded', numericField('breadth_moulded', 2, ' m')), kvRow('Net tonnage', numericField('net_tonnage', 3, ' mt', true)),
+    kvRow('Gross tonnage', numericField('gross_tonnage', 3, ' mt', true)), kvRow('Summer DWT', numericField('summer_dwt', 3, ' mt', true)),
   ] }));
 
   // ── 3. Draft Survey (cabeçalho da parte de calados) ──
@@ -251,9 +255,9 @@ export async function buildReportDocxLegacy(input: DocxInput): Promise<Buffer> {
   // Initial lista as MESMAS partes citadas do Final (modelo aponta DS FINAL B49-B51):
   // as partes do atendimento são as mesmas. A narrativa do Initial usa só os nomes
   // (sem o bloco de "figures", que é exclusivo de Intermediate/Final).
-  body.push(...phaseSection(initNum, 'Initial', 'init', data, V, input.sheetImages.initial, input.acting.final ?? [], input.phasePhotos.initial ?? []));
-  if (hasInter) body.push(...phaseSection(interNum, 'Intermediate', 'int', data, V, input.sheetImages.intermediate, input.acting.intermediate ?? [], input.phasePhotos.intermediate ?? []));
-  body.push(...phaseSection(finalNum, 'Final', 'fin', data, V, input.sheetImages.final, input.acting.final ?? [], input.phasePhotos.final ?? []));
+  body.push(...phaseSection(initNum, 'Initial', 'init', data, V, input.sheetImages.initial, input.acting.final ?? [], input.phasePhotos.initial ?? [], numericField));
+  if (hasInter) body.push(...phaseSection(interNum, 'Intermediate', 'int', data, V, input.sheetImages.intermediate, input.acting.intermediate ?? [], input.phasePhotos.intermediate ?? [], numericField));
+  body.push(...phaseSection(finalNum, 'Final', 'fin', data, V, input.sheetImages.final, input.acting.final ?? [], input.phasePhotos.final ?? [], numericField));
 
   // ── Attachment ──
   body.push(sectionTitle(`s${attachNum}`, numTitle(attachNum, 'Attachment')));
@@ -315,7 +319,7 @@ function personRow(label: string, lines: string[]): TableRow {
   ] });
 }
 
-function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', data: Data, V: (typeof VARIANT)[keyof typeof VARIANT], image: Buffer | null | undefined, acting: string[][], phasePhotos: Buffer[]): (Paragraph | Table)[] {
+function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', data: Data, V: (typeof VARIANT)[keyof typeof VARIANT], image: Buffer | null | undefined, acting: string[][], phasePhotos: Buffer[], numericField: NumericField): (Paragraph | Table)[] {
   const out: (Paragraph | Table)[] = [];
   const fp = x === 'int' ? 'int' : x === 'fin' ? 'fin' : null;
   const dateField = x === 'init' ? 'initial_date' : x === 'int' ? 'intermediate_date' : 'final_date';
@@ -331,13 +335,13 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
     out.push(para([run(`The ${title.toLowerCase()} Draft Survey was carried out on ${fmtDate(data[dateField])}, from ${v(data[startF])} up to ${v(data[endF])} h local time jointly with ship's command${parties} and the undersigned surveyor to ascertain the total quantity of the cargo ${V.done} being the following figures disclosed:`)]));
     // figures
     if (fp) {
-      out.push(leader(`${V.officialFig} figures (Official)`, mt(data[`${fp}_fig_shore_scale`])));
-      out.push(leader("NAABSA's surveyor figures", mt(data[`${fp}_fig_naabsa`])));
+      out.push(leader(`${V.officialFig} figures (Official)`, numericField(`${fp}_fig_shore_scale`, 3, ' MT', true)));
+      out.push(leader("NAABSA's surveyor figures", numericField(`${fp}_fig_naabsa`, 3, ' MT', true)));
       // MT na linha da Difference (alinha com os outros MT) e a % numa linha própria.
-      out.push(leader('Difference as per our figures', signedMt(data[`${fp}_fig_diff_mt`])));
-      out.push(leader('Percentage', signedPct(data[`${fp}_fig_diff_pct`])));
+      out.push(leader('Difference as per our figures', numericField(`${fp}_fig_diff_mt`, 3, ' MT', true, true)));
+      out.push(leader('Percentage', numericField(`${fp}_fig_diff_pct`, 3, ' %', true, true)));
       out.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
-      out.push(leader("Vessel's figures", mt(data[`${fp}_fig_vessel`])));
+      out.push(leader("Vessel's figures", numericField(`${fp}_fig_vessel`, 3, ' MT', true)));
       // figures por parte (acting-as): coluna J = índice 8 do range. Guard de bounds/NaN.
       acting.slice(1).forEach((r) => {
         const role = String(r[0] ?? '').trim();
@@ -354,7 +358,7 @@ function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', dat
   // 4.1 Draft readings (bold lead-in numerado, com bookmark) + tabela
   const sides = sideLabel(data['berthing_side']);
   out.push(new Paragraph({ spacing: { before: 180, after: 100, ...BODY_LINE }, children: [new Bookmark({ id: `s${num}_1`, children: [run(`${num}.1 Draft readings: `, { bold: true })] }), run(`${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`)] }));
-  out.push(draftReadingsTable(x, data));
+  out.push(draftReadingsTable(x, data, numericField));
   // 6.2/6.3 (Final) usam o MESMO texto de 4.2/4.3 e 5.2/5.3 (pedido do cliente).
   out.push(subLead(`s${num}_2`, `${num}.2 Sea water density: `, "A seawater sample was collected in way of the midship draft mark, on the sea side. The vessel's hydrometer was considered the official instrument for all readings."));
   out.push(subLead(`s${num}_3`, `${num}.3 Ballast water and fresh water: `, 'All ballast water tanks were gauged individually, and the volumes were calculated by applying the applicable trim and list corrections. The fresh water quantity was provided by the Chief Officer'));
@@ -385,21 +389,21 @@ function sideLabel(b: FieldValue | undefined): { berthed: string; opposite: stri
   if (s.startsWith('port')) return { berthed: 'Port side', opposite: 'Starboard side' };
   return { berthed: v(b), opposite: '—' };
 }
-function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data): Table {
+function draftReadingsTable(x: 'init' | 'int' | 'fin', data: Data, numericField: NumericField): Table {
   const heelField = x === 'init' ? 'init_heel' : x === 'int' ? 'int_list' : 'fin_list';
   const heelSide = x === 'init' ? 'init_heel_side' : x === 'int' ? 'int_list_side' : 'fin_list_side';
-  const heelVal = data[heelField] != null ? `${num(data[heelField], 2)}° ${v(data[heelSide], '')}`.trim() : '—';
-  const deflVal = data[`${x}_deflection`] != null ? `${num(data[`${x}_deflection`], 1)} cm ${v(data[`${x}_deflection_type`], '')}`.trim() : '—';
+  const heelVal = data[heelField] != null ? `${numericField(heelField, 2)}° ${v(data[heelSide], '')}`.trim() : '—';
+  const deflVal = data[`${x}_deflection`] != null ? `${numericField(`${x}_deflection`, 1)} cm ${v(data[`${x}_deflection_type`], '')}`.trim() : '—';
   // Sem linhas de grade (pedido do cliente). Tudo à ESQUERDA — inclusive o bloco
   // Draft Mark/Means/Mean corrected (pedido). Alinhamento vertical central.
   const c = (t: string, bold = false) => new TableCell({ borders: tableNoBorders, margins: { top: 30, bottom: 30, left: 80, right: 80 }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ spacing: { after: 0 }, children: [run(t, { size: 18, bold })] })] });
   const L = c;
   // 4 linhas alinhadas: o bloco da direita começa na linha do cabeçalho ("Trim obs"
   // alinha com "Draft Mark"; "Deflection" com "Aft"). "List" (não "Heel") por pedido.
-  const head = new TableRow({ children: [L('Draft Mark', true), L('Means', true), L('Mean corrected', true), c(''), c('Trim obs', true), c(`${num(data[`${x}_trim_obs`], 4)} m`)] });
-  const r1 = new TableRow({ children: [L('Fwd'), L(num(data[`${x}_fwd_mean`], 3)), L(num(data[`${x}_fwd_corr`], 4)), c(''), c('Trim correct', true), c(`${num(data[`${x}_trim_corr`], 4)} m`)] });
-  const r2 = new TableRow({ children: [L('Ms'), L(num(data[`${x}_mid_mean`], 3)), L(num(data[`${x}_mid_corr`], 4)), c(''), c('List', true), c(heelVal)] });
-  const r3 = new TableRow({ children: [L('Aft'), L(num(data[`${x}_aft_mean`], 3)), L(num(data[`${x}_aft_corr`], 4)), c(''), c('Deflection', true), c(deflVal)] });
+  const head = new TableRow({ children: [L('Draft Mark', true), L('Means', true), L('Mean corrected', true), c(''), c('Trim obs', true), c(`${numericField(`${x}_trim_obs`, 4)} m`)] });
+  const r1 = new TableRow({ children: [L('Fwd'), L(numericField(`${x}_fwd_mean`, 3)), L(numericField(`${x}_fwd_corr`, 4)), c(''), c('Trim correct', true), c(`${numericField(`${x}_trim_corr`, 4)} m`)] });
+  const r2 = new TableRow({ children: [L('Ms'), L(numericField(`${x}_mid_mean`, 3)), L(numericField(`${x}_mid_corr`, 4)), c(''), c('List', true), c(heelVal)] });
+  const r3 = new TableRow({ children: [L('Aft'), L(numericField(`${x}_aft_mean`, 3)), L(numericField(`${x}_aft_corr`, 4)), c(''), c('Deflection', true), c(deflVal)] });
   // Larguras fixas (twips): a coluna de VALOR da direita é larga o bastante para o
   // List ("0.04° Starboard Side") caber em UMA linha, sem quebrar.
   const COLS = [1200, 1200, 1700, 500, 1700, 3560] as const;
