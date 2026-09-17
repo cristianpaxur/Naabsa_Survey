@@ -30,6 +30,16 @@ describe('inferExcelDisplayDecimals', () => {
     expect(inferExcelDisplayDecimals('"USD" 0.00\\x;[Red]-0.000', -81)).toBe(3);
   });
 
+  it('rejeita formatos com condições numéricas para usar o fallback do spec', () => {
+    expect(
+      inferExcelDisplayDecimals('[<=100]0.00;[>100]0.000', 150),
+    ).toBeUndefined();
+  });
+
+  it('aplica vírgulas finais de escala antes de avaliar casas opcionais', () => {
+    expect(inferExcelDisplayDecimals('0.##,,', 1_230_000)).toBe(2);
+  });
+
   it.each([
     ['0.' + '0'.repeat(101), 81, undefined],
     [undefined, 81, undefined],

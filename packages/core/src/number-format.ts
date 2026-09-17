@@ -23,7 +23,9 @@ export function inferExcelDisplayDecimals(
 ): number | undefined {
   if (!numFmt || !Number.isFinite(value)) return undefined;
 
-  const sections = cleanFormatSections(numFmt);
+  const parsed = cleanFormatSections(numFmt);
+  if (parsed.hasNumericCondition) return undefined;
+  const sections = parsed.sections;
   const section =
     value < 0
       ? (sections[1] ?? sections[0])
@@ -53,7 +55,16 @@ export function inferExcelDisplayDecimals(
   }
 
   const percentCount = (section.match(/%/g) ?? []).length;
-  const displayedValue = Math.abs(value) * 100 ** percentCount;
+  const lastPlaceholder = Math.max(
+    numericPattern.lastIndexOf('0'),
+    numericPattern.lastIndexOf('#'),
+    numericPattern.lastIndexOf('?'),
+  );
+  const scaleCount = (
+    numericPattern.slice(lastPlaceholder + 1).match(/,/g) ?? []
+  ).length;
+  const displayedValue =
+    (Math.abs(value) * 100 ** percentCount) / 1000 ** scaleCount;
   if (!Number.isFinite(displayedValue)) return undefined;
   const fraction = displayedValue.toFixed(maximum).split('.')[1] ?? '';
   const lastNonZero = fraction.search(/[^0](?=0*$)/);
@@ -108,10 +119,15 @@ export function formatNumberWithDecimals(
  * Divide o formato sem deixar `;` literais criarem seções e remove elementos
  * sem semântica numérica (aspas, escapes, preenchimento e diretivas).
  */
-function cleanFormatSections(numFmt: string): string[] {
+function cleanFormatSections(numFmt: string): {
+  sections: string[];
+  hasNumericCondition: boolean;
+} {
   const sections = [''];
   let quoted = false;
   let bracketed = false;
+  let bracketContent = '';
+  let hasNumericCondition = false;
 
   for (let index = 0; index < numFmt.length; index++) {
     const char = numFmt[index]!;
@@ -120,7 +136,12 @@ function cleanFormatSections(numFmt: string): string[] {
       continue;
     }
     if (bracketed) {
-      if (char === ']') bracketed = false;
+      if (char === ']') {
+        bracketed = false;
+        if (isNumericCondition(bracketContent)) hasNumericCondition = true;
+      } else {
+        bracketContent += char;
+      }
       continue;
     }
     if (char === '"') {
@@ -129,6 +150,7 @@ function cleanFormatSections(numFmt: string): string[] {
     }
     if (char === '[') {
       bracketed = true;
+      bracketContent = '';
       continue;
     }
     if (char === '\\' || char === '_' || char === '*') {
@@ -142,5 +164,11 @@ function cleanFormatSections(numFmt: string): string[] {
     sections[sections.length - 1] += char;
   }
 
-  return sections;
+  return { sections, hasNumericCondition };
+}
+
+function isNumericCondition(directive: string): boolean {
+  return /^\s*(?:<=|>=|<>|=|<|>)\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?\s*$/i.test(
+    directive,
+  );
 }
