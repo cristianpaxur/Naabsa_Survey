@@ -1,4 +1,4 @@
-import type { FieldValue, Issue } from '@naabsa/core';
+import type { FieldValue, Issue, NumberFormatMap } from '@naabsa/core';
 import { isCalculatedDifferenceField } from '@naabsa/core/review-policy';
 
 export interface AiReviewState {
@@ -7,17 +7,19 @@ export interface AiReviewState {
   revision?: number;
   updatedAt?: string;
   data?: Record<string, FieldValue>;
+  numberFormats?: NumberFormatMap;
   dependencies?: Record<string, string[]>;
   error?: string;
 }
 
-/** Só reaproveita sugestões cujo campo e dependências ainda têm os valores analisados. */
+/** Só reaproveita sugestões cujo campo e dependências mantêm valores e precisão analisados. */
 export function mergeReviewIssues(
   deterministic: Issue[],
   persisted: Issue[] | null | undefined,
   effective: Record<string, FieldValue>,
   extracted: Record<string, FieldValue>,
   state: AiReviewState | null | undefined,
+  effectiveNumberFormats: NumberFormatMap = {},
 ): Issue[] {
   const snapshot = state?.data ?? extracted; // avisos legados analisavam extracted_data
   const unique = new Map<string, Issue>();
@@ -25,7 +27,10 @@ export function mergeReviewIssues(
     if (i.origin !== 'ai') return false;
     if (isCalculatedDifferenceField(i.field)) return false;
     const fields = state?.dependencies?.[i.field] ?? [i.field];
-    return [i.field, ...fields].every((f) => Object.hasOwn(snapshot, f) && effective[f] === snapshot[f]);
+    return [i.field, ...fields].every((f) =>
+      Object.hasOwn(snapshot, f) && effective[f] === snapshot[f]
+      && (state?.numberFormats == null || effectiveNumberFormats[f] === state.numberFormats[f]),
+    );
   })]) {
     unique.set(JSON.stringify([issue.field, issue.level, issue.origin ?? 'validation', issue.message]), issue);
   }

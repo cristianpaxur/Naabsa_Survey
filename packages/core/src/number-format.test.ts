@@ -36,6 +36,23 @@ describe('inferExcelDisplayDecimals', () => {
     ).toBeUndefined();
   });
 
+  it.each([
+    ['0.##E+00', 1230],
+    ['0.##E+00', 0.00123],
+    ['0.00E-00', 1230],
+    ['0.##e+00', 0.00123],
+  ])('usa fallback para o formato científico %s com valor %s', (numFmt, value) => {
+    expect(inferExcelDisplayDecimals(numFmt, value)).toBeUndefined();
+  });
+
+  it.each([
+    ['0.00"E+00"', 2],
+    ['0.00\\E\\+\\0\\0', 2],
+    ['0.00;0.##E+00', 2],
+  ])('não confunde literais ou outra seção com expoentes em %s', (numFmt, expected) => {
+    expect(inferExcelDisplayDecimals(numFmt, 1230)).toBe(expected);
+  });
+
   it('aplica vírgulas finais de escala antes de avaliar casas opcionais', () => {
     expect(inferExcelDisplayDecimals('0.##,,', 1_230_000)).toBe(2);
   });

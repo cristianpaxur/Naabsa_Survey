@@ -20,7 +20,7 @@ import {
   type FieldValue,
   type NumberFormatMap,
 } from '@naabsa/core';
-import { groupBySectionOrdered } from '@/lib/effective-values';
+import { groupBySectionOrdered, resolveEffectiveNumberFormats } from '@/lib/effective-values';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ReviewClient } from '@/components/review/ReviewClient';
 import { ReuploadPanel } from '@/components/review/ReuploadPanel';
@@ -147,6 +147,9 @@ export default async function ReviewPage({ params }: PageProps) {
     effective,
     extracted,
     row.ai_review,
+    resolveEffectiveNumberFormats(
+      spec, variant, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {}, overrides,
+    ),
   );
 
   const totalFields = sections.reduce((acc, s) => acc + s.fields.length, 0);

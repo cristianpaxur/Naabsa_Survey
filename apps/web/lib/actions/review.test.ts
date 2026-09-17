@@ -41,6 +41,40 @@ beforeEach(() => {
   };
 });
 describe('revisão integrada nas server actions', () => {
+  it('salvar somente precisão invalida aviso dependente sem perder dígitos do valor', async () => {
+    memory.row.extracted_data.summer_dwt = 81.2345;
+    memory.row.ai_review = {
+      status: 'done', data: { ...memory.row.extracted_data },
+      numberFormats: { summer_dwt: 2 }, dependencies: { imo: ['summer_dwt'] },
+    };
+    expect(await setOverride('r1', 'summer_dwt', 81.2345, 3)).toMatchObject({
+      issues: [], aiReview: { status: 'stale' }, revision: 3,
+      savedField: { value: 81.2345, displayDecimals: 3, isOverride: true },
+    });
+    expect(await getReviewStatus('r1')).toMatchObject({ issues: [], aiReview: { status: 'stale' } });
+    expect(memory.row.operator_overrides).toEqual({ summer_dwt: 81.2345 });
+  });
+
+  it.each([
+    [{ summer_dwt: 81 }, { summer_dwt: 1 }, { summer_dwt: 2 }, 1, true],
+    [{ summer_dwt: 81 }, { summer_dwt: 1 }, { summer_dwt: 2 }, 2, false],
+    [{}, { summer_dwt: 1 }, { summer_dwt: 2 }, 2, true],
+    [{ summer_dwt: null }, { summer_dwt: 1 }, { summer_dwt: 2 }, 2, true],
+    [{}, {}, {}, 3, true],
+    [{}, {}, {}, 2, false],
+  ])('polling compara precisão efetiva de operador/Excel/spec para %j, %j, %j, snapshot=%i', async (overrides, operatorFormats, extractedFormats, snapshotDecimals, retained) => {
+    memory.row.extracted_data.summer_dwt = 81;
+    memory.row.operator_overrides = overrides;
+    memory.row.operator_number_formats = operatorFormats;
+    memory.row.extracted_number_formats = extractedFormats;
+    memory.row.ai_review = {
+      status: 'done', data: { ...memory.row.extracted_data },
+      numberFormats: { summer_dwt: snapshotDecimals }, dependencies: { imo: ['summer_dwt'] },
+    };
+    const result = await getReviewStatus('r1');
+    expect(result).toMatchObject({ issues: retained ? [memory.row.extraction_issues[0]] : [] });
+  });
+
   it('salva número e casas juntos e audita alteração apenas de formato', async () => {
     memory.row.operator_overrides = { summer_dwt: 81 };
     memory.row.operator_number_formats = { summer_dwt: 2, outro: 4 };

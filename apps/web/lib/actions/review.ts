@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
 import { requestAiReview } from '@/lib/request-ai-review';
+import { resolveEffectiveNumberFormats } from '@/lib/effective-values';
 import { resolveDisplayDecimals, type NumberFormatMap } from '@naabsa/core/number-format';
 import {
   validate,
@@ -209,7 +210,10 @@ export async function setOverride(
     newOverrides,
   );
   const latest = updated as unknown as { data_revision: number; ai_review: AiReviewState | null; extraction_issues: Issue[] | null };
-  const issues = mergeReviewIssues(validate(effective, report.spec, report.variant), latest.extraction_issues, effective, extracted, latest.ai_review);
+  const numberFormats = resolveEffectiveNumberFormats(
+    report.spec, report.variant, report.extracted_number_formats ?? {}, newFormats, newOverrides,
+  );
+  const issues = mergeReviewIssues(validate(effective, report.spec, report.variant), latest.extraction_issues, effective, extracted, latest.ai_review, numberFormats);
 
   return {
     issues, aiReview: latest.ai_review, revision: latest.data_revision,
@@ -230,8 +234,12 @@ export async function getReviewStatus(reportId: string): Promise<SetOverrideResu
   if (!report) return { error: 'Não foi possível atualizar a revisão.' };
   const extracted = report.extracted_data ?? {};
   const effective = effectiveData(report.spec, report.variant, extracted, report.operator_overrides ?? {});
+  const numberFormats = resolveEffectiveNumberFormats(
+    report.spec, report.variant, report.extracted_number_formats ?? {},
+    report.operator_number_formats ?? {}, report.operator_overrides ?? {},
+  );
   return {
-    issues: mergeReviewIssues(validate(effective, report.spec, report.variant), report.extraction_issues, effective, extracted, report.ai_review),
+    issues: mergeReviewIssues(validate(effective, report.spec, report.variant), report.extraction_issues, effective, extracted, report.ai_review, numberFormats),
     aiReview: report.ai_review, revision: report.data_revision,
   };
 }

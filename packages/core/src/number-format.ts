@@ -34,9 +34,8 @@ export function inferExcelDisplayDecimals(
         : sections[0];
   if (!section || section.trim().toLowerCase() === 'general') return undefined;
 
-  const exponentIndex = section.search(/[eE][+-]?[0#?]/);
-  const numericPattern =
-    exponentIndex >= 0 ? section.slice(0, exponentIndex) : section;
+  if (/[eE][+-]?[0#?]/.test(section)) return undefined;
+  const numericPattern = section;
   const decimalIndex = numericPattern.indexOf('.');
   const integerPattern =
     decimalIndex >= 0 ? numericPattern.slice(0, decimalIndex) : numericPattern;

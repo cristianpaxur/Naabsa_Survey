@@ -48,6 +48,20 @@ export function parseLocalizedNumber(raw: string): number | null {
   return parseLocalizedNumberDraft(raw)?.value ?? null;
 }
 
+/** Decide o valor e a precisão que serão persistidos ao confirmar o rascunho. */
+export function resolveNumberDraftCommit(
+  draft: string,
+  originalDraft: string,
+  currentValue: number | null,
+): { value: number | null; decimals?: number } | null {
+  const parsed = parseLocalizedNumberDraft(draft);
+  if (parsed === null || parsed.value === null) return parsed;
+  const original = parseLocalizedNumberDraft(originalDraft);
+  return original?.value === parsed.value && currentValue !== null
+    ? { ...parsed, value: currentValue }
+    : parsed;
+}
+
 export function formatNumberDraft(
   value: number | null,
   decimals?: number,

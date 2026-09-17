@@ -1,5 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { formatNumberDraft, parseLocalizedNumber, parseLocalizedNumberDraft, numberStateAfterSave } from './localized-number';
+import { formatNumberDraft, parseLocalizedNumber, parseLocalizedNumberDraft, numberStateAfterSave, resolveNumberDraftCommit } from './localized-number';
+
+describe('resolveNumberDraftCommit', () => {
+  it.each([
+    ['81.230', '81.23', 81.2345, { value: 81.2345, decimals: 3 }],
+    ['81.2', '81.200', 81.2004, { value: 81.2004, decimals: 1 }],
+    ['-81,230', '-81.23', -81.2345, { value: -81.2345, decimals: 3 }],
+    ['81.24', '81.23', 81.2345, { value: 81.24, decimals: 2 }],
+    ['81.2', '81.23', 81.2345, { value: 81.2, decimals: 1 }],
+    ['-81.24', '-81.23', -81.2345, { value: -81.24, decimals: 2 }],
+    ['', '81.23', 81.2345, { value: null }],
+    ['81.00', '', null, { value: 81, decimals: 2 }],
+    ['inválido', '81.23', 81.2345, null],
+  ])('salva %s sobre o draft %s preservando somente mudanças de apresentação', (edited, original, current, expected) => {
+    expect(resolveNumberDraftCommit(edited, original, current)).toEqual(expected);
+  });
+
+  it('confirma a resposta com o número completo e a nova precisão', () => {
+    const committed = resolveNumberDraftCommit('81.230', '81.23', 81.2345)!;
+    expect(numberStateAfterSave({
+      value: committed.value, displayDecimals: committed.decimals, isOverride: true,
+    })).toEqual({ value: 81.2345, displayDecimals: 3, isOverride: true, draft: '81.234' });
+  });
+
+  it('mantém o limite de 100 casas e rejeita 101 casas sem salvar', () => {
+    expect(resolveNumberDraftCommit(`81.${'0'.repeat(100)}`, '81', 81.2345))
+      .toEqual({ value: 81.2345, decimals: 100 });
+    expect(resolveNumberDraftCommit(`81.${'0'.repeat(101)}`, '81', 81.2345)).toBeNull();
+  });
+});
 
 describe('numberStateAfterSave', () => {
   it('confirma 81.00 com as duas casas salvas mesmo sem mudar o número', () => {

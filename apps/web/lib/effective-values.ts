@@ -27,6 +27,22 @@ export interface EffectiveSection {
   fields: EffectiveField[];
 }
 
+/** Mapa de precisão usado para comparar a apresentação atual com o snapshot da IA. */
+export function resolveEffectiveNumberFormats(
+  spec: ReportSpec,
+  variant: string | null,
+  extractedFormats: NumberFormatMap,
+  operatorFormats: NumberFormatMap,
+  overrides: Record<string, FieldValue>,
+): NumberFormatMap {
+  const formats: NumberFormatMap = {};
+  for (const [name, def] of collectFields(spec, variant)) {
+    const decimals = resolveDisplayDecimals(name, def, extractedFormats, operatorFormats, overrides);
+    if (decimals !== undefined) formats[name] = decimals;
+  }
+  return formats;
+}
+
 /**
  * Agrupa os campos efetivos por seção, respeitando a ordem de aparição no spec.
  *

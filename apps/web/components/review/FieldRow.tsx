@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FieldDef, FieldValue, Issue } from '@naabsa/core';
 import { setOverride, type SetOverrideResult } from '@/lib/actions/review';
-import { formatNumberDraft, parseLocalizedNumberDraft, numberStateAfterSave } from '@/lib/localized-number';
+import { formatNumberDraft, resolveNumberDraftCommit, numberStateAfterSave } from '@/lib/localized-number';
 
 interface FieldRowProps {
   reportId: string;
@@ -333,17 +333,22 @@ interface LocalizedNumberInputProps {
 function LocalizedNumberInput({ value, decimals, onChange, disabled, inputStyle }: LocalizedNumberInputProps) {
   const currentValue = typeof value === 'number' ? value : null;
   const [draft, setDraft] = useState(() => formatNumberDraft(currentValue, decimals));
+  const originalDraft = useRef(draft);
   const [isEditing, setIsEditing] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const cancelCommit = useRef(false);
   const committing = useRef(false);
 
   useEffect(() => {
-    if (!isEditing) setDraft(formatNumberDraft(currentValue, decimals));
+    if (!isEditing) {
+      originalDraft.current = formatNumberDraft(currentValue, decimals);
+      setDraft(originalDraft.current);
+    }
   }, [currentValue, decimals, isEditing]);
 
   function resetDraft() {
-    setDraft(formatNumberDraft(currentValue, decimals));
+    originalDraft.current = formatNumberDraft(currentValue, decimals);
+    setDraft(originalDraft.current);
   }
 
   async function commit() {
@@ -354,11 +359,11 @@ function LocalizedNumberInput({ value, decimals, onChange, disabled, inputStyle 
       return;
     }
     if (committing.current) return;
-    if (draft === formatNumberDraft(currentValue, decimals)) {
+    if (draft === originalDraft.current) {
       setIsEditing(false);
       return;
     }
-    const parsed = parseLocalizedNumberDraft(draft);
+    const parsed = resolveNumberDraftCommit(draft, originalDraft.current, currentValue);
     if (parsed === null) {
       setInputError('Informe um número válido com até 100 casas decimais.');
       return;
