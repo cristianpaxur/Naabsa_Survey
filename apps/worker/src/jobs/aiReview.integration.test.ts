@@ -203,21 +203,90 @@ describe('job real aiReview com transporte/banco simulados', () => {
   });
 
   it('persiste origem AI, snapshot dos overrides e dependências', async () => {
+    const extractionIssue = {
+      field: 'imo',
+      cell: 'C17',
+      origin: 'extraction',
+      level: 'warning',
+      message: 'Aviso da extração',
+    };
+    memory.row.extraction_issues = [
+      extractionIssue,
+      {
+        field: 'imo',
+        cell: 'C17',
+        origin: 'ai',
+        level: 'warning',
+        message: 'Aviso antigo da IA',
+      },
+    ];
+    let issuesDuringCall: Record<string, any>[] = [];
     await aiReview(payload, {
       fetchFn: transport(
         '[{"field":"imo","message":"IMO suspeito","related_fields":["imo"]}]',
+        () => {
+          issuesDuringCall = structuredClone(memory.row.extraction_issues);
+        },
       ),
       audit: async () => {},
     });
+    expect(issuesDuringCall).toEqual([extractionIssue]);
     expect(memory.row.ai_review).toMatchObject({
       status: 'done',
       revision: 2,
       data: { imo: '222' },
       dependencies: { imo: ['imo'] },
     });
-    expect(memory.row.extraction_issues).toMatchObject([
-      { field: 'imo', origin: 'ai' },
+    expect(memory.row.extraction_issues).toEqual([
+      extractionIssue,
+      {
+        field: 'imo',
+        cell: 'C17',
+        level: 'warning',
+        message: 'IMO suspeito',
+        origin: 'ai',
+      },
     ]);
+  });
+  it('remove warning AI stale no snapshot running e não o ressuscita no error', async () => {
+    const extractionIssue = {
+      field: 'imo',
+      cell: 'C17',
+      origin: 'extraction',
+      level: 'warning',
+      message: 'Aviso da extração',
+    };
+    memory.row.extraction_issues = [
+      extractionIssue,
+      {
+        field: 'imo',
+        cell: 'C17',
+        origin: 'ai',
+        level: 'warning',
+        message: 'Aviso antigo da IA',
+      },
+    ];
+    memory.row.ai_review = {
+      status: 'stale',
+      data: { imo: '111' },
+      dependencies: { imo: ['imo'] },
+      numberFormats: {},
+    };
+    let issuesDuringCall: Record<string, any>[] = [];
+
+    await aiReview(
+      { reportId: 'r1', dataRevision: 2 },
+      {
+        fetchFn: transport('não é JSON', () => {
+          issuesDuringCall = structuredClone(memory.row.extraction_issues);
+        }),
+        audit: async () => {},
+      },
+    );
+
+    expect(issuesDuringCall).toEqual([extractionIssue]);
+    expect(memory.row.extraction_issues).toEqual([extractionIssue]);
+    expect(memory.row.ai_review.status).toBe('error');
   });
   it('sucesso vazio remove avisos antigos; JSON inválido registra erro', async () => {
     memory.row.extraction_issues = [

@@ -285,7 +285,11 @@ export async function aiReview(
       if (decimals !== undefined) numberFormats[name] = decimals;
     }
     snapshotState = { ...baseState, data: effective, numberFormats };
+    const nonAiIssues = (r.extraction_issues ?? []).filter(
+      (issue) => issue.origin !== 'ai',
+    );
     const { data: snapshotted } = await persist({
+      extraction_issues: nonAiIssues,
       ai_review: {
         ...snapshotState,
         status: 'running',
@@ -340,9 +344,8 @@ export async function aiReview(
         ...new Set([w.field, ...(dependencies[w.field] ?? []), ...fields]),
       ];
     }
-    const kept = (r.extraction_issues ?? []).filter((i) => i.origin !== 'ai');
     const { data: saved } = await persist({
-      extraction_issues: [...kept, ...aiIssues],
+      extraction_issues: [...nonAiIssues, ...aiIssues],
       ai_review: {
         ...snapshotState,
         status: 'done',
