@@ -146,6 +146,34 @@ function runCommand(command: string, args: string[], cwd: string): Promise<strin
 }
 
 /**
+ * Aplica à aba alvo o mesmo estilo de impressão sem linhas usado pela fase
+ * Initial. O LibreOffice considera `pageSetup.showGridLines` ao exportar para
+ * PDF; `views.showGridLines` afeta apenas a visualização da planilha.
+ */
+export function applyLineFreePrintStyle(target: ExcelJS.Worksheet): void {
+  target.views = (target.views?.length ? target.views : [{}]).map(
+    (view) => ({ ...view, showGridLines: false }) as never,
+  );
+  target.pageSetup = {
+    ...target.pageSetup,
+    showGridLines: false,
+  };
+
+  // Remove bordas customizadas para preservar apenas os fills coloridos do
+  // template, sem contornos adicionais entre as células.
+  for (let rowNumber = 1; rowNumber <= target.rowCount; rowNumber++) {
+    const row = target.getRow(rowNumber);
+    for (
+      let columnNumber = 1;
+      columnNumber <= target.columnCount;
+      columnNumber++
+    ) {
+      row.getCell(columnNumber).border = undefined as never;
+    }
+  }
+}
+
+/**
  * Converte a aba `sheetName` do workbook em PNG recortado. Lança se a aba não
  * existir ou se o LibreOffice falhar.
  */
@@ -170,28 +198,7 @@ export async function renderSheetPng(
   for (const ws of wb.worksheets) {
     ws.state = ws.name === sheetName ? 'visible' : 'hidden';
   }
-  // O print do relatório deve sair sem as linhas de grade, como o print da
-  // fase Initial no modelo aprovado.
-  target.views = (target.views?.length ? target.views : [{}]).map(
-    (v) => ({ ...v, showGridLines: false }) as never,
-  );
-
-  // Remove bordas CUSTOMIZADAS das células para preservar apenas os fills
-  // coloridos do template, sem linhas adicionais no print.
-  for (let r = 1; r <= target.rowCount; r++) {
-    const row = target.getRow(r);
-    for (let c = 1; c <= target.columnCount; c++) {
-      const cell = row.getCell(c);
-      const none = 'none' as unknown as never;
-      cell.border = {
-        top: { style: none },
-        left: { style: none },
-        bottom: { style: none },
-        right: { style: none },
-        diagonal: { style: none },
-      };
-    }
-  }
+  applyLineFreePrintStyle(target);
 
   // A aba de cálculo tem 4 blocos lado a lado (Draft Survey, Displacement,
   // Ballast Water, Fresh Water/Bunker). Renderiza em paisagem com

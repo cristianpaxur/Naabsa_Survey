@@ -1,11 +1,31 @@
-import { readFile } from 'node:fs/promises';
+import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
+import { applyLineFreePrintStyle } from './sheetImage';
 
 describe('sheet image print styling', () => {
-  it('keeps spreadsheet gridlines out of every phase print', async () => {
-    const source = await readFile(new URL('./sheetImage.ts', import.meta.url), 'utf8');
+  it.each(['Inicial', 'Intermediario', 'final'])(
+    'keeps printed gridlines out of the %s phase',
+    (sheetName) => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet(sheetName, {
+        views: [{ showGridLines: true }],
+        pageSetup: { showGridLines: true },
+      });
+      sheet.getCell('A1').value = 'content';
+      sheet.getCell('A1').border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
 
-    expect(source).toMatch(/showGridLines:\s*false/);
-    expect(source).not.toMatch(/showGridLines:\s*true/);
-  });
+      applyLineFreePrintStyle(sheet);
+
+      expect(sheet.views.every((view) => view.showGridLines === false)).toBe(
+        true,
+      );
+      expect(sheet.pageSetup.showGridLines).toBe(false);
+      expect(sheet.getCell('A1').border).toBeUndefined();
+    },
+  );
 });
