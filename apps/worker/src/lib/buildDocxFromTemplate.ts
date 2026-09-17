@@ -306,7 +306,7 @@ function prepareTemplateLayout(zip: PizZip): void {
       .join('')
       .replace(/&nbsp;/g, ' ')
       .trim();
-    if (paragraphText === 'Contents' || /w:name="s1"/.test(paragraph)) {
+    if (paragraphText === 'Contents') {
       prepared = /<w:pPr\b[^>]*>/.test(prepared)
         ? prepared.replace(/<w:pPr\b[^>]*>/, '$&<w:pageBreakBefore/>')
         : prepared.replace(

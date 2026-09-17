@@ -110,7 +110,7 @@ describe('buildReportDocxFromTemplate', () => {
         paragraph.includes('<w:jc w:val="center"/>'),
       ),
     ).toBe(true);
-    expect(documentXml.match(/<w:pageBreakBefore\/>/g)).toHaveLength(2);
+    expect(documentXml.match(/<w:pageBreakBefore\/>/g)).toHaveLength(1);
     const contentsParagraph =
       documentXml.match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>).)*<w:t>Contents<\/w:t>(?:(?!<\/w:p>).)*<\/w:p>/s,
@@ -120,7 +120,7 @@ describe('buildReportDocxFromTemplate', () => {
       documentXml.match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>).)*w:name="s1"(?:(?!<\/w:p>).)*<\/w:p>/s,
       )?.[0] ?? '';
-    expect(backgroundParagraph).toContain('<w:pageBreakBefore/>');
+    expect(backgroundParagraph).not.toContain('<w:pageBreakBefore/>');
     expect(documentXml).toContain('<wp:extent cx="5181600" cy="3886200"/>');
 
     const paragraphs =
