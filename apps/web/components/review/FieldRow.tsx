@@ -11,12 +11,8 @@
  * no retorno para reflectir o estado sem recarregar a página.
  */
 import { useEffect, useState, useTransition } from 'react';
-import {
-  displayDecimalsForField,
-  type FieldDef,
-  type FieldValue,
-  type Issue,
-} from '@naabsa/core';
+import type { FieldDef, FieldValue, Issue } from '@naabsa/core';
+import { displayDecimalsForField } from '@naabsa/core/review-policy';
 import { setOverride, type SetOverrideResult } from '@/lib/actions/review';
 import { formatNumberDraft, parseLocalizedNumber } from '@/lib/localized-number';
 

@@ -1,8 +1,5 @@
-import {
-  isCalculatedDifferenceField,
-  type FieldValue,
-  type Issue,
-} from '@naabsa/core';
+import type { FieldValue, Issue } from '@naabsa/core';
+import { isCalculatedDifferenceField } from '@naabsa/core/review-policy';
 
 export interface AiReviewState {
   status: 'queued' | 'running' | 'done' | 'error' | 'disabled' | 'stale';
