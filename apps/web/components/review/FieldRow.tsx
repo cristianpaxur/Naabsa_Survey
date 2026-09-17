@@ -10,11 +10,10 @@
  * A edição chama setOverride via Server Action e recebe issues atualizadas
  * no retorno para reflectir o estado sem recarregar a página.
  */
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FieldDef, FieldValue, Issue } from '@naabsa/core';
-import { displayDecimalsForField } from '@naabsa/core/review-policy';
 import { setOverride, type SetOverrideResult } from '@/lib/actions/review';
-import { formatNumberDraft, parseLocalizedNumber } from '@/lib/localized-number';
+import { formatNumberDraft, parseLocalizedNumberDraft, numberStateAfterSave } from '@/lib/localized-number';
 
 interface FieldRowProps {
   reportId: string;
@@ -22,6 +21,7 @@ interface FieldRowProps {
   def: FieldDef;
   value: FieldValue;
   isOverride: boolean;
+  displayDecimals?: number;
   /** Issues que afetam este campo. */
   fieldIssues: Issue[];
   /** Callback para sincronizar issues globais após override. */
@@ -35,13 +35,15 @@ export function FieldRow({
   def,
   value,
   isOverride,
+  displayDecimals,
   fieldIssues,
   onIssuesUpdated,
   onSavingChanged,
 }: FieldRowProps) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [localValue, setLocalValue] = useState<FieldValue>(value);
   const [localIsOverride, setLocalIsOverride] = useState(isOverride);
+  const [localDecimals, setLocalDecimals] = useState(displayDecimals);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Nível da issue mais grave para este campo
@@ -54,25 +56,34 @@ export function FieldRow({
     return topIssue.level === 'error' ? '#bf2c30' : '#bb8420';
   }
 
-  function handleChange(newVal: FieldValue) {
-    setLocalValue(newVal);
+  async function handleChange(newVal: FieldValue, decimals?: number): Promise<{ draft?: string } | null> {
+    if (def.type !== 'number') setLocalValue(newVal);
     setSaveError(null);
+    setIsPending(true);
     onSavingChanged(true);
-    startTransition(async () => {
-      try {
-        const result = await setOverride(reportId, name, newVal);
-        if ('error' in result) {
-          setSaveError(result.error);
-        } else {
-          setLocalIsOverride(true);
-          onIssuesUpdated(result);
-        }
-      } catch {
-        setSaveError('Falha de conexão ao salvar. Tente novamente.');
-      } finally {
-        onSavingChanged(false);
+    try {
+      const result = await setOverride(reportId, name, newVal, decimals);
+      if ('error' in result) {
+        setSaveError(result.error);
+        return null;
       }
-    });
+      const saved = def.type === 'number' ? numberStateAfterSave(result.savedField) : result.savedField;
+      if (!saved) {
+        setSaveError('Não foi possível confirmar o valor salvo. Recarregue e tente novamente.');
+        return null;
+      }
+      setLocalValue(saved.value);
+      setLocalDecimals(saved.displayDecimals);
+      setLocalIsOverride(saved.isOverride);
+      onIssuesUpdated(result);
+      return 'draft' in saved && typeof saved.draft === 'string' ? { draft: saved.draft } : {};
+    } catch {
+      setSaveError('Falha de conexão ao salvar. Tente novamente.');
+      return null;
+    } finally {
+      setIsPending(false);
+      onSavingChanged(false);
+    }
   }
 
   return (
@@ -172,9 +183,9 @@ export function FieldRow({
       {/* Coluna direita: input */}
       <div>
         <FieldInput
-          name={name}
           def={def}
           value={localValue}
+          displayDecimals={localDecimals}
           onChange={handleChange}
           disabled={isPending}
           borderColor={borderColor()}
@@ -200,18 +211,18 @@ export function FieldRow({
 // ── Input por tipo ──────────────────────────────────────────────────────────
 
 interface FieldInputProps {
-  name: string;
   def: FieldDef;
   value: FieldValue;
-  onChange: (v: FieldValue) => void;
+  displayDecimals?: number;
+  onChange: (v: FieldValue, decimals?: number) => Promise<{ draft?: string } | null>;
   disabled: boolean;
   borderColor: string;
 }
 
 function FieldInput({
-  name,
   def,
   value,
+  displayDecimals,
   onChange,
   disabled,
   borderColor,
@@ -246,7 +257,7 @@ function FieldInput({
       return (
         <LocalizedNumberInput
           value={value}
-          decimals={displayDecimalsForField(name, def.decimals)}
+          decimals={displayDecimals}
           onChange={onChange}
           disabled={disabled}
           inputStyle={inputStyle}
@@ -310,7 +321,7 @@ function FieldInput({
 interface LocalizedNumberInputProps {
   value: FieldValue;
   decimals?: number;
-  onChange: (value: FieldValue) => void;
+  onChange: (value: FieldValue, decimals?: number) => Promise<{ draft?: string } | null>;
   disabled: boolean;
   inputStyle: React.CSSProperties;
 }
@@ -323,6 +334,9 @@ function LocalizedNumberInput({ value, decimals, onChange, disabled, inputStyle 
   const currentValue = typeof value === 'number' ? value : null;
   const [draft, setDraft] = useState(() => formatNumberDraft(currentValue, decimals));
   const [isEditing, setIsEditing] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const cancelCommit = useRef(false);
+  const committing = useRef(false);
 
   useEffect(() => {
     if (!isEditing) setDraft(formatNumberDraft(currentValue, decimals));
@@ -332,34 +346,60 @@ function LocalizedNumberInput({ value, decimals, onChange, disabled, inputStyle 
     setDraft(formatNumberDraft(currentValue, decimals));
   }
 
-  function commit() {
-    setIsEditing(false);
-    const parsed = parseLocalizedNumber(draft);
-    if (draft.trim() !== '' && parsed === null) {
+  async function commit() {
+    if (cancelCommit.current) {
+      cancelCommit.current = false;
+      setIsEditing(false);
       resetDraft();
       return;
     }
-    if (parsed !== currentValue) onChange(parsed);
+    if (committing.current) return;
+    if (draft === formatNumberDraft(currentValue, decimals)) {
+      setIsEditing(false);
+      return;
+    }
+    const parsed = parseLocalizedNumberDraft(draft);
+    if (parsed === null) {
+      setInputError('Informe um número válido com até 100 casas decimais.');
+      return;
+    }
+    setInputError(null);
+    committing.current = true;
+    try {
+      const saved = await onChange(parsed.value, parsed.decimals);
+      if (saved) {
+        if (saved.draft !== undefined) setDraft(saved.draft);
+        setIsEditing(false);
+      }
+    } finally {
+      committing.current = false;
+    }
   }
 
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
-      value={draft}
-      disabled={disabled}
-      aria-label="Número: aceita vírgula ou ponto decimal"
-      onFocus={() => setIsEditing(true)}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur();
-        if (event.key === 'Escape') {
-          resetDraft();
-          event.currentTarget.blur();
-        }
-      }}
-    />
+    <>
+      <input
+        type="text"
+        inputMode="decimal"
+        style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
+        value={draft}
+        disabled={disabled}
+        aria-label="Número: aceita vírgula ou ponto decimal"
+        aria-invalid={inputError ? true : undefined}
+        onFocus={() => setIsEditing(true)}
+        onChange={(event) => { setDraft(event.target.value); setInputError(null); }}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+          if (event.key === 'Escape') {
+            cancelCommit.current = true;
+            setInputError(null);
+            resetDraft();
+            event.currentTarget.blur();
+          }
+        }}
+      />
+      {inputError && <div role="alert" style={{ marginTop: 4, fontSize: 11, color: '#bf2c30' }}>{inputError}</div>}
+    </>
   );
 }

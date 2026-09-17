@@ -8,6 +8,7 @@
  */
 import { resolveFieldValue, type FieldDef, type FieldValue, type ReportSpec } from '@naabsa/core';
 import { collectFields } from '@naabsa/core';
+import { resolveDisplayDecimals, type NumberFormatMap } from '@naabsa/core/number-format';
 
 export interface EffectiveField {
   /** Chave do campo no spec (ex.: "data_survey"). */
@@ -17,6 +18,7 @@ export interface EffectiveField {
   value: FieldValue;
   /** Indica que o valor vem de um override do operador. */
   isOverride: boolean;
+  displayDecimals?: number;
 }
 
 export interface EffectiveSection {
@@ -38,6 +40,8 @@ export function groupBySectionOrdered(
   variant: string | null,
   extracted: Record<string, FieldValue>,
   overrides: Record<string, FieldValue> | null,
+  extractedFormats: NumberFormatMap = {},
+  operatorFormats: NumberFormatMap = {},
 ): EffectiveSection[] {
   const safeOverrides = overrides ?? {};
   const fields = collectFields(spec, variant);
@@ -50,7 +54,8 @@ export function groupBySectionOrdered(
     const rawOverride = safeOverrides[name];
     const isOverride = rawOverride !== undefined && rawOverride !== null;
 
-    const ef: EffectiveField = { name, def, value, isOverride };
+    const displayDecimals = resolveDisplayDecimals(name, def, extractedFormats, operatorFormats, safeOverrides);
+    const ef: EffectiveField = { name, def, value, isOverride, displayDecimals };
 
     const section = def.section;
     if (!sectionMap.has(section)) {

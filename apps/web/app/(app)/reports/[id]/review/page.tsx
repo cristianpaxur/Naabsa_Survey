@@ -18,6 +18,7 @@ import {
   type Issue,
   type ReportSpec,
   type FieldValue,
+  type NumberFormatMap,
 } from '@naabsa/core';
 import { groupBySectionOrdered } from '@/lib/effective-values';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -44,7 +45,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const { data: raw } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', id)
     .is('deleted_at', null)
@@ -58,6 +59,8 @@ export default async function ReviewPage({ params }: PageProps) {
     variant: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
+    extracted_number_formats: NumberFormatMap | null;
+    operator_number_formats: NumberFormatMap | null;
     extraction_issues: Issue[] | null;
     ai_review: AiReviewState | null;
     data_revision: number;
@@ -130,7 +133,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const overrides = row.operator_overrides ?? {};
   const variant = row.variant;
 
-  const sections = groupBySectionOrdered(spec, variant, extracted, overrides);
+  const sections = groupBySectionOrdered(spec, variant, extracted, overrides, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {});
 
   // Resolver effective data para validação inicial
   const fields = collectFields(spec, variant);

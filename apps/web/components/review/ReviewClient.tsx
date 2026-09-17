@@ -146,6 +146,7 @@ export function ReviewClient({
                   def={ef.def}
                   value={ef.value}
                   isOverride={ef.isOverride}
+                  displayDecimals={ef.displayDecimals}
                   fieldIssues={issuesForField(ef.name)}
                   onIssuesUpdated={applyStatus}
                   onSavingChanged={onSavingChanged}

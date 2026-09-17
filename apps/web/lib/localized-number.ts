@@ -1,10 +1,23 @@
+import type { FieldValue } from '@naabsa/core';
+
+/** Estado confirmado pelo servidor; ausência de confirmação preserva o rascunho. */
+export function numberStateAfterSave(savedField?: {
+  value: FieldValue;
+  displayDecimals?: number;
+  isOverride: boolean;
+}) {
+  if (!savedField) return null;
+  const value = typeof savedField.value === 'number' ? savedField.value : null;
+  return { ...savedField, value, draft: formatNumberDraft(value, savedField.displayDecimals) };
+}
+
 /**
  * Converte números digitados no formato brasileiro ou internacional.
  * Aceita, por exemplo, 280,54, 280.54, 1.234,56 e 1,234.56.
  */
-export function parseLocalizedNumber(raw: string): number | null {
+export function parseLocalizedNumberDraft(raw: string): { value: number | null; decimals?: number } | null {
   const value = raw.trim();
-  if (value === '') return null;
+  if (value === '') return { value: null };
   if (!/^[+-]?[\d\s.,]+$/.test(value)) return null;
 
   const sign = value.startsWith('-') ? '-' : value.startsWith('+') ? '+' : '';
@@ -14,6 +27,8 @@ export function parseLocalizedNumber(raw: string): number | null {
   const lastComma = compact.lastIndexOf(',');
   const lastDot = compact.lastIndexOf('.');
   const decimalIndex = Math.max(lastComma, lastDot);
+  const decimals = decimalIndex < 0 ? 0 : compact.length - decimalIndex - 1;
+  if (decimals > 100) return null;
 
   let normalized: string;
   if (decimalIndex === -1) {
@@ -26,7 +41,11 @@ export function parseLocalizedNumber(raw: string): number | null {
 
   if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
   const parsed = Number(`${sign}${normalized}`);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) ? { value: parsed, decimals } : null;
+}
+
+export function parseLocalizedNumber(raw: string): number | null {
+  return parseLocalizedNumberDraft(raw)?.value ?? null;
 }
 
 export function formatNumberDraft(

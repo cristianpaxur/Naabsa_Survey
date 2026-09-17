@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
 import { requestAiReview } from '@/lib/request-ai-review';
+import { resolveDisplayDecimals, type NumberFormatMap } from '@naabsa/core/number-format';
 import {
   validate,
   resolveFieldValue,
@@ -24,7 +25,12 @@ import {
 // ── Tipos compartilhados ────────────────────────────────────────────────────
 
 export type SetOverrideResult =
-  | { issues: Issue[]; aiReview: AiReviewState | null; revision: number }
+  | {
+      issues: Issue[];
+      aiReview: AiReviewState | null;
+      revision: number;
+      savedField?: { value: FieldValue; displayDecimals?: number; isOverride: boolean };
+    }
   | { error: string };
 
 export type ConfirmDataResult =
@@ -39,6 +45,8 @@ interface ReportRow {
   variant: string | null;
   extracted_data: Record<string, FieldValue> | null;
   operator_overrides: Record<string, FieldValue> | null;
+  extracted_number_formats: NumberFormatMap | null;
+  operator_number_formats: NumberFormatMap | null;
   extraction_issues: Issue[] | null;
   ai_review: AiReviewState | null;
   data_revision: number;
@@ -52,7 +60,7 @@ async function fetchReport(
   const { data } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', reportId)
     .single();
@@ -66,6 +74,8 @@ async function fetchReport(
     variant: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
+    extracted_number_formats: NumberFormatMap | null;
+    operator_number_formats: NumberFormatMap | null;
     extraction_issues: Issue[] | null;
     ai_review: AiReviewState | null;
     data_revision: number;
@@ -87,6 +97,8 @@ async function fetchReport(
     variant: raw.variant,
     extracted_data: raw.extracted_data,
     operator_overrides: raw.operator_overrides,
+    extracted_number_formats: raw.extracted_number_formats,
+    operator_number_formats: raw.operator_number_formats,
     extraction_issues: raw.extraction_issues,
     ai_review: raw.ai_review,
     data_revision: raw.data_revision,
@@ -122,6 +134,7 @@ export async function setOverride(
   reportId: string,
   field: string,
   value: FieldValue,
+  decimals?: number,
 ): Promise<SetOverrideResult> {
   const supabase = await createClient();
   const {
@@ -144,16 +157,26 @@ export async function setOverride(
   if (!fieldDef) {
     return { error: `Campo '${field}' não encontrado no spec.` };
   }
+  if (decimals !== undefined && (fieldDef[1].type !== 'number' || !Number.isInteger(decimals) || decimals < 0 || decimals > 100)) {
+    return { error: 'As casas decimais devem ser um inteiro de 0 a 100 e só podem ser definidas para campos numéricos.' };
+  }
+  if (fieldDef[1].type === 'number' && value !== null && (typeof value !== 'number' || !Number.isFinite(value))) {
+    return { error: 'Informe um número válido para este campo.' };
+  }
 
   const newOverrides: Record<string, FieldValue> = {
     ...currentOverrides,
     [field]: value,
   };
+  const previousFormat = report.operator_number_formats?.[field] ?? null;
+  const newFormats: NumberFormatMap = { ...report.operator_number_formats };
+  if (value !== null && decimals !== undefined) newFormats[field] = decimals;
+  else delete newFormats[field];
 
-  // Atualiza operator_overrides (NUNCA extracted_data)
+  // Valor e formato são persistidos juntos, sob a mesma revisão.
   const { data: updated, error: updateError } = await supabase
     .from('reports')
-    .update({ operator_overrides: newOverrides } as never)
+    .update({ operator_overrides: newOverrides, operator_number_formats: newFormats } as never)
     .eq('id', reportId).eq('status', 'in_review').eq('data_revision', report.data_revision)
     .select('data_revision, ai_review, extraction_issues').maybeSingle();
 
@@ -172,6 +195,8 @@ export async function setOverride(
       cell: fieldDef[1].cell,
       before: previousValue,
       after: value,
+      beforeFormat: previousFormat,
+      afterFormat: newFormats[field] ?? null,
     },
   });
 
@@ -186,7 +211,14 @@ export async function setOverride(
   const latest = updated as unknown as { data_revision: number; ai_review: AiReviewState | null; extraction_issues: Issue[] | null };
   const issues = mergeReviewIssues(validate(effective, report.spec, report.variant), latest.extraction_issues, effective, extracted, latest.ai_review);
 
-  return { issues, aiReview: latest.ai_review, revision: latest.data_revision };
+  return {
+    issues, aiReview: latest.ai_review, revision: latest.data_revision,
+    savedField: {
+      value: effective[field] ?? null,
+      displayDecimals: resolveDisplayDecimals(field, fieldDef[1], report.extracted_number_formats ?? {}, newFormats, newOverrides),
+      isOverride: value !== null,
+    },
+  };
 }
 
 /** Polling lê só avisos/estado: não substitui entradas que o operador está editando. */

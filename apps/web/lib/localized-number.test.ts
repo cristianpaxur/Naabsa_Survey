@@ -1,5 +1,45 @@
 import { describe, expect, it } from 'vitest';
-import { formatNumberDraft, parseLocalizedNumber } from './localized-number';
+import { formatNumberDraft, parseLocalizedNumber, parseLocalizedNumberDraft, numberStateAfterSave } from './localized-number';
+
+describe('numberStateAfterSave', () => {
+  it('confirma 81.00 com as duas casas salvas mesmo sem mudar o número', () => {
+    expect(numberStateAfterSave({ value: 81, displayDecimals: 2, isOverride: true })).toEqual({
+      value: 81, displayDecimals: 2, isOverride: true, draft: '81.00',
+    });
+  });
+
+  it('limpar override recompõe valor e precisão Excel retornados pelo servidor', () => {
+    expect(numberStateAfterSave({ value: 80, displayDecimals: 3, isOverride: false })).toEqual({
+      value: 80, displayDecimals: 3, isOverride: false, draft: '80.000',
+    });
+  });
+
+  it('não confirma estado local para resposta sem savedField', () => {
+    expect(numberStateAfterSave(undefined)).toBeNull();
+  });
+});
+
+describe('parseLocalizedNumberDraft', () => {
+  it.each([
+    ['81', { value: 81, decimals: 0 }],
+    ['81.0', { value: 81, decimals: 1 }],
+    ['81.00', { value: 81, decimals: 2 }],
+    ['1.234,500', { value: 1234.5, decimals: 3 }],
+    ['1,234.500', { value: 1234.5, decimals: 3 }],
+    [' -0,250 ', { value: -0.25, decimals: 3 }],
+    ['', { value: null }],
+    ['  ', { value: null }],
+    ['abc', null],
+    ['1..2', null],
+  ])('preserva valor e precisão de %s', (raw, expected) => {
+    expect(parseLocalizedNumberDraft(raw)).toEqual(expected);
+  });
+
+  it('aceita 100 casas e rejeita 101 sem truncar a intenção digitada', () => {
+    expect(parseLocalizedNumberDraft(`1.${'0'.repeat(100)}`)).toEqual({ value: 1, decimals: 100 });
+    expect(parseLocalizedNumberDraft(`1.${'0'.repeat(101)}`)).toBeNull();
+  });
+});
 
 describe('parseLocalizedNumber', () => {
   it.each([
