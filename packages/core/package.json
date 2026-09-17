@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./number-format": "./src/number-format.ts",
     "./review-policy": "./src/review-policy.ts"
   },
   "scripts": {

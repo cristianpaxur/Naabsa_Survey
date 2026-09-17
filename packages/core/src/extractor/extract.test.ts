@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import ExcelJS from 'exceljs';
+import type { ReportSpec } from '../types';
 import { extract, resolveVariant } from './extract';
+import { runExtraction } from './pipeline';
 import {
   sampleSpec,
   buildWorkbook,
@@ -9,6 +12,81 @@ import {
 } from './synthFixtures';
 
 describe('extract — caminho feliz', () => {
+  it('preserva as casas exibidas de números e de fórmula com resultado cacheado', () => {
+    const spec: ReportSpec = {
+      report_type: 'precision',
+      version: 1,
+      variants: [],
+      source: {
+        sheet: 'DADOS',
+        fingerprint: { cell: 'A1', expect: 'PRECISION' },
+        common: {
+          fields: {
+            integer: {
+              cell: 'B2',
+              type: 'number',
+              label: 'Inteiro',
+              section: 'Números',
+            },
+            one_decimal: {
+              cell: 'B3',
+              type: 'number',
+              label: 'Uma casa',
+              section: 'Números',
+            },
+            two_decimals: {
+              cell: 'B4',
+              type: 'number',
+              label: 'Duas casas',
+              section: 'Números',
+            },
+            three_decimals: {
+              cell: 'B5',
+              type: 'number',
+              label: 'Três casas',
+              section: 'Números',
+            },
+            formula_result: {
+              cell: 'B6',
+              type: 'number',
+              label: 'Fórmula',
+              section: 'Números',
+            },
+          },
+        },
+      },
+    };
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('DADOS');
+    worksheet.getCell('A1').value = 'PRECISION';
+    for (const [address, value, numFmt] of [
+      ['B2', 81, '0'],
+      ['B3', 81, '0.0'],
+      ['B4', 81, '0.00'],
+      ['B5', 81, '0.000'],
+    ] as const) {
+      const cell = worksheet.getCell(address);
+      cell.value = value;
+      cell.numFmt = numFmt;
+    }
+    worksheet.getCell('B6').value = { formula: 'B2 * 2', result: 162 };
+    worksheet.getCell('B6').numFmt = '0.000';
+
+    const result = extract(workbook, spec, null);
+
+    expect(result.data.formula_result).toBe(162);
+    expect(result.numberFormats).toEqual({
+      integer: 0,
+      one_decimal: 1,
+      two_decimals: 2,
+      three_decimals: 3,
+      formula_result: 3,
+    });
+    expect(runExtraction(workbook, spec).numberFormats).toEqual(
+      result.numberFormats,
+    );
+  });
+
   it('lê common + by_variant e coage os tipos (discharge)', () => {
     const wb = buildCompleteWorkbook();
     const { data, issues } = extract(wb, sampleSpec, 'discharge');

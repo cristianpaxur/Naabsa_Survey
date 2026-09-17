@@ -41,7 +41,7 @@ export function coerceField(
     case 'string':
       return coerceString(raw);
     case 'number':
-      return coerceNumber(raw, field.decimals);
+      return coerceNumber(raw);
     case 'date':
       return coerceDate(raw, opts.date1904 ?? false);
     case 'enum':
@@ -58,7 +58,7 @@ function coerceString(raw: RawCellValue): CoerceResult {
   return { value: String(raw).trim() };
 }
 
-function coerceNumber(raw: RawCellValue, decimals?: number): CoerceResult {
+function coerceNumber(raw: RawCellValue): CoerceResult {
   let n: number;
   if (typeof raw === 'number') {
     n = raw;
@@ -78,7 +78,6 @@ function coerceNumber(raw: RawCellValue, decimals?: number): CoerceResult {
       };
     }
   }
-  if (decimals !== undefined) n = roundTo(n, decimals);
   return { value: n };
 }
 
@@ -133,11 +132,6 @@ function coerceBoolean(raw: RawCellValue): CoerceResult {
 }
 
 // ── Helpers ──
-
-function roundTo(n: number, decimals: number): number {
-  const f = 10 ** decimals;
-  return Math.round(n * f) / f;
-}
 
 function dateToISO(d: Date): string {
   const y = d.getUTCFullYear();

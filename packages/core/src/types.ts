@@ -192,8 +192,12 @@ export interface Issue {
 /** Valor efetivo de um campo após coerção (serializável em JSONB). */
 export type FieldValue = string | number | boolean | null;
 
+/** Quantidade de casas decimais exibidas por campo numérico. */
+export type NumberFormatMap = Record<string, number>;
+
 export interface ExtractionResult {
   data: Record<string, FieldValue>;
+  numberFormats: NumberFormatMap;
   /** Matrizes das tabelas range-based (v2). Chave = `TableDef.id`. */
   tables: Record<string, FieldValue[][]>;
   issues: Issue[];

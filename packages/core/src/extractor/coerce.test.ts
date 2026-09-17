@@ -56,8 +56,8 @@ describe('coerceField — number (pt-BR)', () => {
   it('decimal "12,5" → 12.5', () => {
     expect(coerceField('12,5', numField).value).toBe(12.5);
   });
-  it('arredonda a decimals', () => {
-    expect(coerceField('1,239', num2).value).toBe(1.24);
+  it('preserva o valor mesmo quando o spec define precisão de exibição', () => {
+    expect(coerceField(81.2345, num2).value).toBe(81.2345);
   });
   it('texto não numérico → erro', () => {
     const r = coerceField('abc', numField);

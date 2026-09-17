@@ -17,7 +17,9 @@ import type {
   Issue,
   ExtractionResult,
   FieldValue,
+  NumberFormatMap,
 } from '../types';
+import { inferExcelDisplayDecimals } from '../number-format';
 import { coerceField, type RawCellValue } from './coerce';
 
 export function extract(
@@ -27,18 +29,19 @@ export function extract(
 ): ExtractionResult {
   const issues: Issue[] = [];
   const data: Record<string, FieldValue> = {};
+  const numberFormats: NumberFormatMap = {};
 
   // Aba do fingerprint: própria (v2) ou a aba única (v1).
   const fp = spec.source.fingerprint;
   const fpSheetName = sheetOf(fp.sheet, spec);
   if (!fpSheetName) {
     issues.push(sheetIssue('Spec sem aba para o fingerprint (defina sheet).'));
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
   const fpSheet = workbook.getWorksheet(fpSheetName);
   if (!fpSheet) {
     issues.push(sheetIssue(`Aba '${fpSheetName}' não encontrada na planilha.`));
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
 
   // Fingerprint (RF-09): confere o tipo da planilha.
@@ -52,7 +55,7 @@ export function extract(
       origin: 'extraction',
       message: `Planilha incompatível: esperado '${fp.expect}' na célula ${fp.cell}, encontrado '${fpStr || '(vazio)'}'.`,
     });
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
 
   const fields = collectFields(spec, variant);
@@ -68,22 +71,27 @@ export function extract(
       needed.add(s);
     }
   }
-  if (issues.length > 0) return { data, tables: {}, issues };
+  if (issues.length > 0) return { data, numberFormats, tables: {}, issues };
   const missing = [...needed].filter((s) => !workbook.getWorksheet(s));
   if (missing.length > 0) {
     for (const s of missing) {
       issues.push(sheetIssue(`Aba '${s}' não encontrada na planilha.`));
     }
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
 
   const date1904 = Boolean(workbook.properties?.date1904);
 
   for (const [name, field] of fields) {
     const ws = workbook.getWorksheet(sheetOf(field.sheet, spec) as string);
-    const raw = normalizeCell(ws!.getCell(field.cell).value);
+    const cell = ws!.getCell(field.cell);
+    const raw = normalizeCell(cell.value);
     const res = coerceField(raw, field, { date1904 });
     data[name] = res.value;
+    if (field.type === 'number' && typeof res.value === 'number') {
+      const decimals = inferExcelDisplayDecimals(cell.numFmt, res.value);
+      if (decimals !== undefined) numberFormats[name] = decimals;
+    }
     if (res.error !== undefined) {
       issues.push({
         field: name,
@@ -97,7 +105,12 @@ export function extract(
 
   // Tabelas range-based (v2) — erros não bloqueiam os campos já extraídos.
   const { tables, issues: tableIssues } = extractTables(workbook, spec);
-  return { data, tables, issues: [...issues, ...tableIssues] };
+  return {
+    data,
+    numberFormats,
+    tables,
+    issues: [...issues, ...tableIssues],
+  };
 }
 
 /** Aba efetiva de um item: a própria (v2) ou a aba única do spec (v1). */
