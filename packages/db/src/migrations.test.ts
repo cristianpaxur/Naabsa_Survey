@@ -79,6 +79,13 @@ beforeAll(async () => {
           origin: 'ai',
           message: 'Diferença em MT não confere.',
         },
+        {
+          field: 'fin_fig_diff_pct',
+          cell: 'C40',
+          level: 'warning',
+          origin: 'validation',
+          message: 'Diferença final acima de 0,5%.',
+        },
       ]),
       JSON.stringify({ status: 'done', data: { fin_fig_diff_mt: -152.596 } }),
       currentReportId,
@@ -103,8 +110,13 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
           common: {
             fields: {
               port: { section: string };
+              net_tonnage: { decimals: number };
+              gross_tonnage: { decimals: number };
+              summer_dwt: { decimals: number };
               int_fig_diff_mt: { ai_review: boolean };
+              int_fig_diff_pct: { ai_review: boolean };
               fin_fig_diff_mt: { ai_review: boolean };
+              fin_fig_diff_pct: { ai_review: boolean };
             };
           };
         };
@@ -123,18 +135,28 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
       result.rows[0]!.spec.source.common.fields.int_fig_diff_mt.ai_review,
     ).toBe(false);
     expect(
+      result.rows[0]!.spec.source.common.fields.int_fig_diff_pct.ai_review,
+    ).toBe(false);
+    expect(
       result.rows[0]!.spec.source.common.fields.fin_fig_diff_mt.ai_review,
     ).toBe(false);
     expect(
-      result.rows[0]!.spec.validations.find(
-        (r) => r.field === 'fin_fig_diff_pct',
-      )?.max,
-    ).toBe(0.5);
+      result.rows[0]!.spec.source.common.fields.fin_fig_diff_pct.ai_review,
+    ).toBe(false);
+    expect(
+      result.rows[0]!.spec.source.common.fields.net_tonnage.decimals,
+    ).toBe(3);
+    expect(
+      result.rows[0]!.spec.source.common.fields.gross_tonnage.decimals,
+    ).toBe(3);
+    expect(
+      result.rows[0]!.spec.source.common.fields.summer_dwt.decimals,
+    ).toBe(3);
     expect(
       result.rows[0]!.spec.validations.find(
         (r) => r.field === 'fin_fig_diff_pct',
-      )?.message,
-    ).toBe('Diferença final fora do limite de ±0,5% entre figuras — revisar antes de aprovar.');
+      ),
+    ).toBeUndefined();
     const old = await db.query<{ spec_id: string }>(
       'select spec_id from reports where id=$1',
       [reportId],
@@ -157,6 +179,7 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
     const auditBefore = await db.query('select count(*) from audit_log');
     await db.exec(load('0015_fix_draft_survey_percentage.sql'));
     await db.exec(load('0017_fix_draft_survey_derived_review.sql'));
+    await db.exec(load('0018_ignore_draft_survey_differences.sql'));
     expect((await db.query('select count(*) from report_specs')).rows).toEqual(
       before.rows,
     );

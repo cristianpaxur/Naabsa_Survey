@@ -11,7 +11,12 @@
  * no retorno para reflectir o estado sem recarregar a página.
  */
 import { useEffect, useState, useTransition } from 'react';
-import type { FieldDef, FieldValue, Issue } from '@naabsa/core';
+import {
+  displayDecimalsForField,
+  type FieldDef,
+  type FieldValue,
+  type Issue,
+} from '@naabsa/core';
 import { setOverride, type SetOverrideResult } from '@/lib/actions/review';
 import { formatNumberDraft, parseLocalizedNumber } from '@/lib/localized-number';
 
@@ -171,6 +176,7 @@ export function FieldRow({
       {/* Coluna direita: input */}
       <div>
         <FieldInput
+          name={name}
           def={def}
           value={localValue}
           onChange={handleChange}
@@ -198,6 +204,7 @@ export function FieldRow({
 // ── Input por tipo ──────────────────────────────────────────────────────────
 
 interface FieldInputProps {
+  name: string;
   def: FieldDef;
   value: FieldValue;
   onChange: (v: FieldValue) => void;
@@ -206,6 +213,7 @@ interface FieldInputProps {
 }
 
 function FieldInput({
+  name,
   def,
   value,
   onChange,
@@ -242,7 +250,7 @@ function FieldInput({
       return (
         <LocalizedNumberInput
           value={value}
-          decimals={def.decimals}
+          decimals={displayDecimalsForField(name, def.decimals)}
           onChange={onChange}
           disabled={disabled}
           inputStyle={inputStyle}

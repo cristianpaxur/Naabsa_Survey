@@ -23,7 +23,7 @@ describe('parseLocalizedNumber', () => {
 describe('formatNumberDraft', () => {
   it('preserva as casas decimais definidas pelo spec', () => {
     expect(formatNumberDraft(81, 1)).toBe('81.0');
-    expect(formatNumberDraft(12, 1)).toBe('12.0');
+    expect(formatNumberDraft(12, 3)).toBe('12.000');
   });
 
   it('mantém o comportamento livre quando o spec não define precisão', () => {

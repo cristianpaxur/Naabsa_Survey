@@ -15,6 +15,21 @@ describe('avisos persistidos e versão dos dados', () => {
     expect(mergeReviewIssues([], [warning], { imo: '456', flag: 'BR' }, {}, state)).toEqual([]);
     expect(mergeReviewIssues([], [warning], { imo: '123', flag: 'US' }, {}, state)).toEqual([]);
   });
+  it.each(['int_fig_diff_mt', 'int_fig_diff_pct', 'fin_fig_diff_mt', 'fin_fig_diff_pct'])(
+    'oculta aviso legado do campo calculado %s',
+    (field) => {
+      const calculated = { ...warning, field };
+      expect(
+        mergeReviewIssues(
+          [],
+          [calculated],
+          { [field]: -0.231 },
+          { [field]: -0.231 },
+          null,
+        ),
+      ).toEqual([]);
+    },
+  );
   it('separa falha, concluída vazia, desativada e fila atrasada', () => {
     expect(aiReviewLabel({ status: 'done' })).toContain('concluída');
     expect(aiReviewLabel({ status: 'error' })).toContain('não conseguiu');

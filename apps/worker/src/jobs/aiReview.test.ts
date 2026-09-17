@@ -42,6 +42,7 @@ describe('buildReviewPrompt (010/T-007)', () => {
           loa: { type: 'number', cell: 'C20', label: 'LOA', section: 'Particulars', unit: 'm', min: 50, max: 400 },
           summer_dwt: { type: 'number', cell: 'C26', label: 'Summer DWT', section: 'Particulars', unit: 'mt', decimals: 1 },
           fin_fig_diff_mt: { type: 'number', cell: 'C39', label: 'Diferença (MT)', section: 'Figures', unit: 'MT', decimals: 3, ai_review: false },
+          fin_fig_diff_pct: { type: 'number', cell: 'C40', label: 'Diferença (%)', section: 'Figures', unit: '%', decimals: 3 },
         },
       },
       by_variant: {},
@@ -57,9 +58,10 @@ describe('buildReviewPrompt (010/T-007)', () => {
     expect(userText).toContain('"field":"imo"');
     expect(userText).toContain('"value":"9544073"');
     expect(userText).toContain('"min":50');
-    expect(userText).toContain('"display_value":"81.0"');
-    expect(userText).toContain('"decimals":1');
+    expect(userText).toContain('"display_value":"81.000"');
+    expect(userText).toContain('"decimals":3');
     expect(userText).not.toContain('fin_fig_diff_mt');
+    expect(userText).not.toContain('fin_fig_diff_pct');
     expect(userText).toMatch(/array JSON/i);
   });
 });

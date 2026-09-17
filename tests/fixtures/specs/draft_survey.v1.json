@@ -52,9 +52,9 @@
         "lbp": { "sheet": "Capa", "cell": "C21", "type": "number", "decimals": 2, "unit": "m", "label": "LBP", "section": "Particulars do navio" },
         "depth_moulded": { "sheet": "Capa", "cell": "C22", "type": "number", "decimals": 2, "unit": "m", "label": "Pontal moldado", "section": "Particulars do navio" },
         "breadth_moulded": { "sheet": "Capa", "cell": "C23", "type": "number", "decimals": 2, "unit": "m", "label": "Boca moldada", "section": "Particulars do navio" },
-        "net_tonnage": { "sheet": "Capa", "cell": "C24", "type": "number", "decimals": 1, "unit": "mt", "label": "Net tonnage", "section": "Particulars do navio" },
-        "gross_tonnage": { "sheet": "Capa", "cell": "C25", "type": "number", "decimals": 1, "unit": "mt", "label": "Gross tonnage", "section": "Particulars do navio" },
-        "summer_dwt": { "sheet": "Capa", "cell": "C26", "type": "number", "decimals": 1, "unit": "mt", "label": "Summer DWT", "section": "Particulars do navio" },
+        "net_tonnage": { "sheet": "Capa", "cell": "C24", "type": "number", "decimals": 3, "unit": "mt", "label": "Net tonnage", "section": "Particulars do navio" },
+        "gross_tonnage": { "sheet": "Capa", "cell": "C25", "type": "number", "decimals": 3, "unit": "mt", "label": "Gross tonnage", "section": "Particulars do navio" },
+        "summer_dwt": { "sheet": "Capa", "cell": "C26", "type": "number", "decimals": 3, "unit": "mt", "label": "Summer DWT", "section": "Particulars do navio" },
 
         "captain": { "sheet": "Capa", "cell": "C28", "type": "string", "label": "Comandante", "section": "Comando" },
         "chief_officer": { "sheet": "Capa", "cell": "C29", "type": "string", "label": "Imediato", "section": "Comando" },
@@ -115,13 +115,13 @@
         "int_fig_shore_scale": { "sheet": "DS INTERMEDIATE", "cell": "C37", "type": "number", "decimals": 3, "unit": "MT", "label": "Shore Scale (oficial)", "section": "Figures — Intermediário" },
         "int_fig_naabsa": { "sheet": "DS INTERMEDIATE", "cell": "C38", "type": "number", "decimals": 3, "unit": "MT", "label": "NAABSA surveyor", "section": "Figures — Intermediário" },
         "int_fig_diff_mt": { "sheet": "DS INTERMEDIATE", "cell": "C39", "type": "number", "decimals": 3, "unit": "MT", "label": "Diferença (MT)", "section": "Figures — Intermediário", "ai_review": false },
-        "int_fig_diff_pct": { "sheet": "DS INTERMEDIATE", "cell": "C40", "type": "number", "decimals": 3, "unit": "%", "label": "Diferença (%)", "section": "Figures — Intermediário" },
+        "int_fig_diff_pct": { "sheet": "DS INTERMEDIATE", "cell": "C40", "type": "number", "decimals": 3, "unit": "%", "label": "Diferença (%)", "section": "Figures — Intermediário", "ai_review": false },
         "int_fig_vessel": { "sheet": "DS INTERMEDIATE", "cell": "I38", "type": "number", "decimals": 3, "unit": "MT", "label": "Vessel's figures", "section": "Figures — Intermediário" },
 
         "fin_fig_shore_scale": { "sheet": "DS FINAL", "cell": "C37", "type": "number", "decimals": 3, "unit": "MT", "label": "Shore Scale (oficial)", "section": "Figures — Final" },
         "fin_fig_naabsa": { "sheet": "DS FINAL", "cell": "C38", "type": "number", "decimals": 3, "unit": "MT", "label": "NAABSA surveyor", "section": "Figures — Final" },
         "fin_fig_diff_mt": { "sheet": "DS FINAL", "cell": "C39", "type": "number", "decimals": 3, "unit": "MT", "label": "Diferença (MT)", "section": "Figures — Final", "ai_review": false },
-        "fin_fig_diff_pct": { "sheet": "DS FINAL", "cell": "C40", "type": "number", "decimals": 3, "unit": "%", "label": "Diferença (%)", "section": "Figures — Final" },
+        "fin_fig_diff_pct": { "sheet": "DS FINAL", "cell": "C40", "type": "number", "decimals": 3, "unit": "%", "label": "Diferença (%)", "section": "Figures — Final", "ai_review": false },
         "fin_fig_vessel": { "sheet": "DS FINAL", "cell": "I38", "type": "number", "decimals": 3, "unit": "MT", "label": "Vessel's figures", "section": "Figures — Final" }
       }
     },
@@ -149,8 +149,7 @@
 
   "validations": [
     { "rule": "range", "field": "loa", "min": 50, "max": 400, "level": "warning", "message": "LOA fora do intervalo usual (50–400 m) — confira a célula Capa!C20." },
-    { "rule": "range", "field": "summer_dwt", "min": 0, "max": 500000, "level": "warning", "message": "Summer DWT fora do intervalo usual — confira a célula Capa!C26." },
-    { "rule": "range", "field": "fin_fig_diff_pct", "min": -0.5, "max": 0.5, "level": "warning", "message": "Diferença final fora do limite de ±0,5% entre figuras — revisar antes de aprovar." }
+    { "rule": "range", "field": "summer_dwt", "min": 0, "max": 500000, "level": "warning", "message": "Summer DWT fora do intervalo usual — confira a célula Capa!C26." }
   ],
 
   "photo_slots": [

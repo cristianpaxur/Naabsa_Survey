@@ -10,6 +10,8 @@ import { getServiceClient } from '../lib/supabase';
 import { randomUUID } from 'node:crypto';
 import {
   collectFields,
+  displayDecimalsForField,
+  isCalculatedDifferenceField,
   resolveFieldValue,
   type ReportSpec,
   type FieldValue,
@@ -48,20 +50,27 @@ export function buildReviewPrompt(
   data: Record<string, FieldValue>,
 ): { system: string; userText: string } {
   const fields = collectFields(spec, variant)
-    .filter(([, def]) => def.ai_review !== false)
+    .filter(
+      ([name, def]) =>
+        def.ai_review !== false && !isCalculatedDifferenceField(name),
+    )
     .map(([name, def]) => {
       const value = data[name] ?? null;
+      const decimals =
+        def.type === 'number'
+          ? displayDecimalsForField(name, def.decimals)
+          : undefined;
       return {
         field: name,
         label: def.label,
         type: def.type,
         ...(def.unit ? { unit: def.unit } : {}),
-        ...(def.type === 'number' && def.decimals != null
+        ...(decimals != null
           ? {
-              decimals: def.decimals,
+              decimals,
               display_value:
                 typeof value === 'number'
-                  ? value.toFixed(def.decimals)
+                  ? value.toFixed(decimals)
                   : value,
             }
           : {}),
@@ -73,9 +82,9 @@ export function buildReviewPrompt(
   const system =
     'Você é um revisor de dados de Draft Survey (vistoria marítima de calado). ' +
     'Receberá campos extraídos de uma planilha (rótulo, tipo, unidade, limites, precisão de exibição e valor). ' +
-    'Zeros decimais à direita são metadados de exibição: o JSON numérico 81 e o display_value 81.0 representam o mesmo valor informado. ' +
-    'Nos campos net_tonnage, gross_tonnage e summer_dwt com decimals=1 e valor positivo menor que 1000, ' +
-    'a planilha de Draft Survey usa a convenção de milhares de toneladas (por exemplo, 81.0 representa cerca de 81 mil toneladas). ' +
+    'Zeros decimais à direita são metadados de exibição: o JSON numérico 81 e o display_value 81.000 representam o mesmo valor informado. ' +
+    'Nos campos net_tonnage, gross_tonnage e summer_dwt com valor positivo menor que 1000, ' +
+    'a planilha de Draft Survey usa a convenção de milhares de toneladas (por exemplo, 81.000 representa cerca de 81 mil toneladas). ' +
     'Aplique essa convenção antes de comparar tonelagem com as dimensões do navio e não sinalize truncamento apenas por essa escala. ' +
     'Sinalize APENAS valores claramente suspeitos: fora dos limites, formato implausível ou ' +
     'contradições óbvias entre campos relacionados. Não invente campos. Seja conservador — ' +
@@ -251,7 +260,8 @@ export async function aiReview(
     const cells = new Map<string, string | null>();
     const effective: Record<string, FieldValue> = {};
     for (const [name, def] of collectFields(spec, r.variant)) {
-      if (def.ai_review === false) continue;
+      if (def.ai_review === false || isCalculatedDifferenceField(name))
+        continue;
       cells.set(name, def.cell ?? null);
       effective[name] = resolveFieldValue(
         name,

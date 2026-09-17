@@ -15,6 +15,7 @@ import type {
   CompareOp,
 } from '../types';
 import { collectFields } from './extract';
+import { isCalculatedDifferenceField } from '../review-policy';
 
 export function validate(
   data: Record<string, FieldValue>,
@@ -26,9 +27,12 @@ export function validate(
   const cellOf = new Map<string, string>(fields.map(([n, f]) => [n, f.cell]));
 
   for (const [name, field] of fields) {
+    if (isCalculatedDifferenceField(name)) continue;
     issues.push(...validateField(name, field, data[name] ?? null));
   }
   for (const rule of spec.validations ?? []) {
+    const target = rule.rule === 'range' ? rule.field : rule.left;
+    if (isCalculatedDifferenceField(target)) continue;
     const issue = validateRule(rule, data, cellOf);
     if (issue) issues.push(issue);
   }

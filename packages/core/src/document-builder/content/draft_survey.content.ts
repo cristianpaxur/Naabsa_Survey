@@ -59,9 +59,9 @@ function fmtMeters(v: FieldValue | undefined): string {
   return v == null ? '—' : String(v);
 }
 
-/** Tonelagem com uma casa decimal: "27,239.0 mt". */
+/** Tonelagem com três casas decimais: "27,239.000 mt". */
 function fmtTon(v: FieldValue | undefined): string {
-  if (typeof v === 'number') return `${fmtThousands(v, 1)} mt`;
+  if (typeof v === 'number') return `${fmtThousands(v, 3)} mt`;
   return v == null ? '—' : String(v);
 }
 

@@ -1,4 +1,8 @@
-import type { FieldValue, Issue } from '@naabsa/core';
+import {
+  isCalculatedDifferenceField,
+  type FieldValue,
+  type Issue,
+} from '@naabsa/core';
 
 export interface AiReviewState {
   status: 'queued' | 'running' | 'done' | 'error' | 'disabled' | 'stale';
@@ -22,6 +26,7 @@ export function mergeReviewIssues(
   const unique = new Map<string, Issue>();
   for (const issue of [...deterministic, ...(persisted ?? []).filter((i) => {
     if (i.origin !== 'ai') return false;
+    if (isCalculatedDifferenceField(i.field)) return false;
     const fields = state?.dependencies?.[i.field] ?? [i.field];
     return [i.field, ...fields].every((f) => Object.hasOwn(snapshot, f) && effective[f] === snapshot[f]);
   })]) {

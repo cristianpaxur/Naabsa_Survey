@@ -9,6 +9,7 @@
  */
 export * from './types';
 export * from './resolveFieldValue';
+export * from './review-policy';
 export * from './spec-schema';
 export * from './extractor';
 export * from './document-builder';
