@@ -103,6 +103,36 @@ afterAll(async () => {
 });
 
 describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
+  it('inicializa mapas de formatos numéricos como objetos vazios em relatórios existentes', async () => {
+    const result = await db.query<{
+      extracted_number_formats: Record<string, number>;
+      operator_number_formats: Record<string, number>;
+    }>(
+      'select extracted_number_formats,operator_number_formats from reports where id=$1',
+      [reportId],
+    );
+
+    expect(result.rows[0]).toEqual({
+      extracted_number_formats: {},
+      operator_number_formats: {},
+    });
+  });
+
+  it('rejeita arrays nos mapas de formatos numéricos', async () => {
+    await expect(
+      db.query(
+        "update reports set extracted_number_formats='[]'::jsonb where id=$1",
+        [reportId],
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.query(
+        "update reports set operator_number_formats='[]'::jsonb where id=$1",
+        [reportId],
+      ),
+    ).rejects.toThrow();
+  });
+
   it('publica a spec corrigida e move todos os relatórios em andamento', async () => {
     const result = await db.query<{
       spec: {
@@ -180,6 +210,7 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
     await db.exec(load('0015_fix_draft_survey_percentage.sql'));
     await db.exec(load('0017_fix_draft_survey_derived_review.sql'));
     await db.exec(load('0018_ignore_draft_survey_differences.sql'));
+    await db.exec(load('0019_report_number_formats.sql'));
     expect((await db.query('select count(*) from report_specs')).rows).toEqual(
       before.rows,
     );

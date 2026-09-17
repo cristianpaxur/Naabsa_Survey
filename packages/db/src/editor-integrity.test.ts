@@ -45,4 +45,36 @@ describe('integridade editor em PostgreSQL volátil', () => {
       where id=$1 and status='editing' and working_docx_path is null and working_docx_generation=$2 returning id`, [reportId, before.working_docx_generation]);
     expect(late.rows).toHaveLength(0);
   });
+  it('formatos numéricos do operador incrementam revisão e tornam a análise de IA obsoleta', async () => {
+    await db.query('update reports set ai_review=$1 where id=$2', [
+      {
+        status: 'done',
+        data: { summer_dwt: 12_345.67 },
+      },
+      reportId,
+    ]);
+    const before = await db.query<{ data_revision: number }>(
+      'select data_revision from reports where id=$1',
+      [reportId],
+    );
+
+    await db.query(
+      `update reports
+       set operator_number_formats='{"summer_dwt":2}'::jsonb
+       where id=$1`,
+      [reportId],
+    );
+
+    const after = await db.query<{
+      data_revision: number;
+      ai_review: { status: string; data: { summer_dwt: number } };
+    }>('select data_revision,ai_review from reports where id=$1', [reportId]);
+    expect(Number(after.rows[0]!.data_revision)).toBe(
+      Number(before.rows[0]!.data_revision) + 1,
+    );
+    expect(after.rows[0]!.ai_review).toEqual({
+      status: 'stale',
+      data: { summer_dwt: 12_345.67 },
+    });
+  });
 });
