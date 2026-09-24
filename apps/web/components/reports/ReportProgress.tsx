@@ -13,8 +13,8 @@ export function ReportProgress({
   links?: Partial<Record<ReportStage, string>>;
 }) {
   return (
-    <nav aria-label="Etapas do relatório" style={styles.nav}>
-      <ol style={styles.list}>
+    <nav aria-label="Etapas do relatório" className="report-progress">
+      <ol className="report-progress__list">
         {REPORT_STAGES.map((stage, index) => {
           const state = getReportStageState(current, stage.id);
           const href = links[stage.id];
@@ -28,24 +28,14 @@ export function ReportProgress({
             <>
               <span
                 aria-hidden="true"
-                style={{
-                  ...styles.dot,
-                  ...(state === 'current' ? styles.currentDot : {}),
-                  ...(state === 'done' ? styles.doneDot : {}),
-                }}
+                className={`report-progress__dot report-progress__dot--${state}`}
               >
                 {state === 'done' ? '✓' : index + 1}
               </span>
-              <span
-                style={styles.visuallyHidden}
-              >{`${stage.label}, ${statusLabel}`}</span>
+              <span className="report-progress__visually-hidden">{`${stage.label}, ${statusLabel}`}</span>
               <span
                 aria-hidden="true"
-                style={{
-                  ...styles.label,
-                  ...(state === 'current' ? styles.currentLabel : {}),
-                  ...(state === 'done' ? styles.doneLabel : {}),
-                }}
+                className={`report-progress__label report-progress__label--${state}`}
               >
                 {stage.label}
               </span>
@@ -53,11 +43,11 @@ export function ReportProgress({
           );
 
           return (
-            <li key={stage.id} style={styles.item}>
+            <li key={stage.id} className="report-progress__item">
               {href && state === 'done' ? (
                 <Link
                   href={href}
-                  style={styles.link}
+                  className={`report-progress__link report-progress__link--${state}`}
                   aria-label={`${stage.label}, concluída. Voltar para ${stage.label}`}
                 >
                   {content}
@@ -65,7 +55,7 @@ export function ReportProgress({
               ) : (
                 <span
                   aria-current={state === 'current' ? 'step' : undefined}
-                  style={styles.link}
+                  className={`report-progress__link report-progress__link--${state}`}
                 >
                   {content}
                 </span>
@@ -73,10 +63,7 @@ export function ReportProgress({
               {index < REPORT_STAGES.length - 1 && (
                 <span
                   aria-hidden="true"
-                  style={{
-                    ...styles.line,
-                    ...(state === 'done' ? styles.doneLine : {}),
-                  }}
+                  className={`report-progress__line report-progress__line--${state}`}
                 />
               )}
             </li>
@@ -86,95 +73,3 @@ export function ReportProgress({
     </nav>
   );
 }
-
-const styles = {
-  nav: {
-    maxWidth: 1100,
-    margin: '0 auto',
-    display: 'flex',
-    alignItems: 'center',
-    minWidth: 0,
-  },
-  list: {
-    display: 'flex',
-    alignItems: 'center',
-    width: '100%',
-    margin: 0,
-    padding: 0,
-    listStyle: 'none',
-  },
-  item: {
-    display: 'flex',
-    alignItems: 'center',
-    flex: 1,
-    minWidth: 0,
-  },
-  link: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    minWidth: 0,
-    color: 'inherit',
-    textDecoration: 'none',
-  },
-  dot: {
-    width: 28,
-    height: 28,
-    flex: 'none',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 12,
-    fontWeight: 700,
-    color: '#a39a8d',
-    background: '#fff',
-    border: '2px solid #dcd8d0',
-  },
-  currentDot: {
-    color: '#fff',
-    background: 'var(--navy)',
-    borderColor: 'var(--navy)',
-  },
-  doneDot: {
-    color: '#fff',
-    background: '#2f6b48',
-    borderColor: '#2f6b48',
-  },
-  label: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#a39a8d',
-  },
-  currentLabel: {
-    color: 'var(--navy)',
-    fontWeight: 800,
-  },
-  doneLabel: {
-    color: '#2f6b48',
-  },
-  line: {
-    height: 2,
-    flex: 1,
-    minWidth: 10,
-    margin: '0 10px',
-    background: '#dcd8d0',
-  },
-  doneLine: {
-    background: '#9bc5a9',
-  },
-  visuallyHidden: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    padding: 0,
-    margin: -1,
-    overflow: 'hidden',
-    clip: 'rect(0, 0, 0, 0)',
-    whiteSpace: 'nowrap',
-    border: 0,
-  },
-} as const;

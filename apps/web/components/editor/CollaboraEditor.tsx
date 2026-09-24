@@ -8,6 +8,7 @@ import { returnToPhotos } from '@/lib/actions/photos';
 import type { ReportStatus } from '@/lib/state-machine';
 import { ReportProgress } from '@/components/reports/ReportProgress';
 import { PreviewPanel } from './PreviewPanel';
+import { PreviewShell } from './PreviewShell';
 import { isCollaboraSaveSessionInvalid, requestCollaboraSave } from './collabora-save';
 
 /**
@@ -145,10 +146,7 @@ export function CollaboraEditor({
 
   if (view === 'preview') {
     return (
-      <div>
-        <div style={{ padding: '24px 28px 0' }}>
-          <ReportProgress current="pdf" />
-        </div>
+      <PreviewShell progress={<ReportProgress current="pdf" />}>
         <PreviewPanel
           reportId={reportId}
           initialStatus={initialStatus}
@@ -160,7 +158,7 @@ export function CollaboraEditor({
             setView('edit');
           }}
         />
-      </div>
+      </PreviewShell>
     );
   }
 

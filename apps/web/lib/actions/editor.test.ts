@@ -141,11 +141,13 @@ describe('aprovação da versão salva e recuperação de filas', () => {
     expect(await retryBuildWorkingDocx('r1')).toEqual({
       error: 'A fila está indisponível. Verifique a conexão DATABASE_URL do web e do worker.',
     });
-    expect(memory.events[0]).toMatchObject({
+    const event = memory.events.at(0);
+    if (!event) throw new Error('Evento de falha ausente.');
+    expect(event).toMatchObject({
       action: 'working_docx_enqueue_failed',
       payload: { code: 'QUEUE_DATABASE_UNAVAILABLE' },
     });
-    expect(memory.events[0].payload).not.toMatchObject({ message: expect.stringContaining('postgres.gwx') });
+    expect(event.payload).not.toMatchObject({ message: expect.stringContaining('postgres.gwx') });
   });
   it('reabertura explícita libera lock órfão somente durante edição', async () => {
     memory.row.wopi_lock = 'lock-antigo';
