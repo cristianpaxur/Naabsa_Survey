@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import PizZip from 'pizzip';
+import { readFileSync } from 'node:fs';
 import {
   buildWorkingDocx,
   loadReport,
@@ -24,6 +25,46 @@ beforeEach(() => {
 });
 
 describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
+  it('recupera Delivered e horários ausentes da planilha de um relatório já extraído', async () => {
+    const spreadsheet = readFileSync(new URL('../../../../tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx', import.meta.url));
+    const spec = JSON.parse(readFileSync(new URL('../../../../tests/fixtures/specs/draft_survey.v1.json', import.meta.url), 'utf8'));
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==', 'base64');
+    const stored = {
+      status: 'editing', working_docx_path: null, working_docx_revision: 0,
+      working_docx_generation: 'g1', approved_docx_path: null, approved_docx_revision: null,
+      variant: 'loading', spec_id: 's1',
+      extracted_data: { port: 'PARANAGUA,BRAZIL', delivered: null, initial_date: '2026-02-08',
+        initial_start: null, initial_end: '10:00', final_date: '2026-05-30',
+        final_start: null, final_end: '16:00' },
+      operator_overrides: { initial_end: '10:20' },
+      extracted_number_formats: {}, operator_number_formats: {},
+      spreadsheet_path: 'original.xlsx', created_by: null, pdf_paths: [],
+      report_types: { slug: 'draft_survey' },
+    };
+    const svc = {
+      from: (table: string) => {
+        let columns = '';
+        const query = {
+          select: (selected: string) => { columns = selected; return query; },
+          eq: () => query, is: () => query, not: () => query,
+          single: async () => ({ data: table === 'report_specs' ? { spec } :
+            Object.fromEntries(Object.entries(stored).filter(([key]) => columns.includes(key))), error: null }),
+          order: async () => ({ data: [], error: null }),
+        };
+        return query;
+      },
+      storage: { from: () => ({ download: async (path: string) => ({
+        data: { arrayBuffer: async () => path === 'original.xlsx' ? spreadsheet : png }, error: null,
+      }) }) },
+    };
+    const row = await loadReport(svc as never, 'r1');
+    const built = await buildWorkingDocx(svc as never, 'r1', row!);
+    expect(built.data['delivered']).toBe(2023);
+    expect(built.data['initial_start']).toBe('07:55');
+    expect(built.data['final_start']).toBe('14:30');
+    expect(built.data['initial_end']).toBe('10:20');
+  });
+
   it.each(['draft_survey', 'msc'])('carrega e resolve mapas no builder %s', async (slug) => {
     const stored = {
       status: 'editing', working_docx_path: null, working_docx_revision: 0,

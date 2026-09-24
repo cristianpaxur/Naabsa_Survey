@@ -41,6 +41,26 @@ function paragraphs(zip: PizZip) {
 }
 
 describe('Golden DOCX — planilhas reais e builders atuais', () => {
+  it('extrai horários das abas de origem quando os espelhos da Capa não têm cache', async () => {
+    const spec = JSON.parse(readFileSync(
+      new URL('../fixtures/specs/draft_survey.v1.json', import.meta.url), 'utf8',
+    )) as ReportSpec;
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(fileURLToPath(new URL(
+      '../fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx', import.meta.url,
+    )));
+    for (const cell of ['M7', 'N7', 'M8', 'N8', 'M9', 'N9']) {
+      workbook.getWorksheet('Capa')!.getCell(cell).value = null;
+    }
+    const result = runExtraction(workbook, spec, 'loading');
+    expect(result.data['initial_start']).toBe('07:55');
+    expect(result.data['initial_end']).toBe('10:00');
+    expect(result.data['intermediate_start']).toBe('17:20');
+    expect(result.data['intermediate_end']).toBe('19:00');
+    expect(result.data['final_start']).toBe('14:30');
+    expect(result.data['final_end']).toBe('16:00');
+  });
+
   it.each(['loading', 'discharge'] as const)(
     'Draft Survey %s preserva dados, seções e imagens',
     async (variant) => {
@@ -102,7 +122,7 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
       expect(documentXml).toContain('w:name="s6"');
       expect(documentXml).toContain('<w:hyperlink w:anchor="s1"');
       expect(documentXml).toContain('<w:hyperlink w:anchor="s6"');
-      expect(documentXml.match(/<w:pageBreakBefore\/>/g) ?? []).toHaveLength(2);
+      expect(documentXml.match(/<w:pageBreakBefore\/>/g) ?? []).toHaveLength(1);
       for (const part of [
         'word/styles.xml',
         'word/numbering.xml',

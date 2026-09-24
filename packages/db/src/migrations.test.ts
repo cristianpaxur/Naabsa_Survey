@@ -10,6 +10,7 @@ const reportId = '00000000-0000-4000-8000-000000000002';
 const currentReportId = '00000000-0000-4000-8000-000000000004';
 const sessionId = '00000000-0000-4000-8000-000000000003';
 let historicalSpec = '';
+let beforeTimeSpec = '';
 let typeId = '';
 const load = (file: string) =>
   readFileSync(`${directory}/${file}`, 'utf8').replace(
@@ -91,8 +92,12 @@ beforeAll(async () => {
       currentReportId,
     ],
   );
-  for (const file of files.filter((f) => f >= '0017'))
+  for (const file of files.filter((f) => f >= '0017' && f < '0020'))
     await db.exec(load(file));
+  beforeTimeSpec = (await db.query<{ active_spec_id: string }>(
+    "select active_spec_id from report_types where slug='draft_survey'",
+  )).rows[0]!.active_spec_id;
+  await db.exec(load('0020_draft_survey_phase_times.sql'));
   await db.exec(
     'grant usage on schema public,auth to authenticated; grant select on all tables in schema public to authenticated; grant execute on all functions in schema auth to authenticated;',
   );
@@ -103,6 +108,17 @@ afterAll(async () => {
 });
 
 describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
+  it('ativa leitura direta dos horários das fases sem mudar o spec de relatórios existentes', async () => {
+    const active = await db.query<{ spec: { source: { common: { fields: Record<string, { sheet: string; cell: string }> } } } }>(
+      "select rs.spec from report_specs rs join report_types rt on rt.active_spec_id=rs.id where rt.slug='draft_survey'",
+    );
+    const fields = active.rows[0]!.spec.source.common.fields;
+    expect(fields.initial_start).toMatchObject({ sheet: 'Inicial', cell: 'G7' });
+    expect(fields.final_start).toMatchObject({ sheet: 'final', cell: 'G5' });
+    const existing = await db.query<{ spec_id: string }>('select spec_id from reports where id=$1', [reportId]);
+    expect(existing.rows[0]!.spec_id).toBe(beforeTimeSpec);
+  });
+
   it('inicializa mapas de formatos numéricos como objetos vazios em relatórios existentes', async () => {
     const result = await db.query<{
       extracted_number_formats: Record<string, number>;
@@ -191,7 +207,7 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
       'select spec_id from reports where id=$1',
       [reportId],
     );
-    expect(old.rows[0]!.spec_id).toBe(result.rows[0]!.active_spec_id);
+    expect(old.rows[0]!.spec_id).toBe(beforeTimeSpec);
     const inProgress = await db.query<{
       spec_id: string;
       extraction_issues: unknown[];
@@ -200,16 +216,14 @@ describe('migrations no PostgreSQL isolado (sem Supabase externo)', () => {
       'select spec_id,extraction_issues,ai_review from reports where id=$1',
       [currentReportId],
     );
-    expect(inProgress.rows[0]!.spec_id).toBe(result.rows[0]!.active_spec_id);
+    expect(inProgress.rows[0]!.spec_id).toBe(beforeTimeSpec);
     expect(inProgress.rows[0]!.extraction_issues).toEqual([]);
     expect(inProgress.rows[0]!.ai_review).toBeNull();
   });
-  it('reaplica migrações sem duplicar estado e valida as constraints de formatos', async () => {
+  it('reaplica as migrações atuais sem duplicar estado e valida os formatos', async () => {
     const before = await db.query('select count(*) from report_specs');
     const auditBefore = await db.query('select count(*) from audit_log');
-    await db.exec(load('0015_fix_draft_survey_percentage.sql'));
-    await db.exec(load('0017_fix_draft_survey_derived_review.sql'));
-    await db.exec(load('0018_ignore_draft_survey_differences.sql'));
+    await db.exec(load('0020_draft_survey_phase_times.sql'));
     await db.exec('begin');
     try {
       await db.exec(load('0019_report_number_formats.sql'));

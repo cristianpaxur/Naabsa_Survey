@@ -20,6 +20,8 @@ import {
   resolveFieldValue,
   resolveDisplayDecimals,
   resolveVariant,
+  normalizeCell,
+  coerceField,
   type ReportSpec,
   type FieldValue,
   type NumberFormatMap,
@@ -300,6 +302,26 @@ export async function buildWorkingDocx(
     FieldValue
   >;
   const data = effectiveData(spec, variant, extracted, overrides);
+  if (row.type_slug === 'draft_survey' && wb) {
+    // Relatórios criados com specs anteriores podem ter campos vazios quando
+    // o cache das fórmulas da Capa faltava no arquivo enviado.
+    const sources = [
+      ['initial_start', 'Inicial', 'G7'], ['initial_end', 'Inicial', 'H7'],
+      ['intermediate_start', 'Intermediario', 'G5'], ['intermediate_end', 'Intermediario', 'H5'],
+      ['final_start', 'final', 'G5'], ['final_end', 'final', 'H5'],
+    ] as const;
+    for (const [name, sheet, cell] of sources) {
+      if (Object.hasOwn(overrides, name) || (data[name] != null && data[name] !== '')) continue;
+      const raw = normalizeCell(wb.getWorksheet(sheet)?.getCell(cell).value ?? null);
+      const resolved = coerceField(raw, { type: 'time', cell, label: name, section: 'Datas' });
+      if (resolved.value != null) data[name] = resolved.value;
+    }
+    if (!Object.hasOwn(overrides, 'delivered') && (data['delivered'] == null || data['delivered'] === '')) {
+      const raw = normalizeCell(wb.getWorksheet('Capa')?.getCell('C19').value ?? null);
+      if (raw instanceof Date) data['delivered'] = raw.getUTCFullYear();
+      else if (typeof raw === 'number' || typeof raw === 'string') data['delivered'] = raw;
+    }
+  }
   const numberFormats: NumberFormatMap = {};
   for (const [name, def] of collectFields(spec, variant)) {
     const decimals = resolveDisplayDecimals(

@@ -63,14 +63,14 @@ Legenda de confiança: ✅ alta · ⚠️ verificar contra render · 🕗 anota�
 | Official figures | `Capa!L5` | string | ex.: "Shore Scale" |
 | **Berthing side** | `Capa!C31` | enum(Port Side, Starboard) | dirige o texto "Starboard/Port side from shore vs boat" |
 
-## Datas e horas das fases (Capa, por fórmula das abas)
+## Datas e horas das fases (abas de origem)
 | Fase | Data | Início | Fim |
 |---|---|---|---|
-| Initial | `Capa!L7` | `Capa!M7` | `Capa!N7` |
-| Intermediate | `Capa!L8` | `Capa!M8` | `Capa!N8` |
-| Final | `Capa!L9` | `Capa!M9` | `Capa!N9` |
-> M/N são horários (time-of-day) — novo caso de coerção para o extractor (ver 003). Datas-fonte
-> "cruas" também existem nas abas: `Inicial!C7`, `Intermediario!C5`, `final!C5`.
+| Initial | `Inicial!C7` | `Inicial!G7` | `Inicial!H7` |
+| Intermediate | `Intermediario!C5` | `Intermediario!G5` | `Intermediario!H5` |
+| Final | `final!C5` | `final!G5` | `final!H5` |
+> `Capa!L7:N9` espelha esses dados por fórmulas. A extração lê as células-fonte para
+> não depender do cache das fórmulas no arquivo enviado.
 
 ## Draft readings — tabelas-resumo (uma por fase)
 Colunas: **Draft Mark | Means | Mean corrected** + bloco **Trim / Heel-List / Deflection**.

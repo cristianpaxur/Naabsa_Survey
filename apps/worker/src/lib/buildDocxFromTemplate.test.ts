@@ -75,7 +75,7 @@ describe.each([
 
   it('omite números não finitos e aceita mapas ausentes', async () => {
     const text = documentText(await build({
-      data: { summer_dwt: Number.NaN, loa: Infinity, init_fwd_mean: null,
+      data: { delivered: Number.NaN, summer_dwt: Number.NaN, loa: Infinity, init_fwd_mean: null,
         init_heel: -Infinity, fin_fig_diff_mt: Infinity },
       variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
     }));
@@ -84,6 +84,39 @@ describe.each([
 });
 
 describe('buildReportDocxFromTemplate', () => {
+  it('usa só o nome do porto na capa e preserva Delivered textual e os horários das fases', async () => {
+    const docx = await buildReportDocxFromTemplate({
+      data: {
+        port: 'PARANAGUA, BRAZIL', delivered: '2023',
+        initial_date: '2026-08-13', initial_start: '07:10', initial_end: '08:50',
+        final_date: '2026-08-18', final_start: '06:30', final_end: '08:00',
+      },
+      variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+    });
+    const text = documentText(docx);
+    expect(text).toContain('PARANAGUA');
+    expect(text).not.toContain('PARANAGUA, BRAZIL');
+    expect(text).toContain('2023');
+    expect(text).toContain('August 13th, 2026, upon berthing');
+    expect(text).toContain('from 07:10h up to 08:50h');
+    expect(text).toContain('August 18th, 2026, from 06:30 up to 08:00 h');
+  });
+
+  it('define bordas visíveis nas três tabelas Draft readings', async () => {
+    const docx = await buildReportDocxFromTemplate({
+      data: { intermediate_date: '2026-08-15' },
+      variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+    });
+    const xml = new PizZip(docx).file('word/document.xml')!.asText();
+    for (const bookmark of ['s3_1', 's4_1', 's5_1']) {
+      const table = xml.match(new RegExp(`w:name="${bookmark}"(?:(?!<\\/w:p>).)*<\\/w:p>(<w:tbl\\b.*?<\\/w:tbl>)`, 's'))?.[1] ?? '';
+      const borders = table.match(/<w:tblBorders>.*?<\/w:tblBorders>/s)?.[0] ?? '';
+      expect(borders, bookmark).toContain('<w:top w:val="single"');
+      expect(borders, bookmark).toContain('<w:insideH w:val="single"');
+      expect(borders, bookmark).toContain('<w:insideV w:val="single"');
+    }
+  });
+
   it('renders image paragraphs as valid sibling paragraphs for Collabora', async () => {
     const docx = await buildReportDocxFromTemplate({
       data: { intermediate_date: '2026-09-14' },

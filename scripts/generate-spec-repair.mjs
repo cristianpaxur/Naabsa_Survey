@@ -36,12 +36,25 @@ export function repairDictionary() {
  * limites numéricos são tratados pela migration 0015, que cria uma nova spec.
  */
 function migrationRepairFixture(slug, fixture) {
+  if (slug === 'msc') {
+    const historical = JSON.parse(JSON.stringify(fixture));
+    historical._meta.notes = historical._meta.notes.map((note) =>
+      note.startsWith('Planilha SABRINA tem 8 abas;')
+        ? 'Planilha SABRINA tem 8 abas; só Summary/Time Log/Sludge/Qtt Sumary/LOG Audit estão no escopo da spec v1. LNG, VacuoAr, Vessel Ullage ficam em ignore_sheets (a tabela de Ullage é input do operador, não sai no relatório).'
+        : note.startsWith('Foto slots:')
+          ? 'Foto slots: vessel / engine_room / survey_attendance (mín. 1 cada, obrigatórios). Capa não tem slot dedicado — vem do slot vessel[0] se presente.'
+          : note,
+    );
+    return historical;
+  }
   if (slug !== 'draft_survey') return fixture;
   const historical = JSON.parse(JSON.stringify(fixture));
   historical._meta.notes = historical._meta.notes.map((note) =>
     note.startsWith('int_fig_diff_pct e fin_fig_diff_pct')
       ? "int_fig_diff_pct e fin_fig_diff_pct guardam fracao (0.0398); o builder multiplica por 100 para exibir '%'."
-      : note,
+      : note.startsWith('DATAS E HORAS:')
+        ? "DATAS (2026-06-23): os mirrors Capa!L7/L8/L9 são fórmulas dynamic-array LET que o ExcelJS NÃO avalia (result=Invalid Date → NaN). Lemos as datas direto das células-fonte avaliáveis Inicial!C7, Intermediario!C5, final!C5 (type=date → ISO; o builder formata em inglês 'Month Dth, YYYY'). Horas (M/N) seguem na Capa, que o ExcelJS avalia."
+        : note,
   );
   historical.validations = historical.validations.map((rule) =>
     rule.field === 'fin_fig_diff_pct' && rule.rule === 'range'
@@ -52,6 +65,13 @@ function migrationRepairFixture(slug, fixture) {
         }
       : rule,
   );
+  if (!historical.validations.some((rule) => rule.field === 'fin_fig_diff_pct')) {
+    historical.validations.push({
+      rule: 'range', field: 'fin_fig_diff_pct', min: -0.05, max: 0.05,
+      level: 'warning',
+      message: 'Diferença final acima de 0,5% entre figuras — revisar antes de aprovar.',
+    });
+  }
   return historical;
 }
 

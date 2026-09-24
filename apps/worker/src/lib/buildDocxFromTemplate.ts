@@ -245,9 +245,16 @@ function prepareTemplateLayout(zip: PizZip): void {
       : paragraph.replace(/(<w:p\b[^>]*>)/, '$1<w:pPr><w:keepNext/></w:pPr>');
   };
   const keepReadingTableTogether = (table: string): string => {
+    const border = (side: string) => `<w:${side} w:val="single" w:sz="6" w:color="666666"/>`;
+    const borders = `<w:tblBorders>${['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(border).join('')}</w:tblBorders>`;
+    const bordered = table.replace(/<w:tblPr\b[^>]*>.*?<\/w:tblPr>/s, (properties) =>
+      /<w:tblBorders>.*?<\/w:tblBorders>/s.test(properties)
+        ? properties.replace(/<w:tblBorders>.*?<\/w:tblBorders>/s, borders)
+        : properties.replace('</w:tblPr>', `${borders}</w:tblPr>`),
+    );
     const rows = table.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? [];
     let rowIndex = 0;
-    return table.replace(/<w:tr\b[^>]*>.*?<\/w:tr>/gs, (row) => {
+    return bordered.replace(/<w:tr\b[^>]*>.*?<\/w:tr>/gs, (row) => {
       let prepared = /<w:cantSplit\b/.test(row)
         ? row
         : /<w:trPr\b[^>]*>/.test(row)
@@ -458,6 +465,10 @@ function value(raw: FieldValue | undefined, fallback = '—'): string {
   return raw == null || raw === '' ? fallback : String(raw);
 }
 
+function portName(raw: FieldValue | undefined): string {
+  return value(raw).replace(/\s*,\s*Brazil\s*$/i, '').trim();
+}
+
 function withoutMr(raw: FieldValue | undefined): string {
   return value(raw).replace(/^Mr\.?\s+/i, '');
 }
@@ -639,7 +650,7 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     vessel_name: value(data['vessel_name'], ''),
     flag: value(data['flag']),
     imo: value(data['imo']),
-    port: value(data['port']),
+    port: portName(data['port']),
     final_date: formatDate(data['final_date']),
     client: value(data['client']),
     operator: value(data['operator']),
@@ -647,11 +658,11 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     captain: withoutMr(data['captain']),
     chief_officer: withoutMr(data['chief_officer']),
     background_1: `In compliance with the appointment survey from Messrs. ${value(data['client']).toUpperCase()}, we attended the vessel to carry out the Draft Survey to ascertain the total quantity of cargo ${variant.done} and to compare it with the ${variant.official}.`,
-    background_2: `She called ${value(data['port'])} Port to ${variant.verb} a cargo of ${value(data['cargo'])} in bulk ${variant.bl} ${value(data['discharging_port'])}.`,
+    background_2: `She called ${portName(data['port'])} Port to ${variant.verb} a cargo of ${value(data['cargo'])} in bulk ${variant.bl} ${value(data['discharging_port'])}.`,
     register_port: value(data['register_port']),
     call_sign: value(data['call_sign']),
     vessel_type: value(data['vessel_type']),
-    delivered: numericField('delivered'),
+    delivered: numericField('delivered') || (typeof data['delivered'] === 'string' ? data['delivered'] : ''),
     loa: numericField('loa', 2),
     lbp: numericField('lbp', 2),
     depth_moulded: numericField('depth_moulded', 2),
