@@ -60,8 +60,9 @@ export function extract(
 
   const fields = collectFields(spec, variant);
 
-  // Todas as abas necessárias devem existir (RF-08 multi-aba). Uma aba ausente
-  // é bloqueante: emite um __sheet__ por aba faltante e aborta a extração.
+  // Todas as abas necessárias devem existir (RF-08 multi-aba). Uma aba só pode
+  // faltar quando todos os seus campos são opcionais e todas as tabelas nela
+  // definidas também são opcionais — caso da fase Intermediate do Draft Survey.
   const needed = new Set<string>();
   for (const [name, field] of fields) {
     const s = sheetOf(field.sheet, spec);
@@ -73,8 +74,14 @@ export function extract(
   }
   if (issues.length > 0) return { data, numberFormats, tables: {}, issues };
   const missing = [...needed].filter((s) => !workbook.getWorksheet(s));
-  if (missing.length > 0) {
-    for (const s of missing) {
+  const optionalMissing = new Set(
+    missing.filter((sheet) => isOptionalSheet(sheet, fields, spec)),
+  );
+  const blockingMissing = missing.filter(
+    (sheet) => !optionalMissing.has(sheet),
+  );
+  if (blockingMissing.length > 0) {
+    for (const s of blockingMissing) {
       issues.push(sheetIssue(`Aba '${s}' não encontrada na planilha.`));
     }
     return { data, numberFormats, tables: {}, issues };
@@ -83,7 +90,14 @@ export function extract(
   const date1904 = Boolean(workbook.properties?.date1904);
 
   for (const [name, field] of fields) {
-    const ws = workbook.getWorksheet(sheetOf(field.sheet, spec) as string);
+    const sheet = sheetOf(field.sheet, spec) as string;
+    const ws = workbook.getWorksheet(sheet);
+    if (!ws) {
+      // Campos de uma aba opcional ausente seguem o mesmo contrato de uma
+      // célula vazia: ficam nulos e não impedem a montagem do documento.
+      data[name] = null;
+      continue;
+    }
     const cell = ws!.getCell(field.cell);
     const raw = normalizeCell(cell.value);
     const res = coerceField(raw, field, { date1904 });
@@ -114,12 +128,21 @@ export function extract(
 }
 
 /** Aba efetiva de um item: a própria (v2) ou a aba única do spec (v1). */
-function sheetOf(own: string | undefined, spec: ReportSpec): string | undefined {
+function sheetOf(
+  own: string | undefined,
+  spec: ReportSpec,
+): string | undefined {
   return own ?? spec.source.sheet;
 }
 
 function sheetIssue(message: string): Issue {
-  return { field: '__sheet__', cell: null, level: 'error', origin: 'extraction', message };
+  return {
+    field: '__sheet__',
+    cell: null,
+    level: 'error',
+    origin: 'extraction',
+    message,
+  };
 }
 
 /**
@@ -172,6 +195,28 @@ export function collectFields(
     if (block) entries.push(...Object.entries(block.fields));
   }
   return entries;
+}
+
+/**
+ * Uma aba ausente é tolerável quando não possui campo obrigatório e todas as
+ * tabelas que a referenciam estão marcadas como opcionais no spec.
+ */
+function isOptionalSheet(
+  sheet: string,
+  fields: [string, FieldDef][],
+  spec: ReportSpec,
+): boolean {
+  const fieldsOnSheet = fields.filter(
+    ([, field]) => sheetOf(field.sheet, spec) === sheet,
+  );
+  const tablesOnSheet = (spec.source.tables ?? []).filter(
+    (table) => table.sheet === sheet,
+  );
+  return (
+    fieldsOnSheet.length > 0 &&
+    fieldsOnSheet.every(([, field]) => field.required !== true) &&
+    tablesOnSheet.every((table) => table.optional === true)
+  );
 }
 
 // ── Extração de tabelas range-based (v2, CA-010) ───────────────────────────

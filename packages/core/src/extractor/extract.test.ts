@@ -190,6 +190,49 @@ describe('extract — contrato v2 multi-aba (CA-009)', () => {
     expect(data.vessel_name).toBe('HG ANTWERP');
     expect(data.init_fwd_mean).toBe(4.78);
   });
+
+  it('aceita fase intermediária ausente quando seus campos e tabelas são opcionais', () => {
+    const specWithOptionalIntermediate = {
+      ...sampleSpecV2,
+      source: {
+        ...sampleSpecV2.source,
+        common: {
+          fields: {
+            ...sampleSpecV2.source.common.fields,
+            intermediate_date: {
+              sheet: 'Intermediario',
+              cell: 'C5',
+              type: 'date' as const,
+              format: 'Month Do, YYYY',
+              label: 'Data — Intermediário',
+              section: 'Datas',
+            },
+          },
+        },
+        tables: [
+          ...(sampleSpecV2.source.tables ?? []),
+          {
+            id: 'int_draft_marks',
+            label: 'Intermediate — Draft marks',
+            sheet: 'Intermediario',
+            range: 'B7:H17',
+            phase: 'intermediate',
+            optional: true,
+          },
+        ],
+      },
+    } as ReportSpec;
+
+    const result = runExtraction(
+      buildV2Workbook(),
+      specWithOptionalIntermediate,
+      'loading',
+    );
+
+    expect(result.issues).toHaveLength(0);
+    expect(result.data.intermediate_date).toBeNull();
+    expect(result.data.vessel_name).toBe('HG ANTWERP');
+  });
 });
 
 describe('resolveVariant — CA-009', () => {
@@ -225,7 +268,11 @@ describe('resolveVariant — CA-009', () => {
       ...sampleSpecV2,
       source: {
         ...sampleSpecV2.source,
-        variant_source: { sheet: 'INEXISTENTE', cell: 'L4', map: { Loading: 'loading' } },
+        variant_source: {
+          sheet: 'INEXISTENTE',
+          cell: 'L4',
+          map: { Loading: 'loading' },
+        },
       },
     } as typeof sampleSpecV2;
     const { variant, issue } = resolveVariant(wbNoCapa, specSemAba);
@@ -236,7 +283,10 @@ describe('resolveVariant — CA-009', () => {
 
   it('spec sem variant_source retorna { variant: null }', () => {
     const wb = buildV2Workbook();
-    const specSemVS = { ...sampleSpecV2, source: { ...sampleSpecV2.source, variant_source: undefined } };
+    const specSemVS = {
+      ...sampleSpecV2,
+      source: { ...sampleSpecV2.source, variant_source: undefined },
+    };
     const result = resolveVariant(wb, specSemVS);
     expect(result.variant).toBeNull();
     expect(result.issue).toBeUndefined();
@@ -256,8 +306,12 @@ describe('extract — tables range-based (CA-010)', () => {
     // Adiciona dados na faixa B8:H12 da aba Inicial
     const wb = buildV2Workbook({
       inicial: {
-        B8: 'PORT',  C8: 4.5,  D8: 4.6,
-        B9: 'STB',   C9: 4.4,  D9: 4.5,
+        B8: 'PORT',
+        C8: 4.5,
+        D8: 4.6,
+        B9: 'STB',
+        C9: 4.4,
+        D9: 4.5,
       },
     });
     const { tables, issues } = extract(wb, sampleSpecV2, 'loading');
@@ -287,7 +341,15 @@ describe('extract — tables range-based (CA-010)', () => {
       ...sampleSpecV2,
       source: {
         ...sampleSpecV2.source,
-        tables: [{ id: 'empty_table', label: 'Vazia', sheet: 'Inicial', range: 'B14:H18', optional: true }],
+        tables: [
+          {
+            id: 'empty_table',
+            label: 'Vazia',
+            sheet: 'Inicial',
+            range: 'B14:H18',
+            optional: true,
+          },
+        ],
       },
     } as typeof sampleSpecV2;
     const wb = buildV2Workbook();

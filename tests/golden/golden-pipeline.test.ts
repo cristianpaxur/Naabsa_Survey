@@ -42,13 +42,21 @@ function paragraphs(zip: PizZip) {
 
 describe('Golden DOCX — planilhas reais e builders atuais', () => {
   it('extrai horários das abas de origem quando os espelhos da Capa não têm cache', async () => {
-    const spec = JSON.parse(readFileSync(
-      new URL('../fixtures/specs/draft_survey.v1.json', import.meta.url), 'utf8',
-    )) as ReportSpec;
+    const spec = JSON.parse(
+      readFileSync(
+        new URL('../fixtures/specs/draft_survey.v1.json', import.meta.url),
+        'utf8',
+      ),
+    ) as ReportSpec;
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(fileURLToPath(new URL(
-      '../fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx', import.meta.url,
-    )));
+    await workbook.xlsx.readFile(
+      fileURLToPath(
+        new URL(
+          '../fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx',
+          import.meta.url,
+        ),
+      ),
+    );
     for (const cell of ['M7', 'N7', 'M8', 'N8', 'M9', 'N9']) {
       workbook.getWorksheet('Capa')!.getCell(cell).value = null;
     }
@@ -158,6 +166,48 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
       'w:name="s4"',
     );
   });
+
+  it('remove Intermediate quando as abas intermediárias não existem na planilha', async () => {
+    const spec = JSON.parse(
+      readFileSync(
+        new URL('../fixtures/specs/draft_survey.v1.json', import.meta.url),
+        'utf8',
+      ),
+    ) as ReportSpec;
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(
+      fileURLToPath(
+        new URL(
+          '../fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx',
+          import.meta.url,
+        ),
+      ),
+    );
+    workbook.removeWorksheet('Intermediario');
+    workbook.removeWorksheet('DS INTERMEDIATE');
+
+    const result = runExtraction(workbook, spec, 'loading');
+    expect(result.issues).toHaveLength(0);
+    expect(result.data['intermediate_date']).toBeNull();
+
+    const zip = new PizZip(
+      await buildReportDocx({
+        data: result.data,
+        variant: 'loading',
+        logo: null,
+        sheetImages: {},
+        phasePhotos: {},
+        acting: {},
+      }),
+    );
+    const xml = zip.file('word/document.xml')!.asText();
+    const text = paragraphs(zip).join('\n');
+    expect(text).not.toContain('Intermediate');
+    expect(text).toContain('4.1. Draft Readings');
+    expect(text).toContain('4.6. Photographic Report');
+    expect(xml).not.toContain('w:name="s4"');
+  });
+
   it('MSC usa dados reais e gera documento próprio', async () => {
     const result = await extracted('msc', null);
     const zip = new PizZip(
