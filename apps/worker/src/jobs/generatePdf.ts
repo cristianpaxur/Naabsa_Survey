@@ -303,15 +303,16 @@ export async function buildWorkingDocx(
   >;
   const data = effectiveData(spec, variant, extracted, overrides);
   if (row.type_slug === 'draft_survey' && wb) {
-    // Relatórios criados com specs anteriores podem ter campos vazios quando
-    // o cache das fórmulas da Capa faltava no arquivo enviado.
+    // A planilha é a fonte atual dos horários. Relatórios antigos podem ter
+    // valores persistidos incorretos; um override manual explícito continua
+    // tendo prioridade sobre a célula da planilha.
     const sources = [
       ['initial_start', 'Inicial', 'G7'], ['initial_end', 'Inicial', 'H7'],
       ['intermediate_start', 'Intermediario', 'G5'], ['intermediate_end', 'Intermediario', 'H5'],
       ['final_start', 'final', 'G5'], ['final_end', 'final', 'H5'],
     ] as const;
     for (const [name, sheet, cell] of sources) {
-      if (Object.hasOwn(overrides, name) || (data[name] != null && data[name] !== '')) continue;
+      if (Object.hasOwn(overrides, name)) continue;
       const raw = normalizeCell(wb.getWorksheet(sheet)?.getCell(cell).value ?? null);
       const resolved = coerceField(raw, { type: 'time', cell, label: name, section: 'Datas' });
       if (resolved.value != null) data[name] = resolved.value;

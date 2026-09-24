@@ -65,6 +65,43 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
     expect(built.data['initial_end']).toBe('10:20');
   });
 
+  it('atualiza um horário extraído antigo com o valor atual da planilha quando não há override', async () => {
+    const spreadsheet = readFileSync(new URL('../../../../tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx', import.meta.url));
+    const spec = JSON.parse(readFileSync(new URL('../../../../tests/fixtures/specs/draft_survey.v1.json', import.meta.url), 'utf8'));
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==', 'base64');
+    const stored = {
+      status: 'editing', working_docx_path: null, working_docx_revision: 0,
+      working_docx_generation: 'g1', approved_docx_path: null, approved_docx_revision: null,
+      variant: 'loading', spec_id: 's1',
+      extracted_data: { initial_date: '2026-02-08', initial_start: '07:55', initial_end: '08:50' },
+      operator_overrides: {}, extracted_number_formats: {}, operator_number_formats: {},
+      spreadsheet_path: 'original.xlsx', created_by: null, pdf_paths: [],
+      report_types: { slug: 'draft_survey' },
+    };
+    const svc = {
+      from: (table: string) => {
+        let columns = '';
+        const query = {
+          select: (selected: string) => { columns = selected; return query; },
+          eq: () => query, is: () => query, not: () => query,
+          single: async () => ({ data: table === 'report_specs' ? { spec } :
+            Object.fromEntries(Object.entries(stored).filter(([key]) => columns.includes(key))), error: null }),
+          order: async () => ({ data: [], error: null }),
+        };
+        return query;
+      },
+      storage: { from: () => ({ download: async (path: string) => ({
+        data: { arrayBuffer: async () => path === 'original.xlsx' ? spreadsheet : png }, error: null,
+      }) }) },
+    };
+
+    const row = await loadReport(svc as never, 'r1');
+    const built = await buildWorkingDocx(svc as never, 'r1', row!);
+
+    expect(built.data['initial_start']).toBe('07:55');
+    expect(built.data['initial_end']).toBe('10:00');
+  });
+
   it.each(['draft_survey', 'msc'])('carrega e resolve mapas no builder %s', async (slug) => {
     const stored = {
       status: 'editing', working_docx_path: null, working_docx_revision: 0,
