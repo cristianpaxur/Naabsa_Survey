@@ -21,6 +21,7 @@ export interface PhotosClientProps {
   metaLabel: string;
   slots: PhotoSlot[];
   initialPhotos: UIPhoto[];
+  progress?: ReactNode;
 }
 
 /**
@@ -34,6 +35,7 @@ export function PhotosClient({
   metaLabel,
   slots,
   initialPhotos,
+  progress,
 }: PhotosClientProps) {
   const router = useRouter();
   const [photos, setPhotos] = useState<UIPhoto[]>(initialPhotos);
@@ -208,6 +210,7 @@ export function PhotosClient({
 
   return (
     <div style={{ padding: '26px 32px 40px' }}>
+      <div style={{ marginBottom: 28 }}>{progress}</div>
       <div style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h1

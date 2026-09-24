@@ -47,7 +47,7 @@ export function ResetToDraftButton({ reportId }: { reportId: string }) {
         cursor: busy ? 'wait' : 'pointer',
       }}
     >
-      {busy ? 'Reiniciando…' : 'Enviar nova planilha'}
+      {busy ? 'Voltando…' : '← Voltar à planilha'}
     </button>
   );
 }

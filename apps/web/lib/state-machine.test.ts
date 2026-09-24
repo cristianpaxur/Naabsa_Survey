@@ -48,6 +48,10 @@ describe('máquina de estados (PRD §3.2, CA-003)', () => {
     expect(isValidTransition('generated', 'editing')).toBe(true);
   });
 
+  it('voltar da edição para fotos preserva o documento de trabalho', () => {
+    expect(isValidTransition('editing', 'in_review')).toBe(true);
+  });
+
   it('transições inválidas rejeitadas', () => {
     expect(isValidTransition('draft', 'editing')).toBe(false);
     expect(isValidTransition('draft', 'in_review')).toBe(false);

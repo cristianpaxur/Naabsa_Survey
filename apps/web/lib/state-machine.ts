@@ -23,14 +23,16 @@ export const REPORT_STATUSES: ReportStatus[] = [
 /**
  * Grafo de transições (PRD §3.2). Além do fluxo linear, qualquer estado
  * (exceto generated/purged) pode voltar a `draft` (reiniciar com nova planilha).
- * `generated → editing` é a regeneração (RF-30, 010/T-004): reabre para editar
- * e gerar uma nova versão do PDF, mantendo o `working.docx`.
+ * `editing → in_review` permite revisar as fotos novamente sem remover o
+ * documento de trabalho. `generated → editing` é a regeneração (RF-30,
+ * 010/T-004): reabre para editar e gerar uma nova versão do PDF, mantendo o
+ * `working.docx`.
  */
 export const NEXT_STATES: Record<ReportStatus, ReportStatus[]> = {
   draft: ['extracted'],
   extracted: ['in_review', 'draft'],
   in_review: ['editing', 'draft'],
-  editing: ['approved', 'draft'],
+  editing: ['approved', 'in_review', 'draft'],
   approved: ['generated', 'draft'],
   generated: ['editing', 'purged'],
   purged: [],
@@ -41,6 +43,10 @@ export function isValidTransition(
   to: ReportStatus,
 ): boolean {
   return NEXT_STATES[from].includes(to);
+}
+
+export interface TransitionOptions {
+  clearWopiLock?: boolean;
 }
 
 /**
@@ -54,6 +60,7 @@ export async function transition(
   from: ReportStatus,
   to: ReportStatus,
   actorId: string | null,
+  options: TransitionOptions = {},
 ): Promise<void> {
   if (!isValidTransition(from, to)) {
     await audit(supabase, {
@@ -67,7 +74,12 @@ export async function transition(
 
   const { error, count } = await supabase
     .from('reports')
-    .update({ status: to } as never, { count: 'exact' })
+    .update({
+      status: to,
+      ...(options.clearWopiLock
+        ? { wopi_lock: null, wopi_lock_expires_at: null }
+        : {}),
+    } as never, { count: 'exact' })
     .eq('id', reportId)
     .eq('status', from)
     .is('deleted_at', null);

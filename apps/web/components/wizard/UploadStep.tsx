@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Stepper } from './Wizard';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 
 /** Estágios mostrados durante a extração (progresso encenado: o servidor processa
  *  em uma requisição só; os passos dão ao usuário noção do que está acontecendo). */
@@ -73,7 +73,7 @@ export function UploadStep({
 
   return (
     <div style={{ padding: '30px 40px 44px', minHeight: '100%' }}>
-      <Stepper step={3} />
+      <ReportProgress current="spreadsheet" />
 
       <div style={{ maxWidth: 600, margin: '36px auto 0' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>

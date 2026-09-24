@@ -27,6 +27,7 @@ import { ReuploadPanel } from '@/components/review/ReuploadPanel';
 import { ResetToDraftButton } from '@/components/review/ResetToDraftButton';
 import { resolveFieldValue, collectFields } from '@naabsa/core';
 import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -89,6 +90,7 @@ export default async function ReviewPage({ params }: PageProps) {
   if (status === 'draft') {
     return (
       <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
+        <ReportProgress current="spreadsheet" />
         <div
           style={{
             display: 'flex',
@@ -161,6 +163,7 @@ export default async function ReviewPage({ params }: PageProps) {
         maxWidth: 1100,
       }}
     >
+      <ReportProgress current="review" />
       {/* Header */}
       <div
         style={{

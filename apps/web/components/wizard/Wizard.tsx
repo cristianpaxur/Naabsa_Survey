@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createReport } from '@/lib/actions/reports';
 import { variantLabel, typeDescription } from '@/lib/labels';
 import { UploadStep } from './UploadStep';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 
 export interface WizardType {
   id: string;
@@ -63,7 +64,7 @@ export function Wizard({ types }: { types: WizardType[] }) {
 
   return (
     <div style={{ padding: '30px 40px 44px', minHeight: '100%' }}>
-      <Stepper step={1} />
+      <ReportProgress current="type" />
 
       <div style={{ maxWidth: 840, margin: '32px auto 0' }}>
         <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.01em' }}>
@@ -281,80 +282,5 @@ export function Wizard({ types }: { types: WizardType[] }) {
         </div>
       </div>
     </div>
-  );
-}
-
-export function Stepper({ step }: { step: 1 | 2 | 3 }) {
-  return (
-    <div
-      style={{
-        maxWidth: 840,
-        margin: '0 auto',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <StepDot n={1} label="Tipo" active={step >= 1} done={step > 1} />
-      <Line active={step > 1} />
-      <StepDot n={2} label="Variante" active={step >= 2} done={step > 2} />
-      <Line active={step > 2} />
-      <StepDot n={3} label="Planilha" active={step >= 3} done={false} />
-    </div>
-  );
-}
-
-function StepDot({
-  n,
-  label,
-  active,
-  done,
-}: {
-  n: number;
-  label: string;
-  active: boolean;
-  done: boolean;
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 13,
-          fontWeight: 700,
-          background: active ? 'var(--navy)' : '#fff',
-          color: active ? '#fff' : '#b5ab9d',
-          border: active ? 'none' : '2px solid #dcd8d0',
-        }}
-      >
-        {done ? '✓' : n}
-      </div>
-      <div
-        style={{
-          fontSize: 13.5,
-          fontWeight: active ? 700 : 600,
-          color: active ? 'var(--navy)' : '#a39a8d',
-        }}
-      >
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function Line({ active }: { active: boolean }) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        height: 2,
-        margin: '0 14px',
-        background: active ? 'var(--navy)' : '#dcd8d0',
-      }}
-    />
   );
 }

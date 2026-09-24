@@ -277,7 +277,7 @@ export function PreviewPanel({
               disabled={busy}
               title="Reabrir para edição e gerar uma nova versão do PDF"
             >
-              Regenerar
+              Gerar novamente
             </button>
           )}
           {(status === 'approved' || status === 'generated') && (

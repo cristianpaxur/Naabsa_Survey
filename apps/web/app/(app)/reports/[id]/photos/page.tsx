@@ -3,6 +3,7 @@ import type { ReportSpec } from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
 import { loadUIPhotos } from '@/lib/photos';
 import { PhotosClient } from '@/components/photos/PhotosClient';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 
 /**
  * Tela 05 — Fotos (RF-15..RF-19). Carrega o relatório, os slots do spec
@@ -63,6 +64,7 @@ export default async function PhotosPage({
       metaLabel={metaLabel}
       slots={slots}
       initialPhotos={photos}
+      progress={<ReportProgress current="photos" links={{ review: `/reports/${id}/review` }} />}
     />
   );
 }

@@ -260,7 +260,17 @@ export async function resetToDraft(reportId: string): Promise<ActionResult> {
   const svc = createServiceClient();
   await svc
     .from('reports')
-    .update({ operator_overrides: null, working_docx_path: null } as never)
+    .update({
+      extracted_data: null,
+      extraction_issues: null,
+      extracted_number_formats: {},
+      operator_overrides: null,
+      operator_number_formats: {},
+      ai_review: null,
+      spreadsheet_path: null,
+      vessel_name: null,
+      working_docx_path: null,
+    } as never)
     .eq('id', reportId);
   await svc.storage
     .from('reports')

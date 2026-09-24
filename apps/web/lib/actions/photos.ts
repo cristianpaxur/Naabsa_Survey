@@ -344,6 +344,32 @@ export async function advance(reportId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** Volta da edição para as fotos sem remover fotos ou documento de trabalho. */
+export async function returnToPhotos(reportId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+  if (report.status !== 'editing') {
+    return { error: 'O relatório não está em edição.' };
+  }
+
+  try {
+    await transition(supabase, reportId, 'editing', 'in_review', user.id, {
+      clearWopiLock: true,
+    });
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Falha ao voltar para fotos.',
+    };
+  }
+  return { ok: true };
+}
+
 /**
  * Confirma a sugestão de IA de UMA foto (010/T-009, RF-37): zera `ai_suggested`
  * e grava `confirmed_by` (a foto permanece no slot pré-alocado). Só em `in_review`.

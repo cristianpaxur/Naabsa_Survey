@@ -2,8 +2,11 @@
 
 import './editor.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { beginDocumentSave, confirmDocumentSave, getEditorUrl, reopenDocumentEditor, retryBuildWorkingDocx } from '@/lib/actions/editor';
+import { returnToPhotos } from '@/lib/actions/photos';
 import type { ReportStatus } from '@/lib/state-machine';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 import { PreviewPanel } from './PreviewPanel';
 import { isCollaboraSaveSessionInvalid, requestCollaboraSave } from './collabora-save';
 
@@ -29,6 +32,7 @@ export function CollaboraEditor({
   initialStatus: ReportStatus;
   initialView?: 'edit' | 'preview';
 }) {
+  const router = useRouter();
   const [view, setView] = useState<'edit' | 'preview'>(initialView);
   const [autoApprove, setAutoApprove] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
@@ -42,6 +46,7 @@ export function CollaboraEditor({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [needsReopen, setNeedsReopen] = useState(false);
   const [reopening, setReopening] = useState(false);
+  const [returningToPhotos, setReturningToPhotos] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [iframeReady, setIframeReady] = useState(false);
   const [buildFailed, setBuildFailed] = useState(false);
@@ -126,33 +131,62 @@ export function CollaboraEditor({
     }
   }, [url, reportId, initialStatus, needsReopen]);
 
+  const goBackToPhotos = useCallback(() => {
+    setReturningToPhotos(true);
+    void returnToPhotos(reportId).then((result) => {
+      if ('error' in result) {
+        setSaveError(result.error);
+        setReturningToPhotos(false);
+        return;
+      }
+      router.push(`/reports/${reportId}/photos`);
+    });
+  }, [reportId, router]);
+
   if (view === 'preview') {
     return (
-      <PreviewPanel
-        reportId={reportId}
-        initialStatus={initialStatus}
-        autoApprove={autoApprove}
-        saveReceipt={saveReceipt}
-        onBackToEdit={() => {
-          setAutoApprove(false);
-          setIframeReady(false);
-          setView('edit');
-        }}
-      />
+      <div>
+        <div style={{ padding: '24px 28px 0' }}>
+          <ReportProgress current="pdf" />
+        </div>
+        <PreviewPanel
+          reportId={reportId}
+          initialStatus={initialStatus}
+          autoApprove={autoApprove}
+          saveReceipt={saveReceipt}
+          onBackToEdit={() => {
+            setAutoApprove(false);
+            setIframeReady(false);
+            setView('edit');
+          }}
+        />
+      </div>
     );
   }
 
   const readOnly = initialStatus !== 'editing';
-  const busy = saving || reopening || needsReopen || !iframeReady || state !== 'ready';
+  const busy = saving || reopening || returningToPhotos || needsReopen || !iframeReady || state !== 'ready';
 
   return (
     <div className="ed-shell">
+      <div style={{ padding: '24px 28px 0' }}>
+        <ReportProgress current="edit" />
+      </div>
       <header className="ed-header">
         <div className="ed-header__title">
           <h1>{vesselName ?? 'Relatório'}</h1>
           <span className="ed-header__spec">{specLabel}</span>
         </div>
         <div className="ed-header__actions">
+          {!readOnly && (
+            <button
+              className="ed-btn"
+              disabled={busy || returningToPhotos}
+              onClick={() => saveAndThen(goBackToPhotos)}
+            >
+              {returningToPhotos ? 'Voltando…' : '← Voltar para fotos'}
+            </button>
+          )}
           {saving ? (
             <span className="ed-savechip ed-savechip--saving">
               <span className="ed-spinner" /> Salvando…
