@@ -7,6 +7,7 @@ import { audit } from '@/lib/audit';
 import type { ReportStatus } from '@/lib/state-machine';
 import { readSaveProof, signSaveProof } from '@/lib/document-save-proof';
 import { enqueueBuildWorkingDocx, enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
+import { describeQueueFailure } from '@/lib/queue-error';
 import { latestJobOutcome, type AuditEventRow, type JobOutcome } from '@/lib/job-failure';
 import { signToken, WOPI_TOKEN_TTL_SECONDS } from '@/lib/wopi/token';
 import { getEditorUrlSrc } from '@/lib/wopi/discovery';
@@ -104,8 +105,9 @@ export async function approve(reportId: string, receipt?: string): Promise<Appro
     await enqueueGeneratePdf({ reportId, approvedRevision: proof.revision });
     await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueued', payload: { revision: proof.revision } });
   } catch (err) {
+    const failure = describeQueueFailure(err);
     await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueue_failed',
-      payload: { message: err instanceof Error ? err.message : String(err), revision: proof.revision } });
+      payload: { message: failure.message, code: failure.code, revision: proof.revision } });
     return { error: 'Documento aprovado. Não foi possível iniciar o PDF; tente gerar novamente.', approved: true };
   }
   return { ok: true };
@@ -223,9 +225,10 @@ export async function generatePreview(
   });
   try {
     await enqueuePreviewPdf({ reportId });
-  } catch {
-    await audit(supabase, { reportId, actor: user.id, action: 'preview_enqueue_failed', payload: { message: 'Falha ao enfileirar a pré-visualização.' } });
-    return { error: 'Falha ao enfileirar a pré-visualização.' };
+  } catch (err) {
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'preview_enqueue_failed', payload: { message: failure.message, code: failure.code } });
+    return { error: failure.message };
   }
   return { ok: true };
 }
@@ -318,9 +321,10 @@ export async function retryGeneratePdf(reportId: string): Promise<ApproveResult>
 
   try {
     await enqueueGeneratePdf({ reportId, approvedRevision: report.approved_docx_revision ?? report.working_docx_revision });
-  } catch {
-    await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueue_failed', payload: { message: 'Falha ao re-enfileirar o PDF.' } });
-    return { error: 'Falha ao re-enfileirar o PDF. Tente novamente.' };
+  } catch (err) {
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueue_failed', payload: { message: failure.message, code: failure.code } });
+    return { error: failure.message };
   }
   await audit(supabase, {
     reportId,
@@ -352,9 +356,10 @@ export async function retryBuildWorkingDocx(reportId: string): Promise<ApproveRe
   try {
     if (report.working_docx_path) return { ok: true };
     await enqueueBuildWorkingDocx({ reportId, generation: report.working_docx_generation }, { dedupe: false });
-  } catch {
-    await audit(supabase, { reportId, actor: user.id, action: 'working_docx_enqueue_failed', payload: { message: 'Falha ao re-enfileirar a montagem.' } });
-    return { error: 'Falha ao re-enfileirar a montagem. Tente novamente.' };
+  } catch (err) {
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'working_docx_enqueue_failed', payload: { message: failure.message, code: failure.code } });
+    return { error: failure.message };
   }
   await audit(supabase, {
     reportId,

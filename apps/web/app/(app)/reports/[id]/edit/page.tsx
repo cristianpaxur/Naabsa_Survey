@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { enqueueBuildWorkingDocx } from '@/lib/queue';
+import { describeQueueFailure } from '@/lib/queue-error';
 import { CollaboraEditor } from '@/components/editor/CollaboraEditor';
 import type { ReportStatus } from '@/lib/state-machine';
 
@@ -77,12 +78,14 @@ export default async function EditPage({
           payload: { slug, variant: report.variant },
         });
     } catch (err) {
+      const failure = describeQueueFailure(err);
       await audit(supabase, {
         reportId: id,
         actor: user.id,
         action: 'working_docx_enqueue_failed',
         payload: {
-          message: err instanceof Error ? err.message : 'Fila indisponível.',
+          message: failure.message,
+          code: failure.code,
         },
       });
     }

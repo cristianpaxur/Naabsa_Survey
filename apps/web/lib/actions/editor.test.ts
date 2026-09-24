@@ -109,7 +109,11 @@ describe('aprovação da versão salva e recuperação de filas', () => {
     const receipt = await save();
     enqueuePdf.mockRejectedValueOnce(new Error('fila offline'));
     expect(await approve('r1', receipt)).toMatchObject({ approved: true });
-    expect(await getPdfStatus('r1')).toMatchObject({ status: 'approved', failed: true, failReason: 'fila offline' });
+    expect(await getPdfStatus('r1')).toMatchObject({
+      status: 'approved',
+      failed: true,
+      failReason: 'Não foi possível iniciar o processamento. Tente novamente.',
+    });
     expect(await retryGeneratePdf('r1')).toEqual({ ok: true });
     expect(enqueuePdf).toHaveBeenLastCalledWith({ reportId: 'r1', approvedRevision: 2 });
     expect(await getPdfStatus('r1')).toMatchObject({ failed: false });
@@ -130,6 +134,18 @@ describe('aprovação da versão salva e recuperação de filas', () => {
     expect(await retryBuildWorkingDocx('r1')).toEqual({ ok: true });
     expect(enqueueBuild).toHaveBeenLastCalledWith({ reportId: 'r1', generation: 'g1' }, { dedupe: false });
     expect(await getEditorUrl('r1')).toEqual({ pending: true });
+  });
+  it('retry do build orienta a corrigir a conexão sem expor credenciais', async () => {
+    memory.row.working_docx_path = null;
+    enqueueBuild.mockRejectedValueOnce(new Error('(ENOTFOUND) tenant/user postgres.gwxgqsqzaljuankvvubz not found'));
+    expect(await retryBuildWorkingDocx('r1')).toEqual({
+      error: 'A fila está indisponível. Verifique a conexão DATABASE_URL do web e do worker.',
+    });
+    expect(memory.events[0]).toMatchObject({
+      action: 'working_docx_enqueue_failed',
+      payload: { code: 'QUEUE_DATABASE_UNAVAILABLE' },
+    });
+    expect(memory.events[0].payload).not.toMatchObject({ message: expect.stringContaining('postgres.gwx') });
   });
   it('reabertura explícita libera lock órfão somente durante edição', async () => {
     memory.row.wopi_lock = 'lock-antigo';
