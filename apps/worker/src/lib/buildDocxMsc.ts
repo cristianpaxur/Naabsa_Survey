@@ -1,46 +1,25 @@
-/**
- * Gera o relatorio MSC (Marine Surveyor Certificate / ROB + Sludge Disposal)
- * como .docx NATIVO reproduzindo o layout do `MSC Report - revisado.docx`. O
- * .docx abre no Word identico ao modelo e o worker converte para PDF via
- * LibreOffice.
- *
- * Entrada: dados efetivos (Summary + Time Log + Sludge) + tabelas extraidas
- * (time_log, sludge_misc, sludge_tanks_before/after) + fotos (vessel /
- * engine_room / survey_attendance / ecr / hull).
- *
- * Espelha buildDocx.ts (draft_survey), mas o MSC tem:
- *  - 5 secoes de fotos (sem fase initial/intermediate/final).
- *  - 1 time_log tabular (12 eventos: Surveyor arrived → Surveyor left).
- *  - Sem variantes (nao usa VARIANT.loading/discharge).
- */
+/** MSC filled in the client's Word package; layout belongs to the template. */
+import { readFile } from 'node:fs/promises';
+import { posix } from 'node:path';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
+import sharp from 'sharp';
 import {
-  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
-  Footer, PageNumber, AlignmentType, BorderStyle, WidthType, VerticalAlign,
-  TabStopType, TabStopPosition, LeaderType, HeadingLevel, PageBreak,
-  Bookmark, InternalHyperlink, TableLayoutType, LineRuleType,
-} from 'docx';
-import {
-  createNaabsaHeader,
-  NAABSA_BODY_FONT,
-  NAABSA_BODY_WIDTH,
-  NAABSA_CONTACT_COLUMNS,
-  NAABSA_PAGE_MARGINS,
-} from './naabsaDocumentLayout';
+  formatNumberWithDecimals,
+  type FieldValue,
+  type NumberFormatMap,
+} from '@naabsa/core';
+import { fitPhotoSize } from './msc-photo-layout';
 
-const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
-import { formatNumberWithDecimals, type FieldValue, type NumberFormatMap } from '@naabsa/core';
-
-const NAVY = '002060';
-const GREY = '7F7F7F';
-const SANS = NAABSA_BODY_FONT;
-const TITLE_FONT = 'Tahoma';
-// Mesmo surveyor que assina o draft_survey (manter consistencia institucional).
-const UNDERSIGNED_SURVEYOR = 'Mr. Wagner de Abreu';
-
-type Data = Record<string, FieldValue>;
-type NumericField = (name: string, fallback?: number, suffix?: string, grouped?: boolean, signed?: boolean) => string;
+export interface TimeLogRow {
+  event: string;
+  date: string | null;
+  start: string | null;
+  flag: string | null;
+  end: string | null;
+}
 export interface DocxInputMsc {
-  data: Data;
+  data: Record<string, FieldValue>;
   numberFormats?: NumberFormatMap;
   logo: Buffer | null;
   coverPhoto?: Buffer | null;
@@ -51,498 +30,728 @@ export interface DocxInputMsc {
     ecr?: Buffer[];
     hull?: Buffer[];
   };
-  /**
-   * Linhas do Time Log já normalizadas: cada entry tem data (string YYYY-MM-DD)
-   * e horas (string HH:MM). O caller (generatePdf) lê as células da planilha
-   * diretamente porque o `extractTables` do core trunca Date em YYYY-MM-DD
-   * (perde a hora das colunas G/I).
-   */
   timeLogRows: TimeLogRow[];
   tocPages?: Record<string, number>;
 }
 
-/** Linha do Time Log pronta para renderizar (já com data+hora convertidas). */
-export interface TimeLogRow {
-  event: string;
-  /** Data ISO (YYYY-MM-DD) ou null. */
-  date: string | null;
-  /** Hora início HH:MM ou null. */
-  start: string | null;
-  /** Flag (X ou vazio). */
-  flag: string | null;
-  /** Hora fim HH:MM ou null. */
-  end: string | null;
+// Docxtemplater supplies its OOXML DOM; no second XML dependency is required.
+interface XmlNode {
+  nodeName: string;
+  nodeType: number;
+  textContent: string | null;
+  childNodes: ArrayLike<XmlNode>;
+  parentNode: XmlNode | null;
+  firstChild: XmlNode | null;
+  nextSibling: XmlNode | null;
+  getAttribute(name: string): string | null;
+  setAttribute(name: string, value: string): void;
+  getElementsByTagName(name: string): ArrayLike<XmlNode>;
+  appendChild(node: XmlNode): XmlNode;
+  insertBefore(node: XmlNode, reference: XmlNode | null): XmlNode;
+  removeChild(node: XmlNode): XmlNode;
+  cloneNode(deep: boolean): XmlNode;
 }
-
-// ── helpers de formatacao (duplicados de buildDocx.ts para nao acoplar) ──────
-const v = (x: FieldValue | undefined, fb = '—'): string => (x == null || x === '' ? fb : String(x));
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-function ord(d: number): string { return d === 1 || d === 21 || d === 31 ? 'st' : d === 2 || d === 22 ? 'nd' : d === 3 || d === 23 ? 'rd' : 'th'; }
-function fmtDate(x: FieldValue | undefined): string {
-  if (x == null) return '—';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(x));
-  if (!m) return String(x);
-  return `${MONTHS[+m[2]! - 1]} ${+m[3]!}${ord(+m[3]!)}, ${+m[1]!}`;
+interface XmlDocument extends XmlNode {
+  createElementNS(namespace: string, name: string): XmlNode;
+  createTextNode(value: string): XmlNode;
 }
-function fmtDateShort(x: unknown): string {
-  // dd/mm/yyyy a partir de Date ou YYYY-MM-DD (para Time Log).
-  if (x == null) return '—';
-  if (x instanceof Date) {
-    // ExcelJS põe "tempo puro" como Date em 1899-12-30 → não é coluna de data.
-    if (x.getUTCFullYear() === 1899) return '—';
-    return `${String(x.getUTCDate()).padStart(2, '0')}/${String(x.getUTCMonth() + 1).padStart(2, '0')}/${x.getUTCFullYear()}`;
+const xmlTools = (
+  Docxtemplater as unknown as {
+    DocUtils: {
+      str2xml(xml: string): XmlDocument;
+      xml2str(node: XmlNode): string;
+    };
   }
-  const s = String(x);
-  if (s === '' || s === '1899-12-30') return '—';
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-  if (!m) return s;
-  return `${m[3]}/${m[2]}/${m[1]}`;
-}
-function fmtTime(x: unknown): string {
-  if (x == null || x === '') return '—';
-  if (x instanceof Date) {
-    const h = String(x.getUTCHours()).padStart(2, '0');
-    const mm = String(x.getUTCMinutes()).padStart(2, '0');
-    return `${h}:${mm}`;
-  }
-  const s = String(x);
-  if (s === '') return '—';
-  // `extractTables` do core serializa Date como string 'YYYY-MM-DD' ou
-  // '1899-12-30' (tempo puro). Nesses casos extraímos HH:MM direto do nome.
-  const m1899 = /^1899-12-30T(\d{2}):(\d{2})/.exec(s);
-  if (m1899) return `${m1899[1]}:${m1899[2]}`;
-  // ExcelJS às vezes serializa só '1899-12-30' (sem hora) — não é tempo útil.
-  if (s === '1899-12-30') return '—';
-  const m = /^(\d{1,2}):(\d{2})/.exec(s);
-  return m ? `${m[1]}:${m[2]}` : s;
-}
+).DocUtils;
+const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const TEMPLATE_URL = new URL(
+  '../../../../templates/msc.clean.docx',
+  import.meta.url,
+);
+const all = (node: XmlNode, tag: string): XmlNode[] =>
+  Array.from(node.getElementsByTagName(tag));
+const children = (node: XmlNode, tag?: string): XmlNode[] =>
+  Array.from(node.childNodes).filter(
+    (child) => child.nodeType === 1 && (!tag || child.nodeName === tag),
+  );
+const remove = (node: XmlNode) => node.parentNode?.removeChild(node);
+const value = (raw: FieldValue | undefined, fallback = '—'): string =>
+  raw == null || raw === '' ? fallback : String(raw);
+const affirmative = (raw: FieldValue | undefined) =>
+  raw === true ||
+  (typeof raw === 'string' &&
+    /^(yes|y|sim|true|x|updated|attached)$/i.test(raw.trim()));
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
-const run = (text: string, opts: { bold?: boolean; size?: number; font?: string; color?: string } = {}) =>
-  new TextRun({ text, bold: opts.bold, size: opts.size ?? 22, font: opts.font ?? SANS, color: opts.color });
-const para = (children: TextRun[], opts: { align?: (typeof AlignmentType)[keyof typeof AlignmentType]; spacing?: number } = {}) =>
-  new Paragraph({ children, alignment: opts.align, spacing: { after: opts.spacing ?? 120, ...BODY_LINE } });
-
-// célula de tabela "label : valor" (sem fundo, como o Word)
-// Larguras absolutas (twips) — o LibreOffice não respeita % em tabela; DXA + FIXED sim.
-// `:` vai colado no label (sem coluna dedicada) — fica mais perto da borda esquerda do valor.
-const KV_COLS = [1700, 8160] as const; // rótulo (com ":" no fim) | valor (≈ largura útil A4)
-function kvRow(label: string, value: string): TableRow {
-  const cell = (children: Paragraph[], w: number) =>
-    new TableCell({ children, width: { size: w, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 20, bottom: 20, left: 80, right: 80 } });
-  return new TableRow({
-    children: [
-      cell([new Paragraph({ children: [run(`${label}:`, { bold: true })] })], KV_COLS[0]),
-      cell([new Paragraph({ children: [run(value)] })], KV_COLS[1]),
-    ],
-  });
-}
-const THIN = { style: BorderStyle.SINGLE, size: 4, color: 'BFBFBF' } as const;
-const NONE_B = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const;
-const tableNoBorders = { top: NONE_B, bottom: NONE_B, left: NONE_B, right: NONE_B, insideHorizontal: NONE_B, insideVertical: NONE_B };
-const insideOnlyBorders = { top: NONE_B, bottom: NONE_B, left: NONE_B, right: NONE_B, insideHorizontal: THIN, insideVertical: THIN };
-const allBorders = (color = 'BFBFBF') => ({
-  top: { style: BorderStyle.SINGLE, size: 4, color } as const,
-  bottom: { style: BorderStyle.SINGLE, size: 4, color } as const,
-  left: { style: BorderStyle.SINGLE, size: 4, color } as const,
-  right: { style: BorderStyle.SINGLE, size: 4, color } as const,
-  insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color } as const,
-  insideVertical: { style: BorderStyle.SINGLE, size: 4, color } as const,
-});
-
-const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-function imageSize(buf: Buffer): { w: number; h: number } {
-  if (buf.length >= 24 && PNG_SIG.every((b, i) => buf[i] === b) &&
-      buf[12] === 0x49 && buf[13] === 0x48 && buf[14] === 0x44 && buf[15] === 0x52) {
-    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
-  }
-  if (buf.length >= 4 && buf[0] === 0xff && buf[1] === 0xd8) {
-    let o = 2;
-    while (o + 9 < buf.length) {
-      if (buf[o] !== 0xff) { o++; continue; }
-      const marker = buf[o + 1]!;
-      if (marker === 0xff) { o++; continue; }
-      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-        return { w: buf.readUInt16BE(o + 7), h: buf.readUInt16BE(o + 5) };
-      }
-      if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) { o += 2; continue; }
-      o += 2 + buf.readUInt16BE(o + 2);
+function dateParts(raw: FieldValue | undefined): Record<string, string> {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(raw ?? ''));
+  if (match) {
+    const year = +match[1]!,
+      month = +match[2]!,
+      day = +match[3]!;
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    if (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+    ) {
+      const ordinal =
+        day === 1 || day === 21 || day === 31
+          ? 'st'
+          : day === 2 || day === 22
+            ? 'nd'
+            : day === 3 || day === 23
+              ? 'rd'
+              : 'th';
+      return {
+        month: MONTHS[month - 1]!,
+        day: String(day),
+        ordinal,
+        year: String(year),
+      };
     }
   }
-  return { w: 100, h: 62 };
+  return { month: '—', day: '', ordinal: '', year: '' };
 }
-const imgType = (buf: Buffer): 'png' | 'jpg' =>
-  buf.length >= 2 && buf[0] === 0x89 && buf[1] === 0x50 ? 'png' : 'jpg';
-
-function img(buf: Buffer, widthMm: number): Paragraph {
-  const { w, h } = imageSize(buf);
-  const widthPx = Math.round(widthMm * 3.78);
-  const heightPx = Math.round(widthPx * (w > 0 ? h / w : 0.62));
-  return new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [
-    new ImageRun({ type: imgType(buf), data: buf, transformation: { width: widthPx, height: heightPx } }),
-  ] });
-}
-
-/** Mapa slot_id -> label humano. */
-const SLOT_LABELS: Record<keyof DocxInputMsc['photos'], string> = {
-  vessel: 'Vessel',
-  engine_room: 'Engine Room',
-  survey_attendance: 'Survey attendance',
-  ecr: 'ECR (Engine Control Room)',
-  hull: 'Hull',
+const shortDate = (raw: string | null): string => {
+  if (!raw) return '—';
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : raw;
 };
-
-export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
-  const { data, logo } = input;
-  const numericField: NumericField = (name, fallback, suffix = '', grouped = false, signed = false) => {
-    const value = data[name];
-    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-    const number = formatNumberWithDecimals(
-      signed ? Math.abs(value) : value, input.numberFormats?.[name] ?? fallback, grouped,
+const NUMERIC_DECIMALS: Record<string, number> = {
+  delivered: 0,
+  loa: 2,
+  lbp: 2,
+  breadth: 2,
+  depth: 2,
+  light_ship: 2,
+  net_tonnage: 0,
+  gross_tonnage: 0,
+  purifier_temp: 0,
+  purifier_bowl_freq: 0,
+  temp_engine_room: 0,
+  temp_sea_water: 0,
+  sludge_rate_chief: 3,
+  sludge_rate_surveyor: 3,
+  sludge_percentage: 2,
+  flowmeter_accuracy: 2,
+  consumption_flowmeter_percentage: 2,
+};
+function templateData(input: DocxInputMsc): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [name, raw] of Object.entries(input.data)) {
+    if (typeof raw === 'number') {
+      const grouped =
+        !/^(delivered|loa|lbp|breadth|depth|purifier_|temp_)/.test(name);
+      const decimals =
+        input.numberFormats?.[name] ??
+        NUMERIC_DECIMALS[name] ??
+        (/percentage$/.test(name) ? 2 : 3);
+      const signed = /^grade_\d+_(difference|percentage)$/.test(name);
+      result[name] = Number.isFinite(raw)
+        ? `${signed ? (raw >= 0 ? '+ ' : '- ') : ''}${formatNumberWithDecimals(signed ? Math.abs(raw) : raw, decimals, grouped)}`
+        : '—';
+    } else result[name] = value(raw);
+  }
+  result['surveyors'] = value(input.data['surveyors'], 'Mr. Wagner de Abreu');
+  result['contact_manager_company'] = value(
+    input.data['contact_manager_company'] ?? input.data['manager'],
+  );
+  result['flowmeter_soundings'] ??= result['consumption_surveyor'] ?? '—';
+  const actor = /^(\d+)(st|nd|rd|th)(.*)$/i.exec(
+    value(input.data['surveyed_by']),
+  );
+  result['surveyed_by'] = actor?.[1] ?? value(input.data['surveyed_by']);
+  result['surveyed_by_ordinal'] = actor?.[2] ?? '';
+  result['surveyed_by_role'] = actor?.[3] ?? '';
+  // Mapping notes do not authorize silently changing Summary B18 to F7/F16.
+  for (const [prefix, raw] of [
+    ['cover_date', input.data['berthing_date']],
+    ['survey_date', input.data['berthing_date']],
+    ['last_discharge_date', input.data['last_discharge_date']],
+  ] as const) {
+    for (const [part, text] of Object.entries(dateParts(raw)))
+      result[`${prefix}_${part}`] = text;
+  }
+  const updated = [
+    affirmative(input.data['logbook_updated']) ? 'logbook' : null,
+    affirmative(input.data['vrs_updated']) ? 'VRS' : null,
+  ].filter(Boolean);
+  result['records_updated_sentence'] =
+    updated.length === 2
+      ? 'After calculations, the logbook  and VRS  were updated\u00a0according to the figures disclosed by surveyor:\u00a0'
+      : updated.length
+        ? `After calculations, the ${updated[0]} was updated according to the figures disclosed by surveyor:`
+        : '';
+  for (const [id, page] of Object.entries(input.tocPages ?? {}))
+    result[`toc_${id}`] = String(page);
+  return result;
+}
+function ancestor(node: XmlNode, tag: string): XmlNode {
+  let current: XmlNode | null = node;
+  while (current && current.nodeName !== tag) current = current.parentNode;
+  if (!current) throw new Error(`Template MSC sem elemento ${tag}.`);
+  return current;
+}
+function bookmark(doc: XmlNode, name: string): XmlNode {
+  const node = all(doc, 'w:bookmarkStart').find(
+    (mark) => mark.getAttribute('w:name') === name,
+  );
+  if (!node) throw new Error(`Template MSC sem bookmark ${name}.`);
+  return node;
+}
+function property(
+  doc: XmlDocument,
+  node: XmlNode,
+  container: string,
+  name: string,
+  enabled = true,
+): void {
+  let properties = children(node, container)[0];
+  if (!properties) {
+    properties = doc.createElementNS(W, container);
+    node.insertBefore(properties, node.firstChild);
+  }
+  for (const old of children(properties, name)) remove(old);
+  if (enabled) {
+    const created = doc.createElementNS(W, name);
+    if (name === 'w:keepNext' || name === 'w:pageBreakBefore')
+      properties.insertBefore(
+        created,
+        children(properties).find(
+          (child) =>
+            child.nodeName !== 'w:pStyle' &&
+            !(
+              name === 'w:pageBreakBefore' &&
+              (child.nodeName === 'w:keepNext' ||
+                child.nodeName === 'w:keepLines')
+            ),
+        ) ?? null,
+      );
+    else if (name === 'w:cantSplit')
+      properties.insertBefore(
+        created,
+        children(properties).find(
+          (child) =>
+            child.nodeName === 'w:trHeight' || child.nodeName === 'w:tblHeader',
+        ) ?? null,
+      );
+    else properties.appendChild(created);
+  }
+}
+function setText(doc: XmlDocument, node: XmlNode, text: string): void {
+  while (node.firstChild) node.removeChild(node.firstChild);
+  node.appendChild(
+    doc.createTextNode(
+      // OOXML excludes these ASCII control characters; retain tabs/newlines.
+      // eslint-disable-next-line no-control-regex
+      text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ''),
+    ),
+  );
+  node.setAttribute('xml:space', 'preserve');
+}
+function fillTags(
+  doc: XmlDocument,
+  root: XmlNode,
+  values: Record<string, string>,
+  skip?: ReadonlySet<XmlNode>,
+): void {
+  for (const node of all(root, 'w:t')) {
+    if (skip?.has(node)) continue;
+    const text = node.textContent ?? '';
+    if (/\{[a-zA-Z][\w]*(?::\d+:\d*)?\}/.test(text))
+      setText(
+        doc,
+        node,
+        text.replace(
+          /\{([a-zA-Z][\w]*)(?::(\d+):(\d*))?\}/g,
+          (_match, tag: string, offset?: string, length?: string) => {
+            const replacement =
+              values[tag] ?? (tag.startsWith('toc_') ? '' : '—');
+            return offset == null
+              ? replacement
+              : Array.from(replacement)
+                  .slice(+offset, length ? +offset + +length : undefined)
+                  .join('');
+          },
+        ),
+      );
+  }
+}
+function replaceTextSpan(
+  doc: XmlDocument,
+  nodes: XmlNode[],
+  start: number,
+  length: number,
+  replacement: string,
+): void {
+  let offset = 0;
+  for (const node of nodes) {
+    const content = node.textContent ?? '',
+      next = offset + content.length;
+    if (next > start && offset < start + length) {
+      const from = Math.max(0, start - offset),
+        to = Math.min(content.length, start + length - offset);
+      setText(
+        doc,
+        node,
+        content.slice(0, from) +
+          (offset <= start ? replacement : '') +
+          content.slice(to),
+      );
+    }
+    offset = next;
+  }
+}
+function normalizeMissingDates(
+  doc: XmlDocument,
+  values: Record<string, string>,
+): void {
+  for (const paragraph of all(doc, 'w:p'))
+    for (const prefix of ['cover_date', 'survey_date', 'last_discharge_date']) {
+      if (values[`${prefix}_month`] !== '—') continue;
+      const nodes = all(paragraph, 'w:t');
+      const full = nodes.map((node) => node.textContent ?? '').join('');
+      const match = new RegExp(
+        `\\{${prefix}_month(?::[^}]*)?\\}[\\s\\S]*\\{${prefix}_year(?::[^}]*)?\\}\\s*(?=[,.]|$)`,
+      ).exec(full);
+      if (match) replaceTextSpan(doc, nodes, match.index, match[0].length, '—');
+    }
+}
+function linkContents(doc: XmlDocument): void {
+  for (const paragraph of all(doc, 'w:p')) {
+    const match = /\{toc_(s\d+(?:_\d+)?)\}/.exec(paragraph.textContent ?? '');
+    if (!match) continue;
+    const link = doc.createElementNS(W, 'w:hyperlink');
+    link.setAttribute('w:anchor', match[1]!);
+    link.setAttribute('w:history', '1');
+    for (const node of children(paragraph).filter(
+      (node) => node.nodeName !== 'w:pPr',
+    ))
+      link.appendChild(node);
+    paragraph.appendChild(link);
+  }
+}
+function fillGradeRows(doc: XmlDocument, input: DocxInputMsc): void {
+  const table = ancestor(bookmark(doc, 'msc_grade_rows'), 'w:tbl');
+  for (const [i, row] of children(table, 'w:tr').slice(1).entries()) {
+    if (!affirmative(input.data[`grade_${i + 1}_present`])) remove(row);
+  }
+}
+function fillTimeLog(doc: XmlDocument, input: DocxInputMsc): void {
+  const table = ancestor(bookmark(doc, 'msc_time_log'), 'w:tbl');
+  const original = children(table, 'w:tr');
+  const header = original[0]!;
+  property(doc, header, 'w:trPr', 'w:tblHeader');
+  property(doc, header, 'w:trPr', 'w:cantSplit');
+  for (const row of original.slice(1)) remove(row);
+  const compact = input.timeLogRows.length <= 12;
+  for (const p of all(header, 'w:p'))
+    property(
+      doc,
+      p,
+      'w:pPr',
+      'w:keepNext',
+      compact && input.timeLogRows.length > 0,
     );
-    return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
-  };
-  const photoSlots = (['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'] as const);
-  const isRobOnly = /\brob\b/i.test(v(data['appointed_service'], '')) && !/sludge/i.test(v(data['appointed_service'], ''));
-  const hasLastAttendance = isAffirmative(data['last_attendance']);
-
-  // Sumario (id de bookmark + rotulo + nivel). Fonte unica para Contents e corpo.
-  const toc: { id: string; label: string; level: 1 | 2 }[] = [];
-  const sec = (n: number, label: string) => toc.push({ id: `s${n}`, label: `${n}. ${label}`, level: 1 });
-  const sub = (n: number, m: number, label: string) => toc.push({ id: `s${n}_${m}`, label: `${n}.${m} ${label}`, level: 2 });
-  sec(1, "Vessel's details (Ship's Particulars)");
-  sec(2, 'Background');
-  sub(2, 1, 'Found at Survey');
-  sub(2, 2, 'Purifiers Settings');
-  sub(2, 3, 'Temperature');
-  sub(2, 4, 'Specific Gravities');
-  sub(2, 5, 'Gross volume — m³');
-  sub(2, 6, 'Sludge Disposal');
-  sub(2, 7, 'Sludge rate production');
-  sub(2, 8, 'Consumption x Flowmeter');
-  if (hasLastAttendance) sub(2, 9, 'Last attendance');
-  sub(2, 10, 'Time log');
-  sec(3, 'Photographic report');
-  for (const [i, key] of photoSlots.entries()) {
-    sub(3, i + 1, SLOT_LABELS[key]);
+  for (const [i, row] of input.timeLogRows.entries()) {
+    const clone = (original[i + 1] ?? original[1])!.cloneNode(true);
+    const index = original[i + 1] ? i + 1 : 1;
+    const entries = {
+      event: row.event,
+      date: shortDate(row.date),
+      start: row.start ?? '',
+      flag: row.flag ?? '',
+      end: row.end ?? '',
+    };
+    fillTags(
+      doc,
+      clone,
+      Object.fromEntries(
+        Object.entries(entries).map(([key, text]) => [
+          `time_log_${index}_${key}`,
+          text,
+        ]),
+      ),
+    );
+    for (const cell of children(clone, 'w:tc')) {
+      for (const p of all(cell, 'w:p'))
+        property(
+          doc,
+          p,
+          'w:pPr',
+          'w:keepNext',
+          compact && i < input.timeLogRows.length - 1,
+        );
+    }
+    property(doc, clone, 'w:trPr', 'w:cantSplit');
+    table.appendChild(clone);
   }
-  sec(4, 'Attachment');
-
-  // ── Cabecalho (logo + tagline + regua) ──
-  const header = createNaabsaHeader(logo, 'default');
-  const firstPageHeader = createNaabsaHeader(logo, 'first');
-  const evenPageHeader = createNaabsaHeader(logo, 'default');
-
-  // ── Rodape (e-mail | url + no de pagina) ──
-  const createFooter = () => new Footer({
-    children: [new Paragraph({
-      alignment: AlignmentType.RIGHT, border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'auto' } },
-      tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-      children: [run('surveyors@naabsa.com.br | www.naabsa.com', { color: GREY, size: 16 }), new TextRun({ text: '\t', size: 16 }), new TextRun({ children: [PageNumber.CURRENT], size: 16, color: GREY, font: SANS })],
-    })],
-  });
-  const footer = createFooter();
-  const evenPageFooter = createFooter();
-
-  const body: (Paragraph | Table)[] = [];
-
-  // ── Capa: bloco de endereco (2 colunas) ──
-  body.push(new Table({
-    width: { size: NAABSA_BODY_WIDTH, type: WidthType.DXA }, columnWidths: [...NAABSA_CONTACT_COLUMNS], layout: TableLayoutType.FIXED, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
-    rows: [new TableRow({ children: [
-      new TableCell({ borders: noBorders(), width: { size: NAABSA_CONTACT_COLUMNS[0], type: WidthType.DXA }, children: ['433 Ana Costa Avenue', 'Suite 184 - Santos/Brazil', '11060-003'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 }, children: [run(t, { size: 18 })] })) }),
-      new TableCell({ borders: noBorders(), width: { size: NAABSA_CONTACT_COLUMNS[1], type: WidthType.DXA }, children: ['Telephone: +55 13 33940655', 'email: surveyors@naabsa.com', 'www.naabsa.com'].map((t) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 }, children: [run(t, { size: 18 })] })) }),
-    ] })],
-  }));
-  body.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
-
-  // ── Capa: titulos ──
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run('Survey Report', { bold: true, size: 36 })] }));
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(v(data['voy']), { size: 22 })] }));
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [run(v(data['appointed_service']), { size: 26, bold: true })] }));
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [run(`“${v(data['vessel_name'], '')}”`, { bold: true, size: 44, font: TITLE_FONT })] }));
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(`Flag ${v(data['flag'])} / IMO ${v(data['imo'])}`, { size: 22 })] }));
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [run(`at ${v(data['port'])} Port – ${fmtDate(data['berthing_date'])}`, { size: 22 })] }));
-  const cover = input.coverPhoto ?? input.photos.vessel?.[0] ?? null;
-  if (cover) body.push(img(cover, 150));
-
-  // ── PERSON / COMPANIES CONTACTED — capa (pagina 1) ──
-  body.push(plainTitle('PERSON / COMPANIES CONTACTED'));
-  body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: insideOnlyBorders, rows: [
-    personRow('Client', [v(data['manager'], 'Mediterranean Shipping Company S.A.')]),
-    personRow('Undersigned Surveyor', ['NAABSA Marine Surveyors', v(data['surveyors'], UNDERSIGNED_SURVEYOR)]),
-    personRow("Vessel's Command", ['Master / Chief Engineer', `${v(data['captain'])} / ${v(data['chief_engineer'])}`]),
-  ] }));
-
-  body.push(new Paragraph({ children: [new PageBreak()] }));
-
-  // ── Sumario (Contents) — clicavel, com paginas medidas (2o passe) ──
-  body.push(plainTitle('Contents'));
-  const measured = input.tocPages ?? {};
-  const hasMeasures = Object.keys(measured).length > 0;
-  const pageOf = (id: string): string => {
-    const p = measured[id];
-    if (p == null && hasMeasures) console.warn(`[buildDocxMsc] sumario: sem pagina medida para "${id}"`);
-    return p != null ? String(p) : '';
-  };
-  for (const e of toc) body.push(contentsEntry(e.id, e.label, pageOf(e.id), e.level));
-
-  body.push(new Paragraph({ children: [new PageBreak()] }));
-
-  // ── 1. Vessel's details (Ship's Particulars) ──
-  body.push(sectionTitle('s1', toc[0]!.label));
-  body.push(new Table({ width: { size: 9860, type: WidthType.DXA }, columnWidths: [...KV_COLS], layout: TableLayoutType.FIXED, borders: tableNoBorders, rows: [
-    kvRow('Manager', v(data['manager'])),
-    kvRow('Name', v(data['vessel_name'])),
-    kvRow('Flag', v(data['flag'])),
-    kvRow('Port registry', v(data['port_registry'])),
-    kvRow('Call sign', v(data['call_sign'])),
-    kvRow('IMO number', v(data['imo'])),
-    kvRow('Type', v(data['type'])),
-    kvRow('Delivered', numericField('delivered')),
-    kvRow('LOA', numericField('loa', 2, ' m')),
-    kvRow('LBP', numericField('lbp', 2, ' m')),
-    kvRow('Breadth', numericField('breadth', 2, ' m')),
-    kvRow('Depth', numericField('depth', 2, ' m')),
-    kvRow('Net tonnage', numericField('net_tonnage', 0, ' mt', true)),
-    kvRow('Gross tonnage', numericField('gross_tonnage', 0, ' mt', true)),
-    kvRow('Light ship', `${numericField('light_ship', 2)} t`),
-  ] }));
-
-  // ── 2. Background ──
-  body.push(sectionTitle('s2', toc.find((e) => e.id === 's2')!.label));
-
-  // 2.1 Found at Survey
-  body.push(subTitle('s2_1', '2.1 Found at Survey'));
-  body.push(para([run('We did attend vessel on '), run(fmtDateShort(data['berthing_date'])), run(isRobOnly
-    ? ', to disclose the total of fuel remaining on board and to compare it with vessel’s logbook.'
-    : ', to disclose the total of fuel remaining on board, to compare it with vessel’s logbook and to verify the total amount of sludge disposed.')]));
-  body.push(para([run('The opening and closing soundings took place with cargo operation/movement in progress.')]));
-  body.push(para([run('The purifiers were found switched off and no transfers were carried out.')]));
-  if (data['surveyed_by']) {
-    body.push(para([run(`The soundings were performed by ${v(data['surveyed_by'])}.`)]));
+}
+function optionalSections(doc: XmlDocument, input: DocxInputMsc): void {
+  if (!affirmative(input.data['last_attendance'])) {
+    const start = ancestor(bookmark(doc, 's3_8'), 'w:p'),
+      end = ancestor(bookmark(doc, 's4'), 'w:p');
+    let node: XmlNode | null = start;
+    while (node && node !== end) {
+      const next: XmlNode | null = node.nextSibling;
+      remove(node);
+      node = next;
+    }
+    const toc = all(doc, 'w:hyperlink').find(
+      (link) => link.getAttribute('w:anchor') === 's3_8',
+    );
+    if (toc) remove(ancestor(toc, 'w:p'));
   }
-
-  // 2.2 Purifiers Settings
-  body.push(subTitle('s2_2', '2.2 Purifiers Settings'));
-  body.push(new Table({ width: { size: 9860, type: WidthType.DXA }, columnWidths: [...KV_COLS], layout: TableLayoutType.FIXED, borders: tableNoBorders, rows: [
-    kvRow('Temperature', `${numericField('purifier_temp', 0)} °C`),
-    kvRow('Flow setting by each purifier', `${v(data['purifier_flow'])} m³`),
-    kvRow('Bowl discharging frequency', `${numericField('purifier_bowl_freq', 0)} minutes`),
-  ] }));
-
-  // 2.3 Temperature
-  body.push(subTitle('s2_3', '2.3 Temperature'));
-  body.push(para([run(`Fuel oil Storage tank – Infrared thermometer: ${v(data['temp_storage_infrared'], 'Display at ECR')}`)]));
-  body.push(para([run(`Service tanks – ${v(data['temp_service'], 'Glass thermometer')}`)]));
-  body.push(para([run(`Diesel oil storage and Service tanks – Infrared thermometer: ${v(data['temp_do'], 'ER')}`)]));
-  if (data['temp_engine_room'] != null) {
-    body.push(para([run(`Engine room temperature: ${numericField('temp_engine_room', 0)} °C`)]));
-  }
-  if (data['temp_sea_water'] != null) {
-    body.push(para([run(`Sea water temperature: ${numericField('temp_sea_water', 0)} °C`)]));
-  }
-
-  // 2.4 Specific Gravities
-  body.push(subTitle('s2_4', '2.4 Specific Gravities'));
-  body.push(para([run('Applied according to the vessel’s records (BDNs) presented by Chief Engineer at time of survey.')]));
-
-  // 2.5 Gross volume — m³
-  body.push(subTitle('s2_5', '2.5 Gross volume — m³'));
-  body.push(para([run('Calculated according to the ship’s tanks sounding table provided by Chief Engineer at time of survey. All corrections were applied accordingly.')]));
-  body.push(gradeComparisonTable(data, numericField));
-  const updatedDocuments = [
-    isAffirmative(data['logbook_updated']) ? 'logbook' : null,
-    isAffirmative(data['vrs_updated']) ? 'VRS' : null,
-  ].filter((item): item is string => item !== null);
-  if (updatedDocuments.length > 0) {
-    body.push(para([run(`After calculations, the ${updatedDocuments.join(' and ')} ${updatedDocuments.length === 1 ? 'was' : 'were'} updated according to the figures disclosed by surveyor.`)]));
-  }
-
-  body.push(subTitle('s2_6', '2.6 Sludge Disposal'));
-  if (isRobOnly) body.push(para([run('This attendance covers ROB only; no sludge disposal calculation was requested.')]));
-  else body.push(sludgeDisposalTable(data, numericField));
-
-  body.push(subTitle('s2_7', '2.7 Sludge rate production'));
-  if (isRobOnly) body.push(para([run('—', { color: GREY })]));
-  else body.push(sludgeRateTable(numericField));
-
-  body.push(subTitle('s2_8', '2.8 Consumption x Flowmeter'));
-  body.push(flowmeterTable(numericField));
-
-  if (hasLastAttendance) {
-    body.push(subTitle('s2_9', '2.9 Last attendance'));
-    body.push(para([run('Previous attendance information was provided in the vessel records.')]));
-  }
-
-  // Tabela de time log (eventos) — vem pré-normalizada de generatePdf.
-  body.push(subTitle('s2_10', '2.10 Time log'));
-  if ((input.timeLogRows ?? []).length > 0) {
-    body.push(timeLogTable(input.timeLogRows!));
-  } else {
-    body.push(para([run('—', { color: GREY })]));
-  }
-
-  // ── 3. Photographic report ──
-  body.push(new Paragraph({ children: [new PageBreak()] }));
-  body.push(sectionTitle('s3', toc.find((e) => e.id === 's3')!.label));
-  for (const [i, key] of photoSlots.entries()) {
-    body.push(subTitle(`s3_${i + 1}`, `3.${i + 1} ${SLOT_LABELS[key]}`));
-    const photos = input.photos[key] ?? [];
-    if (photos.length > 0) {
-      for (const ph of photos) body.push(img(ph, 150));
-    } else {
-      body.push(para([run('—', { color: GREY })]));
+  const robOnly =
+    /\brob\b/i.test(value(input.data['appointed_service'], '')) &&
+    !/sludge/i.test(value(input.data['appointed_service'], ''));
+  if (robOnly) {
+    for (const paragraph of all(doc, 'w:p')) {
+      const text = all(paragraph, 'w:t')
+        .map((node) => node.textContent ?? '')
+        .join('');
+      if (
+        /Follow-up the sludge disposal|To disclose the fuel oil consumption and to ascertain the sludge rate production/.test(
+          text,
+        )
+      )
+        remove(paragraph);
+      else if (
+        text.includes('and to verify the total amount of sludge disposed')
+      ) {
+        const texts = all(paragraph, 'w:t');
+        const full = texts.map((node) => node.textContent ?? '').join('');
+        const match =
+          /[,\s]*and to verify the total amount of sludge disposed\.?/.exec(
+            full,
+          );
+        if (match)
+          replaceTextSpan(doc, texts, match.index, match[0].length, '.');
+      }
     }
   }
-
-  // ── Attachment ──
-  body.push(sectionTitle('s4', toc.find((e) => e.id === 's4')!.label));
-  for (const attachment of [
-    'Survey Report', 'Berthing message', 'VRS updated', 'Last manual sounding',
-    'Logbook update', 'Sludge removal certificates',
-  ]) body.push(para([run(attachment)]));
-
-  const doc = new Document({
-    evenAndOddHeaderAndFooters: true,
-    styles: {
-      default: { document: { run: { font: SANS, size: 22 } } },
-      paragraphStyles: [
-        { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { font: SANS, size: 26, bold: true, color: NAVY }, paragraph: { spacing: { before: 240, after: 80 }, keepNext: true } },
-        { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { font: SANS, size: 22, bold: true, color: NAVY }, paragraph: { spacing: { before: 160, after: 60 }, keepNext: true } },
-      ],
-    },
-    sections: [{
-      properties: { page: { margin: NAABSA_PAGE_MARGINS }, titlePage: true },
-      headers: { default: header, first: firstPageHeader, even: evenPageHeader }, footers: { default: footer, even: evenPageFooter },
-      children: body,
-    }],
-  });
-  return Packer.toBuffer(doc) as unknown as Buffer;
 }
-
-function noBorders() {
-  const n = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const;
-  return { top: n, bottom: n, left: n, right: n };
-}
-function sectionTitle(id: string, t: string): Paragraph {
-  return new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 80 }, children: [new Bookmark({ id, children: [run(t, { bold: true, size: 26, color: NAVY })] })] });
-}
-function plainTitle(t: string): Paragraph {
-  return new Paragraph({ spacing: { before: 240, after: 80 }, children: [run(t, { bold: true, size: 26, color: NAVY })] });
-}
-function contentsEntry(id: string, label: string, page: string, level: 1 | 2): Paragraph {
-  const linkRun = (text: string) => new InternalHyperlink({ anchor: id, children: [run(text, { size: 22, bold: level === 1, color: '151515' })] });
-  return new Paragraph({
-    spacing: { after: 60 },
-    indent: level === 2 ? { left: 400 } : undefined,
-    tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX, leader: LeaderType.DOT }],
-    children: [linkRun(label), new TextRun({ text: '\t', size: 22 }), linkRun(page)],
-  });
-}
-function subTitle(id: string, t: string): Paragraph {
-  return new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 160, after: 60 }, children: [new Bookmark({ id, children: [run(t, { bold: true, size: 22, color: NAVY })] })] });
-}
-function personRow(label: string, lines: string[]): TableRow {
-  return new TableRow({ children: [
-    new TableCell({ width: { size: 38, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, margins: { top: 30, bottom: 30, left: 100, right: 80 }, children: [new Paragraph({ children: [run(label, { bold: true })] })] }),
-    new TableCell({ width: { size: 62, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, margins: { top: 30, bottom: 30, left: 100, right: 80 }, children: lines.map((l, i) => new Paragraph({ spacing: { after: 0 }, children: [run(l, { bold: i === 0 })] })) }),
-  ] });
-}
-
-function isAffirmative(value: FieldValue | undefined): boolean {
-  if (value === true) return true;
-  if (typeof value !== 'string') return false;
-  return /^(yes|y|sim|true|x|updated|attached)$/i.test(value.trim());
-}
-
-function reportTable(headers: string[], rows: string[][]): Table {
-  const cell = (text: string, bold = false) => new TableCell({
-    borders: allBorders(),
-    margins: { top: 30, bottom: 30, left: 70, right: 70 },
-    verticalAlign: VerticalAlign.CENTER,
-    children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(text, { size: 18, bold })] })],
-  });
-  const width = Math.floor(10100 / headers.length);
-  return new Table({
-    width: { size: 10100, type: WidthType.DXA },
-    columnWidths: headers.map(() => width),
-    layout: TableLayoutType.FIXED,
-    borders: allBorders(),
-    rows: [
-      new TableRow({ children: headers.map((header) => cell(header, true)) }),
-      ...rows.map((row) => new TableRow({ children: row.map((entry) => cell(entry)) })),
-    ],
-  });
-}
-
-function gradeComparisonTable(data: Data, numericField: NumericField): Table {
-  const rows: string[][] = [];
-  for (const number of [1, 2, 3, 4]) {
-    if (!isAffirmative(data[`grade_${number}_present`])) continue;
-    rows.push([
-      v(data[`grade_${number}`]),
-      numericField(`grade_${number}_surveyor`, 3, ' mt', true),
-      numericField(`grade_${number}_vrs`, 3, ' mt', true),
-      numericField(`grade_${number}_difference`, 3, ' mt', true),
-      numericField(`grade_${number}_percentage`, 2, ' %', true),
-    ]);
+function addHull(doc: XmlDocument): void {
+  const heading = ancestor(bookmark(doc, 's5_4'), 'w:p').cloneNode(true);
+  all(heading, 'w:bookmarkStart')
+    .find((node) => node.getAttribute('w:name') === 's5_4')!
+    .setAttribute('w:name', 's5_5');
+  for (const node of all(heading, 'w:t'))
+    if (node.textContent === 'ECR') setText(doc, node, 'Hull');
+  const end = ancestor(bookmark(doc, 's6'), 'w:p');
+  const certificate =
+    children(end.parentNode!).find((node) =>
+      (node.textContent ?? '').includes(
+        'We certify that the content of these pictures',
+      ),
+    ) ?? end;
+  certificate.parentNode!.insertBefore(heading, certificate);
+  const proto = ancestor(bookmark(doc, 'msc_photos_ecr'), 'w:p').cloneNode(
+    true,
+  );
+  for (const mark of all(proto, 'w:bookmarkStart'))
+    mark.setAttribute('w:name', 'msc_photos_hull');
+  certificate.parentNode!.insertBefore(proto, certificate);
+  const toc = all(doc, 'w:hyperlink').find(
+    (link) => link.getAttribute('w:anchor') === 's5_4',
+  );
+  if (toc) {
+    const paragraph = ancestor(toc, 'w:p').cloneNode(true);
+    for (const link of all(paragraph, 'w:hyperlink'))
+      link.setAttribute('w:anchor', 's5_5');
+    for (const text of all(paragraph, 'w:t'))
+      setText(
+        doc,
+        text,
+        (text.textContent ?? '')
+          .replace(/ECR/g, 'Hull')
+          .replace(/toc_s5_4/g, 'toc_s5_5'),
+      );
+    const original = ancestor(toc, 'w:p');
+    original.parentNode!.insertBefore(paragraph, original.nextSibling);
   }
-  return reportTable(['Grade', 'Surveyor', 'VRS', 'Difference', '%'], rows.length > 0 ? rows : [['—', '—', '—', '—', '—']]);
 }
-
-function sludgeDisposalTable(data: Data, numericField: NumericField): Table {
-  return reportTable(['Item', 'Vessel records', 'Surveyor figures'], [
-    ['Sludge at berthing', numericField('sludge_berthing', 3, ' m³', true), numericField('sludge_surveyor', 3, ' m³', true)],
-    ['Difference', numericField('sludge_difference', 3, ' m³', true), numericField('sludge_percentage', 2, ' %', true)],
-    ['Last discharge', fmtDateShort(data['last_discharge_date']), numericField('last_discharge_quantity', 3, ' m³', true)],
-    ['Retained after discharge', numericField('retained_after_last_discharge', 3, ' m³', true), numericField('retained_after_discharge', 3, ' m³', true)],
-  ]);
+async function fillImages(
+  doc: XmlDocument,
+  zip: PizZip,
+  input: DocxInputMsc,
+): Promise<void> {
+  const rels = xmlTools.str2xml(
+      zip.file('word/_rels/document.xml.rels')!.asText(),
+    ),
+    relRoot = children(rels)[0]!;
+  let imageId = 0;
+  async function replaceImage(
+    drawing: XmlNode,
+    buffer: Buffer,
+    cover = false,
+  ): Promise<void> {
+    const original = await sharp(buffer).metadata();
+    const preserveBytes =
+      (original.format === 'jpeg' || original.format === 'png') &&
+      (!original.orientation || original.orientation === 1);
+    const normalized = preserveBytes
+      ? buffer
+      : await sharp(buffer).rotate().png().toBuffer();
+    const meta = await sharp(normalized).metadata(),
+      extent = all(drawing, 'wp:extent')[0]!;
+    const box = {
+      width: cover
+        ? 160
+        : Math.min(80, Number(extent.getAttribute('cx')) / 36000),
+      height: cover
+        ? 120
+        : Math.min(60, Number(extent.getAttribute('cy')) / 36000),
+    };
+    const size = fitPhotoSize(
+      { width: meta.width!, height: meta.height! },
+      box,
+    );
+    const crop = all(drawing, 'a:srcRect')[0];
+    const fraction = (side: string) =>
+      Number(crop?.getAttribute(side) ?? 0) / 100000;
+    const sourceAspect =
+      Number(extent.getAttribute('cx')) / Number(extent.getAttribute('cy'));
+    const croppedAspect =
+      (meta.width! * (1 - fraction('l') - fraction('r'))) /
+      (meta.height! * (1 - fraction('t') - fraction('b')));
+    const keepFrame = Math.abs(croppedAspect - sourceAspect) < 0.0001;
+    const width = keepFrame
+        ? extent.getAttribute('cx')!
+        : String(Math.round(size.width * 36000)),
+      height = keepFrame
+        ? extent.getAttribute('cy')!
+        : String(Math.round(size.height * 36000));
+    extent.setAttribute('cx', width);
+    extent.setAttribute('cy', height);
+    for (const ext of all(drawing, 'a:ext'))
+      if (ext.getAttribute('cx') != null) {
+        ext.setAttribute('cx', width);
+        ext.setAttribute('cy', height);
+      }
+    if (!keepFrame) for (const crop of all(drawing, 'a:srcRect')) remove(crop);
+    const id = `rIdMscImage${++imageId}`,
+      target = `media/msc-image-${imageId}.${preserveBytes && original.format === 'jpeg' ? 'jpeg' : 'png'}`;
+    const relation = rels.createElementNS(REL, 'Relationship');
+    relation.setAttribute('Id', id);
+    relation.setAttribute(
+      'Type',
+      'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+    );
+    relation.setAttribute('Target', target);
+    relRoot.appendChild(relation);
+    all(drawing, 'a:blip')[0]!.setAttribute('r:embed', id);
+    zip.file(`word/${target}`, normalized);
+  }
+  const cover = ancestor(bookmark(doc, 'msc_cover'), 'w:p'),
+    coverBuffer = input.coverPhoto ?? input.photos.vessel?.[0];
+  for (const drawing of all(cover, 'w:drawing')) {
+    if (coverBuffer) await replaceImage(drawing, coverBuffer, true);
+    else remove(drawing);
+  }
+  const groups: [keyof DocxInputMsc['photos'], string, string][] = [
+    ['vessel', 's5_1', 's5_2'],
+    ['engine_room', 's5_2', 's5_3'],
+    ['survey_attendance', 's5_3', 's5_4'],
+    ['ecr', 's5_4', input.photos.hull?.length ? 's5_5' : 's6'],
+  ];
+  if (input.photos.hull?.length) groups.push(['hull', 's5_5', 's6']);
+  for (const [slot, startId, endId] of groups) {
+    const start = ancestor(bookmark(doc, startId), 'w:p'),
+      end = ancestor(bookmark(doc, endId), 'w:p');
+    const nodes: XmlNode[] = [];
+    for (
+      let node = start.nextSibling;
+      node && node !== end;
+      node = node.nextSibling
+    )
+      nodes.push(node);
+    const drawings = nodes.flatMap((node) => all(node, 'w:drawing')),
+      photos = input.photos[slot] ?? [];
+    const prototype = ancestor(drawings[0]!, 'w:r').cloneNode(true),
+      imageParagraph = ancestor(drawings.at(-1)!, 'w:p');
+    for (const [index, drawing] of drawings.entries()) {
+      if (photos[index]) await replaceImage(drawing, photos[index]!);
+      else remove(drawing);
+    }
+    for (const photo of photos.slice(drawings.length)) {
+      const run = prototype.cloneNode(true);
+      await replaceImage(all(run, 'w:drawing')[0]!, photo);
+      imageParagraph.appendChild(run);
+    }
+    // The source's 4:3 landscape pairs wrap naturally. Narrower frames need
+    // explicit pair breaks to avoid three or four photos on one line.
+    for (const paragraph of nodes.filter((node) => node.nodeName === 'w:p')) {
+      const images = all(paragraph, 'w:drawing');
+      const needsPairBreaks = images.some((image) => {
+        const extent = all(image, 'wp:extent')[0]!;
+        return (
+          Number(extent.getAttribute('cx')) * 3 <
+          Number(extent.getAttribute('cy')) * 4
+        );
+      });
+      if (needsPairBreaks)
+        for (let index = 1; index < images.length - 1; index += 2)
+          ancestor(images[index]!, 'w:r').appendChild(
+            doc.createElementNS(W, 'w:br'),
+          );
+    }
+  }
+  all(doc, 'wp:docPr').forEach((node, index) =>
+    node.setAttribute('id', String(index + 100)),
+  );
+  // Cloned bookmarks are paired in document order, not by reused source IDs.
+  let bookmarkId = 1000;
+  const pending = new Map<string, string[]>();
+  for (const node of all(doc, 'w:bookmarkStart').concat(
+    all(doc, 'w:bookmarkEnd'),
+  )) {
+    const old = node.getAttribute('w:id') ?? '',
+      ids = pending.get(old) ?? [];
+    if (node.nodeName === 'w:bookmarkStart') {
+      const id = String(bookmarkId++);
+      ids.push(id);
+      node.setAttribute('w:id', id);
+      pending.set(old, ids);
+    } else node.setAttribute('w:id', ids.shift() ?? String(bookmarkId++));
+  }
+  const used = new Set(
+      all(doc, 'a:blip').map((node) => node.getAttribute('r:embed')),
+    ),
+    candidates: string[] = [];
+  for (const relation of all(rels, 'Relationship'))
+    if (
+      relation.getAttribute('Type')?.endsWith('/image') &&
+      !used.has(relation.getAttribute('Id'))
+    ) {
+      candidates.push(
+        posix.normalize(`word/${relation.getAttribute('Target')}`),
+      );
+      remove(relation);
+    }
+  zip.file('word/_rels/document.xml.rels', xmlTools.xml2str(rels));
+  const targets = new Set<string>();
+  for (const name of Object.keys(zip.files).filter((name) =>
+    name.endsWith('.rels'),
+  )) {
+    const part = xmlTools.str2xml(zip.file(name)!.asText()),
+      folder = name.includes('/_rels/')
+        ? name.slice(0, name.indexOf('/_rels/'))
+        : '';
+    for (const relation of all(part, 'Relationship'))
+      if (relation.getAttribute('TargetMode') !== 'External')
+        targets.add(
+          posix
+            .normalize(`${folder}/${relation.getAttribute('Target')}`)
+            .replace(/^\//, ''),
+        );
+  }
+  for (const name of candidates) if (!targets.has(name)) zip.remove(name);
+  if (input.logo)
+    for (const part of [
+      'word/_rels/header1.xml.rels',
+      'word/_rels/header2.xml.rels',
+    ]) {
+      const xml = zip.file(part);
+      if (!xml) continue;
+      for (const relation of all(
+        xmlTools.str2xml(xml.asText()),
+        'Relationship',
+      ))
+        if (relation.getAttribute('Type')?.endsWith('/image')) {
+          const target = posix.normalize(
+            `word/${relation.getAttribute('Target')}`,
+          );
+          if (zip.file(target)?.asNodeBuffer().equals(input.logo)) continue;
+          zip.file(
+            target,
+            posix.extname(target).toLowerCase() === '.png'
+              ? await sharp(input.logo).png().toBuffer()
+              : await sharp(input.logo).jpeg().toBuffer(),
+          );
+        }
+    }
+  const types = xmlTools.str2xml(zip.file('[Content_Types].xml')!.asText());
+  if (
+    !all(types, 'Default').some(
+      (node) => node.getAttribute('Extension') === 'png',
+    )
+  ) {
+    const png = types.createElementNS(
+      'http://schemas.openxmlformats.org/package/2006/content-types',
+      'Default',
+    );
+    png.setAttribute('Extension', 'png');
+    png.setAttribute('ContentType', 'image/png');
+    children(types)[0]!.appendChild(png);
+    zip.file('[Content_Types].xml', xmlTools.xml2str(types));
+  }
 }
-
-function sludgeRateTable(numericField: NumericField): Table {
-  return reportTable(['Item', 'Vessel records', 'Surveyor figures'], [
-    ['Sludge generated', numericField('sludge_generated_chief', 3, ' m³', true), numericField('sludge_generated_surveyor', 3, ' m³', true)],
-    ['Logbook consumption', numericField('consumption_chief', 3, ' mt', true), numericField('consumption_surveyor', 3, ' mt', true)],
-    ['Sludge rate', numericField('sludge_rate_chief', 2, ' %', true), numericField('sludge_rate_surveyor', 2, ' %', true)],
-  ]);
-}
-
-function flowmeterTable(numericField: NumericField): Table {
-  return reportTable(['Logbook total', 'Flowmeter total', 'Difference', 'Accuracy'], [[
-    numericField('flowmeter_logbook_total', 3, ' mt', true), numericField('flowmeter_total', 3, ' mt', true),
-    numericField('flowmeter_difference', 3, ' mt', true), numericField('flowmeter_accuracy', 2, ' %', true),
-  ]]);
-}
-
-function timeLogTable(rows: TimeLogRow[]): Table {
-  // 5 colunas: Event | Date | Start | x | End. x eh a flag (X ou vazio).
-  const c = (t: string, opts: { bold?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}) =>
-    new TableCell({
-      borders: allBorders(),
-      margins: { top: 30, bottom: 30, left: 80, right: 80 },
-      verticalAlign: VerticalAlign.CENTER,
-      children: [new Paragraph({ alignment: opts.align, spacing: { after: 0 }, children: [run(t, { size: 20, bold: opts.bold })] })],
-    });
-  const COLS = [5200, 1700, 1300, 600, 1300] as const;
-  const head = new TableRow({ children: [
-    c('Event', { bold: true }),
-    c('Date', { bold: true, align: AlignmentType.CENTER }),
-    c('Time', { bold: true, align: AlignmentType.CENTER }),
-    c('x', { bold: true, align: AlignmentType.CENTER }),
-    c('Time', { bold: true, align: AlignmentType.CENTER }),
-  ] });
-  const data = rows.map((r) => new TableRow({ children: [
-    c(r.event),
-    c(fmtDateShort(r.date), { align: AlignmentType.CENTER }),
-    c(fmtTime(r.start), { align: AlignmentType.CENTER }),
-    c(r.flag ?? '', { align: AlignmentType.CENTER }),
-    c(fmtTime(r.end), { align: AlignmentType.CENTER }),
-  ] }));
-  return new Table({
-    width: { size: 10100, type: WidthType.DXA },
-    columnWidths: [...COLS],
-    layout: TableLayoutType.FIXED,
-    borders: allBorders(),
-    rows: [head, ...data],
-  });
+export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
+  const zip = new PizZip(await readFile(TEMPLATE_URL)),
+    doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+  linkContents(doc);
+  fillGradeRows(doc, input);
+  optionalSections(doc, input);
+  const contents = all(doc, 'w:p').find(
+    (node) => node.textContent === 'Contents',
+  )!;
+  const preceding = children(contents.parentNode!);
+  const beforeContents = preceding[preceding.indexOf(contents) - 1]!;
+  const coverSpacer = preceding[preceding.indexOf(contents) - 2]!;
+  // An extra empty cover paragraph can flow onto page 2 in LibreOffice before
+  // this break and create a blank page. Keep only the original leading line.
+  if (
+    coverSpacer.nodeName === 'w:p' &&
+    !(coverSpacer.textContent ?? '').trim() &&
+    !all(coverSpacer, 'w:drawing').length &&
+    !all(coverSpacer, 'w:bookmarkStart').length &&
+    !all(coverSpacer, 'w:bookmarkEnd').length &&
+    !all(coverSpacer, 'w:sectPr').length
+  )
+    remove(coverSpacer);
+  // The source uses one empty line at the top of the Contents page. Retain
+  // that exact line while anchoring the page independently of cover aspect.
+  property(doc, beforeContents, 'w:pPr', 'w:pageBreakBefore');
+  property(doc, beforeContents, 'w:pPr', 'w:keepNext');
+  if (input.photos.hull?.length) addHull(doc);
+  await fillImages(doc, zip, input);
+  const values = templateData(input);
+  if (
+    /\brob\b/i.test(value(input.data['appointed_service'], '')) &&
+    !/sludge/i.test(value(input.data['appointed_service'], ''))
+  ) {
+    for (const field of Object.keys(values))
+      if (
+        /^(sludge_|retained_|consumption_chief$|consumption_surveyor$)/.test(
+          field,
+        )
+      )
+        values[field] = '—';
+  }
+  const timeLogTexts = new Set(
+    all(ancestor(bookmark(doc, 'msc_time_log'), 'w:tbl'), 'w:t'),
+  );
+  normalizeMissingDates(doc, values);
+  fillTags(doc, doc, values, timeLogTexts);
+  // Operator text is filled last and never revisited by template transforms.
+  fillTimeLog(doc, input);
+  zip.file('word/document.xml', xmlTools.xml2str(doc));
+  return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
 }

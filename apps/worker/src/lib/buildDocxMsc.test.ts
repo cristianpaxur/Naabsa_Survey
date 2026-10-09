@@ -1,61 +1,393 @@
 import { describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
 import PizZip from 'pizzip';
-import { buildReportDocxMsc } from './buildDocxMsc';
+import sharp from 'sharp';
+import {
+  buildReportDocxMsc,
+  type DocxInputMsc,
+  type TimeLogRow,
+} from './buildDocxMsc';
 
-function paragraphs(docx: Buffer): string[] {
-  const xml = new PizZip(docx).file('word/document.xml')!.asText();
-  return [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)]
-    .map((paragraph) => [...paragraph[0].matchAll(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>/g)]
-      .map((match) => match[1])
-      .join(''))
-    .filter(Boolean);
-}
+const base: DocxInputMsc = {
+  data: {},
+  logo: null,
+  photos: {},
+  timeLogRows: [],
+};
+const zipOf = async (input: Partial<DocxInputMsc> = {}) =>
+  new PizZip(await buildReportDocxMsc({ ...base, ...input }));
+const xmlOf = async (input: Partial<DocxInputMsc> = {}) =>
+  (await zipOf(input)).file('word/document.xml')!.asText();
+const textOf = (xml: string) =>
+  [...xml.matchAll(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)]
+    .map((match) => match[1])
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+const paragraphs = (xml: string) =>
+  [...xml.matchAll(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g)].map(
+    (match) => match[0],
+  );
+const paragraphWith = (xml: string, text: string) =>
+  paragraphs(xml).find((paragraph) => textOf(paragraph) === text) ?? '';
+const logRows = (count: number): TimeLogRow[] =>
+  Array.from({ length: count }, (_, i) => ({
+    event: `Event ${i + 1}`,
+    date: '2026-09-30',
+    start: '12:34',
+    flag: 'X',
+    end: '13:45',
+  }));
+const logTable = (xml: string) =>
+  [...xml.matchAll(/<w:tbl(?:\s[^>]*)?>[\s\S]*?<\/w:tbl>/g)].find((match) =>
+    match[0].includes('w:name="msc_time_log"'),
+  )?.[0] ?? '';
+const photo = (width: number, height: number, background = '#456789') =>
+  sharp({ create: { width, height, channels: 3, background } })
+    .png()
+    .toBuffer();
 
-describe('buildReportDocxMsc', () => {
-  it('aplica precisão ao campo numérico Delivered', async () => {
-    const text = paragraphs(await buildReportDocxMsc({
-      data: { delivered: 1981 }, numberFormats: { delivered: 1 },
-      logo: null, photos: {}, timeLogRows: [],
-    }));
-    expect(text.filter((value) => /^1981(?:\.\d+)?$/.test(value))).toEqual(['1981.0']);
+describe('buildReportDocxMsc — template values and dynamic content', () => {
+  it('preserves the default institutional logo bytes instead of recompressing them', async () => {
+    const source = new PizZip(
+      await readFile(
+        new URL('../../../../templates/msc.clean.docx', import.meta.url),
+      ),
+    );
+    const logo = source.file('word/media/image2.jpg')!.asNodeBuffer();
+    const result = await zipOf({ logo });
+    expect(
+      result.file('word/media/image2.jpg')!.asNodeBuffer().equals(logo),
+    ).toBe(true);
   });
-  it.each([[0, '81 m'], [1, '81.0 m'], [2, '81.00 m'], [3, '81.000 m']] as const)(
-    'respeita %i casas no campo MSC LOA', async (decimals, expected) => {
-      const text = paragraphs(await buildReportDocxMsc({
-        data: { loa: 81 }, numberFormats: { loa: decimals },
-        logo: null, photos: {}, timeLogRows: [],
-      }));
-      expect(text.filter((value) => /^81(?:\.0+)? m$/.test(value))).toEqual([expected]);
+  it('preserves supplementary Unicode characters across the source run fragments', async () => {
+    const name = '𠮷 TEST 🚢';
+    const text = textOf(await xmlOf({ data: { vessel_name: name } }));
+    expect(text).toContain(`we did attend ${name} at`);
+    expect(text).not.toContain('�');
+  });
+  it('preserves literal braces in operator text instead of interpreting them as template fields', async () => {
+    const xml = await xmlOf({
+      data: { vessel_name: 'MSC TEST' },
+      timeLogRows: [{ ...logRows(1)[0]!, event: 'EVENT <&> {vessel_name}' }],
+    });
+    expect(textOf(logTable(xml))).toContain('{vessel_name}');
+    expect(logTable(xml)).toContain('&lt;&amp;&gt;');
+    expect(textOf(logTable(xml))).not.toContain('MSC TEST');
+  });
+  it.each([
+    'EVENT {survey_date_month} {survey_date_year}, note',
+    'Follow-up the sludge disposal',
+    'and to verify the total amount of sludge disposed',
+  ])(
+    'preserves operator event %s during date and ROB transformations',
+    async (event) => {
+      const xml = await xmlOf({
+        data: { appointed_service: 'ROB Survey' },
+        timeLogRows: [{ ...logRows(1)[0]!, event }],
+      });
+      expect(textOf(logTable(xml))).toContain(event);
+    },
+  );
+  it('keeps Contents left aligned and the unique Vessel 5.1 destination', async () => {
+    const xml = await xmlOf({ photos: { vessel: [await photo(800, 600)] } });
+    expect(paragraphWith(xml, 'Contents')).not.toContain(
+      '<w:jc w:val="center"/>',
+    );
+    expect(xml.match(/w:name="s5_1"/g)).toHaveLength(1);
+    expect(xml.includes('w:anchor="s5_1"')).toBe(true);
+    const heading = paragraphs(xml).find((paragraph) =>
+      paragraph.includes('w:name="s5_1"'),
+    )!;
+    expect(heading).not.toContain('<w:jc w:val="center"/>');
+  });
+
+  it('fills contacts without losing full names or overriding the source geometry', async () => {
+    const xml = await xmlOf({
+      data: {
+        vessel_name: 'MSC CONTACT',
+        surveyors: 'Mr. Test Surveyor',
+        captain: 'Captain Long Name',
+        chief_engineer: 'Chief Engineer Long Name',
+      },
+    });
+    const text = textOf(xml);
+    for (const name of [
+      'MSC CONTACT',
+      'Mr. Test Surveyor',
+      'Captain Long Name',
+      'Chief Engineer Long Name',
+    ])
+      expect(text).toContain(name);
+    expect(xml.includes('<w:gridCol w:w="2694"/><w:gridCol w:w="6281"/>')).toBe(
+      true,
+    );
+  });
+
+  it('fills the purifier paragraphs and preserves their source units', async () => {
+    const text = textOf(
+      await xmlOf({
+        data: {
+          purifier_temp: 98,
+          purifier_flow: '1 x 2,0',
+          purifier_bowl_freq: 60,
+        },
+      }),
+    );
+    for (const entry of ['98 °C', '1 x 2,0 m³', '60 minutes'])
+      expect(text).toContain(entry);
+    expect(text).not.toMatch(/sludge K\d+|summary B\d+|manter sempre/i);
+  });
+
+  it.each([
+    [1, '1st'],
+    [2, '2nd'],
+    [3, '3rd'],
+    [11, '11th'],
+    [12, '12th'],
+    [13, '13th'],
+    [21, '21st'],
+    [22, '22nd'],
+    [23, '23rd'],
+    [30, '30th'],
+    [31, '31st'],
+  ])(
+    'uses a long narrative date on day %i while the Time log stays numeric',
+    async (day, expected) => {
+      const date = `2026-01-${String(day).padStart(2, '0')}`;
+      const text = textOf(
+        await xmlOf({
+          data: { berthing_date: date },
+          timeLogRows: [{ ...logRows(1)[0]!, date }],
+        }),
+      );
+      expect(text).toContain(
+        `We did attend vessel on January ${expected}, 2026`,
+      );
+      expect(text).toContain(`${String(day).padStart(2, '0')}/01/2026`);
+      expect(text).toContain('12:34');
+    },
+  );
+  it.each(['', '2026-02-30', '2026-13-01', '2026-00-01', 'not a date', null])(
+    'does not invent a date for %s',
+    async (date) => {
+      const text = textOf(await xmlOf({ data: { berthing_date: date } }));
+      expect(text).toContain('We did attend vessel on —,');
+      expect(text).not.toMatch(/undefined|Invalid Date|—\s*,\s*,/);
     },
   );
 
-  it('usa precisão dos campos de grades, sludge, flowmeter e temperaturas', async () => {
-    const text = paragraphs(await buildReportDocxMsc({
-      data: { grade_1_present: 'Yes', grade_1_surveyor: 1250, grade_1_percentage: 2,
-        sludge_berthing: 12, sludge_rate_chief: 3, flowmeter_accuracy: 4,
-        temp_engine_room: 30, purifier_temp: 40 },
-      numberFormats: { grade_1_surveyor: 1, grade_1_percentage: 0,
-        sludge_berthing: 2, sludge_rate_chief: 3, flowmeter_accuracy: 1,
-        temp_engine_room: 1, purifier_temp: 2 },
-      logo: null, photos: {}, timeLogRows: [],
-    }));
-    expect(text).toEqual(expect.arrayContaining([
-      '1,250.0 mt', '2 %', '12.00 m³', '3.000 %', '4.0 %',
-      'Engine room temperature: 30.0 °C', '40.00 °C',
-    ]));
-    expect(text).not.toContain('1,250.000 mt');
+  it.each([12, 45])(
+    'retains %i complete events and a repeatable merged header',
+    async (count) => {
+      const table = logTable(await xmlOf({ timeLogRows: logRows(count) }));
+      const rows = [
+        ...table.matchAll(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g),
+      ].map((match) => match[0]);
+      expect(rows).toHaveLength(count + 1);
+      expect(rows.every((row) => row.includes('<w:cantSplit/>'))).toBe(true);
+      expect(rows[0]).toContain('<w:tblHeader/>');
+      expect(table).toContain(`Event ${count}`);
+      if (count === 12) {
+        expect(
+          rows.slice(0, -1).every((row) => row.includes('<w:keepNext/>')),
+        ).toBe(true);
+        expect(rows.at(-1)).not.toContain('<w:keepNext/>');
+      } else
+        expect(
+          rows.slice(1).every((row) => !row.includes('<w:keepNext/>')),
+        ).toBe(true);
+    },
+  );
+  it('keeps the compact twelve-event chain for descriptions spanning several lines', async () => {
+    const table = logTable(
+      await xmlOf({
+        timeLogRows: logRows(12).map((row) => ({
+          ...row,
+          event: `${row.event} ${'a'.repeat(97)}`,
+        })),
+      }),
+    );
+    const rows = [...table.matchAll(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g)].map(
+      (match) => match[0],
+    );
+    expect(
+      rows.slice(0, -1).every((row) => row.includes('<w:keepNext/>')),
+    ).toBe(true);
+    expect(rows.at(-1)).not.toContain('<w:keepNext/>');
   });
 
-  it('não imprime números não finitos', async () => {
-    const text = paragraphs(await buildReportDocxMsc({
-      data: { loa: Infinity, sludge_berthing: Number.NaN, flowmeter_accuracy: -Infinity },
-      logo: null, photos: {}, timeLogRows: [],
-    })).join('\n');
-    expect(text).not.toMatch(/NaN|Infinity/);
+  it('fits portrait and landscape images in the native source drawings', async () => {
+    const photos = await Promise.all([
+      photo(800, 600),
+      photo(600, 800),
+      photo(1600, 900),
+    ]);
+    const xml = await xmlOf({
+      photos: { vessel: photos },
+      coverPhoto: photos[2],
+    });
+    const gallery = xml.slice(
+      xml.indexOf('w:name="s5_1"'),
+      xml.indexOf('w:name="s5_2"'),
+    );
+    expect(gallery.includes('<w:tbl>')).toBe(false);
+    const extents = [
+      ...gallery.matchAll(/<wp:extent cx="(\d+)" cy="(\d+)"\/>/g),
+    ].map((m) => [+m[1]!, +m[2]!]);
+    expect(extents).toHaveLength(3);
+    for (const [width, height] of extents) {
+      expect(width).toBeLessThanOrEqual(80 * 36000);
+      expect(height).toBeLessThanOrEqual(60 * 36000);
+    }
+    expect(extents[0]![0]! / extents[0]![1]!).toBeCloseTo(4 / 3, 2);
+    expect(extents[1]![0]! / extents[1]![1]!).toBeCloseTo(3 / 4, 2);
+    const cover = xml.match(/<wp:extent cx="(\d+)" cy="(\d+)"\/>/)!;
+    expect(+cover[1]!).toBeGreaterThan(80 * 36000);
+    expect(+cover[1]!).toBeLessThanOrEqual(160 * 36000);
   });
-
-  it('mantém índice único, anexos exatos e regras condicionais de ROB', async () => {
-    const text = paragraphs(await buildReportDocxMsc({
+  it.each([
+    [600, 800],
+    [600, 600],
+    [700, 600],
+  ])('keeps narrower %i×%i photos in pairs', async (width, height) => {
+    const image = await photo(width!, height!);
+    const xml = await xmlOf({
+      photos: { vessel: Array.from({ length: 6 }, () => image) },
+    });
+    const gallery = xml.slice(
+      xml.indexOf('w:name="s5_1"'),
+      xml.indexOf('w:name="s5_2"'),
+    );
+    expect(gallery.match(/<w:br\/>/g)).toHaveLength(2);
+  });
+  it('replaces all exemplar photos and preserves input order beyond the source capacity', async () => {
+    const photos = await Promise.all(
+      Array.from({ length: 11 }, (_, i) => photo(800 + i, 600, '#654321')),
+    );
+    const zip = await zipOf({ photos: { vessel: photos } });
+    const xml = zip.file('word/document.xml')!.asText();
+    const gallery = xml.slice(
+      xml.indexOf('w:name="s5_1"'),
+      xml.indexOf('w:name="s5_2"'),
+    );
+    const ids = [...gallery.matchAll(/r:embed="rIdMscImage(\d+)"/g)].map(
+      (m) => +m[1]!,
+    );
+    expect(ids).toEqual(Array.from({ length: 11 }, (_, i) => i + 2)); // first Vessel also supplies cover
+    expect(
+      Object.keys(zip.files).filter((name) =>
+        /^word\/media\/image\d+\.jpe?g$/.test(name),
+      ),
+    ).toEqual(['word/media/image2.jpg']); // institutional logo
+  });
+  it('applies the requested precision to Delivered', async () => {
+    const text = textOf(
+      await xmlOf({
+        data: { delivered: 1981 },
+        numberFormats: { delivered: 1 },
+      }),
+    );
+    expect(text).toContain('1981.0');
+  });
+  it.each([
+    [0, '81 m'],
+    [1, '81.0 m'],
+    [2, '81.00 m'],
+    [3, '81.000 m'],
+  ] as const)('uses %i decimals in LOA', async (decimals, expected) => {
+    expect(
+      textOf(
+        await xmlOf({ data: { loa: 81 }, numberFormats: { loa: decimals } }),
+      ),
+    ).toContain(expected);
+  });
+  it('retains precision for grades, sludge, flowmeter and temperatures', async () => {
+    const text = textOf(
+      await xmlOf({
+        data: {
+          grade_1_present: 'Yes',
+          grade_1_surveyor: 1250,
+          grade_1_percentage: 2,
+          sludge_berthing: 12,
+          sludge_rate_chief: 3,
+          flowmeter_accuracy: 4,
+          temp_engine_room: 30,
+          purifier_temp: 40,
+        },
+        numberFormats: {
+          grade_1_surveyor: 1,
+          grade_1_percentage: 0,
+          sludge_berthing: 2,
+          sludge_rate_chief: 3,
+          flowmeter_accuracy: 1,
+          temp_engine_room: 1,
+          purifier_temp: 2,
+        },
+      }),
+    );
+    for (const expected of [
+      '1,250.0',
+      '12.00',
+      '3.000',
+      '4.0',
+      '30.0 °C',
+      '40.00 °C',
+    ])
+      expect(text).toContain(expected);
+    expect(text).not.toContain('1,250.000');
+  });
+  it('preserves explicit flowmeter soundings and falls back to surveyor consumption when absent', async () => {
+    for (const [soundings, expected] of [
+      [981.008, '981.008'],
+      [undefined, '947.665'],
+    ] as const) {
+      const xml = await xmlOf({
+        data: {
+          consumption_surveyor: 947.665,
+          ...(soundings === undefined
+            ? {}
+            : { flowmeter_soundings: soundings }),
+        },
+      });
+      const paragraph = paragraphs(xml).find((p) =>
+        textOf(p).includes('Soundings'),
+      )!;
+      expect(textOf(paragraph)).toContain(expected);
+    }
+  });
+  it('shows positive and negative grade differences with the signs used by the model', async () => {
+    const text = textOf(
+      await xmlOf({
+        data: {
+          grade_1_present: 'Yes',
+          grade_1_difference: 5.07,
+          grade_1_percentage: 2.34,
+          grade_2_present: 'Yes',
+          grade_2_difference: -7,
+        },
+      }),
+    );
+    for (const expected of ['+ 5.070', '+ 2.34', '- 7.000'])
+      expect(text).toContain(expected);
+  });
+  it('does not print non-finite values or template instructions', async () => {
+    const xml = await xmlOf({
+      data: {
+        loa: Infinity,
+        sludge_berthing: NaN,
+        flowmeter_accuracy: -Infinity,
+      },
+    });
+    expect(textOf(xml)).not.toMatch(
+      /NaN|Infinity|summary B\d+|time log F\d+|manter sempre|ler em formato/i,
+    );
+    expect(/<w:highlight\b|\{(?:%%?|#|\/)?[A-Za-z_][^{}]*\}/.test(xml)).toBe(
+      false,
+    );
+  });
+  it('retains the exact attachment labels, conditional attendance and ROB narrative', async () => {
+    const xml = await xmlOf({
       data: {
         appointed_service: 'ROB Survey',
         vessel_name: 'MSC TEST',
@@ -63,26 +395,21 @@ describe('buildReportDocxMsc', () => {
         logbook_updated: 'Attached',
         vrs_updated: 'No',
       },
-      logo: null,
-      photos: {},
-      timeLogRows: [],
-    }));
-
-    expect(text).toEqual(expect.arrayContaining([
-      '2.9 Last attendance',
-      '3.1 Vessel',
-      '3.4 ECR (Engine Control Room)',
-      '3.5 Hull',
-      'Survey Report',
+    });
+    const text = textOf(xml);
+    for (const item of [
+      'Survey Report issued by undersigned surveyor',
       'Berthing message',
       'VRS updated',
       'Last manual sounding',
       'Logbook update',
       'Sludge removal certificates',
-    ]));
-    expect(text.join('\n')).not.toContain('verify the total amount of sludge disposed');
-    expect(text.join('\n')).toContain('the logbook was updated');
-    expect(text.join('\n')).not.toContain('the logbook and VRS were updated');
-    expect(text).not.toContain('4. Vessel');
+    ])
+      expect(text).toContain(item);
+    expect(text).not.toContain('verify the total amount of sludge disposed');
+    expect(text).toContain('the logbook was updated');
+    expect(text).not.toContain('the logbook and VRS were updated');
+    expect(xml.includes('w:name="s3_8"')).toBe(true);
+    expect(xml.includes('w:name="s5_5"')).toBe(false);
   });
 });

@@ -4,6 +4,7 @@
  * Por campo (nível `error`): required (vazio), min/max (numérico), pattern
  * (regex). A pertinência de `enum` já é checada na coerção. Regras cruzadas
  * (`spec.validations`): `compare` e `range`, cada uma com o seu nível/mensagem.
+ * No MSC, viagem e purificadores opcionais ausentes geram aviso de revisão.
  */
 import type {
   ReportSpec,
@@ -17,6 +18,10 @@ import type {
 import { collectFields } from './extract';
 import { isCalculatedDifferenceField } from '../review-policy';
 
+const MSC_SOURCE_REVIEW_FIELDS = new Set([
+  'voy', 'purifier_temp', 'purifier_flow', 'purifier_bowl_freq',
+]);
+
 export function validate(
   data: Record<string, FieldValue>,
   spec: ReportSpec,
@@ -28,7 +33,19 @@ export function validate(
 
   for (const [name, field] of fields) {
     if (isCalculatedDifferenceField(name)) continue;
-    issues.push(...validateField(name, field, data[name] ?? null));
+    const value = data[name] ?? null;
+    issues.push(...validateField(name, field, value));
+    if (
+      spec.report_type === 'msc' && MSC_SOURCE_REVIEW_FIELDS.has(name) && !field.required
+      && (value === null || (typeof value === 'string' && value.trim() === ''))
+    ) {
+      const sheet = field.sheet ?? spec.source.sheet;
+      const source = sheet ? `${sheet}!${field.cell}` : field.cell;
+      issues.push(mk(
+        name, field.cell, 'warning',
+        `Campo '${field.label}' ausente em ${source}. Confira e preencha a célula de origem ou informe um valor na revisão.`,
+      ));
+    }
   }
   for (const rule of spec.validations ?? []) {
     const target = rule.rule === 'range' ? rule.field : rule.left;

@@ -52,3 +52,6 @@ templates/
 !templates/
 templates/*
 !templates/draft_survey.clean.docx
+!templates/msc.clean.docx
+!templates/msc.artifact.md
+!templates/README.md

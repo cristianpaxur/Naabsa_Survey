@@ -33,7 +33,7 @@ function paragraphs(zip: PizZip) {
   const xml = zip.file('word/document.xml')!.asText();
   return [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)]
     .map((p) =>
-      [...p[0].matchAll(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>/g)]
+      [...p[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)]
         .map((m) => m[1])
         .join(''),
     )
@@ -220,19 +220,34 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
     );
     const text = paragraphs(zip);
     expect(text.join('\n')).toContain('MSC GOLDEN');
-    expect(text).toEqual(
+    for (const field of ['MM623R', '98 °C', '1 x 2,0 m³', '60 minutes'])
+      expect(text.join('\n')).toContain(field);
+    expect(text.join('\n')).toContain(
+      'We did attend vessel on August 15th, 2026',
+    );
+    const mscXml = zip.file('word/document.xml')!.asText();
+    expect(mscXml.match(/w:name="s5_1"/g)).toHaveLength(1);
+    expect(mscXml.includes('w:anchor="s5_1"')).toBe(true);
+    expect(text.join('\n')).not.toMatch(
+      /summary B\d+|time log F\d+|manter sempre|ler em formato|neste item/i,
+    );
+    expect(mscXml).not.toMatch(
+      /<w:highlight\b|EE0000|\{(?:%%?|#|\/)?[A-Za-z_][^{}]*\}/,
+    );
+    expect(
+      text.map((paragraph) => paragraph.replace(/\s+/g, ' ').trim()),
+    ).toEqual(
       expect.arrayContaining([
-        '2. Background',
-        '2.5 Gross volume — m³',
-        '2.6 Sludge Disposal',
-        '2.7 Sludge rate production',
-        '2.8 Consumption x Flowmeter',
-        '2.10 Time log',
-        '3. Photographic report',
-        '3.4 ECR (Engine Control Room)',
-        '3.5 Hull',
-        '4. Attachment',
-        'Survey Report',
+        'Background',
+        'Gross volume - m3',
+        'Sludge Disposal',
+        'Sludge Rate Production',
+        'Consumption X Flowmeters',
+        'Time log',
+        'Photographic Report',
+        'ECR',
+        'Attachment',
+        'Survey Report issued by undersigned surveyor',
         'Berthing message',
         'VRS updated',
         'Last manual sounding',
@@ -240,6 +255,7 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
         'Sludge removal certificates',
       ]),
     );
+    expect(mscXml.includes('w:name="s5_5"')).toBe(false);
     expect(text).not.toContain('4. Vessel');
     expect(zip.file('[Content_Types].xml')!.asText()).toContain(
       'wordprocessingml.document.main',
