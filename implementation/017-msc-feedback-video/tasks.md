@@ -1,10 +1,12 @@
 # Tarefas — 017
 
-Status: **fidelidade e validação local concluídas, 10/12 tarefas**. A instrução mais recente prevalece sobre os critérios visuais da primeira versão. F-001/F-002/F-003 concluídas; 9/9 páginas pixel idênticas no Word, regressões e limitações dos conversores registradas em validation.md. T-006 continua dependente do DAMLA; T-009 mantém o aceite externo no Collabora.
+Status: **fidelidade e correções locais concluídas, 12/14 tarefas**. F-001 a F-005 concluídas; 9/9 páginas pixel idênticas no Word e correções da geração online registradas em validation.md. T-006 continua dependente do DAMLA; T-009 mantém publicação e aceite externo no Collabora.
 
 - [x] **F-001:** Template real sanitizado, original intacto e slots documentados.
 - [x] **F-002:** Builder baseado no template, com hierarquia e formatação exatas.
 - [x] **F-003:** Comparação estrutural/visual de todas as páginas, regressões e revisão independente.
+- [x] **F-004:** Preparar migration ECR para specs congelados incompletos e relatórios abertos, com auditoria, preservação de dados/históricos e teste isolado de idempotência. Cobre RF-010/CA-010/CT-010; aplicação no destino integra T-009.
+- [x] **F-005:** Corrigir capa com contatos longos, padding e altura de linha das fotos, bloco de anexos e medição final do sumário no motor do destino. Cobre RF-011/RF-012, CA-011/CA-012 e CT-011/CT-012; inclui inspeção do exemplar e regressões nativas.
 
 - [x] **T-001:** Fixar fixtures, referência visual e reprodução dos defeitos
   - **Cobre:** RF-001, RF-002, RF-007, RF-009
@@ -80,7 +82,7 @@ Status: **fidelidade e validação local concluídas, 10/12 tarefas**. A instru�
   - **Critério de conclusão:** desenhos e tamanhos originais da galeria, proporção e ordem preservadas, pares de fotos, capa separada e paginação original dos títulos.
 
 - [ ] **T-009:** Validar Word/PDF completo e preparar instruções de ativação
-  - **Estado:** validação local e instruções prontas; três cenários nativos aprovados e todas as páginas inspecionadas. Restam confirmação do DAMLA (T-006) e aceite no Collabora do destino. Publicação não executada.
+  - **Estado:** validação local e instruções de ativação prontas. A geração real MSC SABRINA foi inspecionada no Collabora; o ambiente de backend/publicação não está acessível pelos conectores locais. Restam confirmação do DAMLA (T-006), aplicação da migration/publicação e aceite do candidato no Collabora do destino. O documento editado existente está preservado; sua reconstrução exige conferir e conservar essa versão.
   - **Cobre:** RF-001, RF-002, RF-003, RF-004, RF-005, RF-006, RF-007, RF-008, RF-009
   - **Valida:** CA-001, CA-002, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009
   - **Testes:** CT-001, CT-002, CT-003, CT-004, CT-005, CT-006, CT-007, CT-008, CT-009

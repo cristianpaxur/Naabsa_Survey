@@ -227,3 +227,10 @@ Alterações são separadas por responsabilidade e testadas antes de compor o la
 Preparação solicitada pelo usuário em 09/10/2026. Execução local autorizada posteriormente com “pode seguir”, após explicação das nove mudanças. Publicação permanece fora do escopo.
 
 Para atender CA-007 sem mudar specs históricos, `packages/core/src/extractor/validate.ts` é arquivo adicional indispensável: avisos de ausência apenas nos quatro campos MSC destacados, refletidos pela revisão existente. Não altera a obrigatoriedade dos campos nem bloqueia a confirmação.
+## Revisão da geração online — F-004/F-005
+
+1. Preservar e inspecionar o DOCX exportado pelo Collabora e o fluxo de fotos da geração indicada pelo usuário.
+2. Acrescentar somente ECR às cópias dos specs incompletos e vincular relatórios abertos, mantendo históricos e documentos; validar em PGlite com trigger de imutabilidade.
+3. Medir a capa e ajustar sua fotografia somente quando necessário. Compactar galerias parciais, impedir a transferência do recorte da imagem do exemplar e o corte por meia linha, e manter a lista dos anexos junto de seu título.
+4. Medir o sumário no motor do destino, exigir cobertura completa e verificar o DOCX numerado.
+5. Validar cenários nativos compactos, longos, multilinha e contatos longos, inspecionar as páginas e reconferir o exemplar completo no Word. Registrar prechecks, ativação e recuperação em [deployment-online.md](deployment-online.md).

@@ -66,3 +66,41 @@ Revisão independente encerrada: nenhum achado critical/high/medium aberto. Repr
 - Publicação não executada. T-009 conserva o aceite externo no Collabora, que pode ter fontes/paginação diferentes do Word; esta validação não comprova o ambiente remoto.
 
 Ativação preparada: publicar worker/core pelo fluxo existente, incluindo o template no Docker; validar um novo relatório no Collabora do destino; investigar o DAMLA por fonte/spec congelada/extração/overrides; registrar a versão anterior para rollback. O DOCX editado/aprovado continua sendo a fonte do PDF; históricos não são reconstruídos silenciosamente.
+
+## Revisão posterior da geração online — F-004/F-005
+
+O relatório MSC SABRINA `21763dac-4136-472b-9a8e-db06c4ab0206` foi inspecionado no Collabora CODE 26.04.3.1. A tela de fotos mostrou somente três slots no spec congelado; o documento apresentou transbordamento dos contatos, números obsoletos no sumário e padding/corte das fotos. Evidência e diagnóstico em [online-review.md](online-review.md); aplicação da migration, publicação e preservação do Word existente em [deployment-online.md](deployment-online.md).
+
+A migration 0021 cria versões novas dos specs MSC incompletos com ECR opcional e move somente relatórios abertos não excluídos. O teste PostgreSQL isolado (PGlite) mantém trigger de imutabilidade e confere todos os estados, versões distintas, tipo ativo, lixeira, campos/zero/overrides/documentos, auditoria e segunda execução idempotente. Nenhuma migration foi aplicada ao ambiente remoto.
+
+O builder adapta a capa somente se o fim dos contatos sair da página 1; remove padding de fotos ausentes, mantém Photographic Report/Vessel/foto juntos, evita recortes herdados e usa linha automática integral nas fotos alteradas. A meia linha do exemplar recortava fotos inline apesar de extents corretos. A inspeção também encontrou a última linha de Attachment isolada; galerias parciais agora conservam título, espaçador e seis itens juntos. O exemplar completo conserva as propriedades originais.
+
+A paginação usa o PDF do Collabora quando configurado, com extração pelo Poppler já presente no Docker. O fallback local exige todos os bookmarks de seção; a versão numerada é medida novamente. Capa sem espaço, medição incompleta ou instabilidade produzem erro recuperável. O teste reproduziu a medição final vazia que antes retornava um DOCX sem números no sumário.
+
+| Verificação atual | Resultado |
+|---|---|
+| Suítes regulares por pacote | core **204**, db **26**, web **231**, worker **221**: **682 aprovados**; seis opt-in separados |
+| Golden após as correções finais | **7 aprovados**, MSC e Draft Survey |
+| Builder / paginação / montagem | **48 / 5 / 18 aprovados**, incluídos nas suítes regulares |
+| Aceite nativo final em LibreOffice | **4/4 aprovados**, depois da última correção dos anexos; 379 s de testes |
+| Lint normal e typecheck de todos os pacotes | Exit 0; somente tmp/output excluídos do lint de fonte |
+| Build e consistência da migration corretiva anterior | `pnpm build` e `generate-spec-repair.mjs --check`: Exit 0; build conserva aviso do SDK Supabase no Edge Runtime |
+| Identidade Word reconferida | **9/9 páginas pixel idênticas a 144 DPI**, todas inspecionadas |
+| Pacote após a última correção | **66/66 payloads iguais** ao DOCX exportado na comparação Word |
+
+Referência e candidato Word foram exportados novamente no mesmo ambiente: `tmp/msc-online-review-20261009/full-reference/source.word.pdf` e `msc.word.pdf`. A evidência `word-comparison.json` tem nove resultados `same_pixels=true`; `package-comparison-final.json` registra zero partes diferentes após o ajuste dos anexos. As nove páginas Word e todas as seis da prévia SABRINA foram renderizadas e inspecionadas.
+
+A prévia SABRINA usa fotos do arquivo baixado, contatos visíveis e valores da fixture XLSX; comprova apresentação, não todos os valores do registro de produção. Em `sabrina-fixed/render-attachments/`, a capa contém os nomes completos, Contents está na 2, fotos inteiras na 5 e todos os anexos na 6. Os números do sumário conferem com o PDF renderizado. Não foi entregue como substituto do relatório do usuário.
+
+| Cenário nativo atual | Páginas | Contents | Eventos do log | Photo/Vessel/primeira foto | Attachment completo |
+|---|---:|---:|---|---:|---:|
+| Compacto | 6 | 2 | 12 na 4 | 5 | 6 |
+| Longo | 7 | 2 | 45 nas 4–5, cabeçalho repetido | 5 | 7 |
+| Multilinha | 7 | 2 | 12 inteiros na 5 | 6 | 7 |
+| Contatos longos | 6 | 2 | 12 na 4 | 5 | 6 |
+
+Todas as 26 páginas desses PDFs foram renderizadas e inspecionadas. No último caso, as duas fotos Survey attendance têm **77.805 pixels visíveis** a 72 DPI, acima de 90% da área de dois quadros 80 × 60 mm; a imagem inteira é medida, não somente a caixa do desenho. Sumário confere com todos os títulos; ordem, proporção, quantidade e presença das fotos ECR também são verificadas. O ensaio do sumário pelo Collabora tem teste de contrato; o aceite visual no serviço remoto ainda depende da publicação.
+
+Logs finais: `tmp-msc-online-worker-final.log` e `tmp-msc-online-native-final.log`; demais evidências em `tmp/msc-online-review-20261009/`. A suíte de fidelidade foi ajustada para conferir as regras originais com uma galeria completa; a galeria parcial tem seu próprio teste de agrupamento dos anexos. Não foram reduzidas assertions para aceitar imagens recortadas: o teste nativo mede pixels visíveis, além das dimensões OOXML/PDF.
+
+Publicação/aceite remoto continuam pendentes: os conectores e ambientes locais não acessam o backend desse domínio, e o endpoint público de conversão responde HTTP 403 para a estação. O Word editado existente foi preservado e não muda automaticamente com deploy/migration. Sua atualização requer cópia preservada e conferência das fontes/edições com guarda de revisão/geração. F-004/F-005 concluídas localmente; T-006/T-009 permanecem abertas.

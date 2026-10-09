@@ -8,7 +8,7 @@ created_at: "2026-10-09"
 updated_at: "2026-10-09"
 owner: codex
 depends_on: ["016"]
-requirements: ["RF-001", "RF-002", "RF-003", "RF-004", "RF-005", "RF-006", "RF-007", "RF-008", "RF-009"]
+requirements: ["RF-001", "RF-002", "RF-003", "RF-004", "RF-005", "RF-006", "RF-007", "RF-008", "RF-009", "RF-010", "RF-011", "RF-012"]
 ---
 # 017 — Correções do relatório MSC apontadas no vídeo
 
@@ -127,3 +127,13 @@ Redesenho da aplicação, mudanças do Draft Survey, execução de migrations/se
 | RF-009 | CA-009 | T-001, T-008, T-009 | CT-009 |
 
 Plano de execução: [plan.md](plan.md). Tarefas: [tasks.md](tasks.md). Evidências e limites: [validation.md](validation.md).
+
+## Revisão da geração online em 09/10/2026
+
+O usuário relatou espaçamentos incorretos no Word online e ausência do upload ECR na geração MSC SABRINA. A inspeção do relatório `21763dac-4136-472b-9a8e-db06c4ab0206` reproduziu os problemas; [online-review.md](online-review.md) registra o arquivo baixado e o editor de destino.
+
+- **RF-010 / CA-010 / CT-010:** ECR opcional visível e alocável nas configurações MSC incompletas de relatórios abertos, preservando mapeamentos, dados, overrides e documentos. Migration aditiva, specs antigos imutáveis, históricos aprovados/gerados e lixeira intactos; teste de idempotência e auditoria em PostgreSQL isolado.
+- **RF-011 / CA-011 / CT-011:** contatos completos na primeira página, sem página intermediária quase vazia; tamanho original da capa quando couber. Galerias parciais sem padding vazio, fotos proporcionais sem recorte herdado ou corte por meia linha, títulos juntos à primeira foto e Photographic Report junto de Vessel. Título/lista dos anexos permanecem juntos, evitando uma última linha isolada. O caso completo com os dados e 31 fotos do exemplar mantém identidade visual no Word.
+- **RF-012 / CA-012 / CT-012:** medição do sumário pelo mesmo Collabora do editor quando configurado, conferida após numerar o DOCX; medição ausente/incompleta ou paginação instável produz erro recuperável, nunca números vazios/obsoletos. LibreOffice local continua sendo o motor de desenvolvimento.
+
+F-004 cobre RF-010; F-005 cobre RF-011/RF-012; T-009 permanece responsável pelo aceite publicado. A solicitação de verificação não autoriza descartar edições do Word existente.

@@ -62,3 +62,23 @@ Manter juntos até doze eventos, encerrando o encadeamento na última linha; log
 ## D-011 — Aviso de ausência pela validação existente
 
 CA-007 exige que a revisão informe quando a origem está realmente vazia. A investigação confirmou que campos opcionais vazios não geravam issue e contavam como OK no painel. Acrescentar avisos somente para viagem/temperatura/fluxo/frequência MSC presentes no spec e sem valor efetivo. `validate.ts` é mudança adicional indispensável ao critério aprovado. A revisão inicial e as ações já usam esse validador, dispensando alterações de UI. Zero e valores do operador continuam válidos; campos required preservam seu erro existente, sem duplicar aviso. Specs históricos e obrigatoriedade não mudam.
+
+## D-012 — ECR em configurações congeladas
+
+A geração MSC SABRINA aberta pelo usuário usa somente três slots. A migration 0021 cria uma cópia de cada spec MSC incompleto usado pelo tipo ativo ou por relatório aberto, acrescentando somente o ECR opcional. Move relatórios não excluídos em draft/extracted/in_review/editing e registra os IDs anteriores/novos na auditoria. Não altera células, dados, overrides, fotos, documentos ou specs imutáveis; approved/generated/purged e lixeira permanecem vinculados ao histórico original. A versão ativa completa permanece ativa. Não executar seed geral para corrigir esse caso.
+
+## D-013 — Adaptação somente nos casos variáveis
+
+O exemplar completo continua sendo a referência visual. Nomes longos exigem medir o fim dos contatos; quando a capa ultrapassa a página 1, reduzir a foto nos limites 104/88/72 mm e medir novamente. Uma galeria com quantidade diferente da referência elimina padding vazio, mantém títulos junto à primeira foto e usa fotos proporcionais até 80 × 60 mm. O recorte da imagem do exemplar não se transfere para outra fotografia. As propriedades originais permanecem no ensaio com os valores e as 31 imagens do exemplo.
+
+A inspeção visual detectou ainda meia linha no parágrafo de imagens Survey attendance: o Collabora recorta a imagem mesmo quando seus extents são proporcionais. Fotos alteradas passam a usar linha automática integral, preservando before/after; o exemplar completo com seus bitmaps originais conserva as propriedades da referência. O cenário nativo de contatos longos inclui duas fotos Survey attendance e confere os pixels visíveis no PDF renderizado, além dos extents.
+
+Nas galerias parciais, manter o título, o espaçador e os seis itens de Attachment juntos. A renderização do caso SABRINA expôs uma página contendo apenas o último certificado. O exemplar completo conserva as propriedades originais; os cenários nativos conferem a página de todos os itens.
+
+## D-014 — Sumário medido no destino e verificado ao final
+
+Com Collabora configurado, medir as seções no PDF produzido pelo mesmo serviço, usando o pdftotext já instalado no worker. Excluir a página Contents da busca e exigir uma ocorrência de cada título numerado. Sem Collabora, usar os bookmarks do LibreOffice local e exigir cobertura de todas as seções. Conferir novamente o DOCX numerado; medição incompleta, capa sem espaço ou paginação instável geram erro recuperável, nunca sumário vazio ou obsoleto.
+
+## D-015 — Artefatos de diagnóstico fora do lint de fonte
+
+Excluir somente tmp/ e output/ da configuração de lint: contêm scripts temporários e artefatos gerados de análise de documentos. Nenhuma regra de fonte foi relaxada; o lint normal do monorepo continua obrigatório.

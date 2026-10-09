@@ -48,6 +48,75 @@ const photo = (width: number, height: number, background = '#456789') =>
     .toBuffer();
 
 describe('buildReportDocxMsc — template values and dynamic content', () => {
+  it('removes unused gallery paragraphs and keeps a partial gallery title with its first photo', async () => {
+    const xml = await xmlOf({ photos: { vessel: [await photo(800, 600)] } });
+    const group = paragraphs(xml).filter(
+      (p) =>
+        xml.indexOf(p) >= xml.indexOf(paragraphWith(xml, 'Vessel')) &&
+        xml.indexOf(p) < xml.indexOf(paragraphWith(xml, 'Engine Room')),
+    );
+    expect(
+      group.filter((p) => !textOf(p) && !p.includes('<w:drawing>')),
+    ).toHaveLength(0);
+    expect(paragraphWith(xml, 'Vessel')).toContain('<w:keepNext/>');
+    expect(paragraphWith(xml, 'Photographic Report')).toContain(
+      '<w:keepNext/>',
+    );
+    const empty = xml.slice(
+      xml.indexOf('w:name="s5_4"'),
+      xml.indexOf('w:name="s6"'),
+    );
+    expect(empty).not.toContain('<w:drawing>');
+    expect(paragraphs(empty).filter((p) => !textOf(p))).toHaveLength(0);
+  });
+
+  it('scales a matching cover frame down when a measured cover height is supplied', async () => {
+    const cover = await photo(800, 600);
+    const original = await xmlOf({ coverPhoto: cover });
+    const xml = await xmlOf({ coverPhoto: cover, coverMaxHeightMm: 72 });
+    const p = paragraphs(xml).find((p) => p.includes('w:name="msc_cover"'))!;
+    const [, cx, cy] = p.match(/<wp:extent cx="(\d+)" cy="(\d+)"\/>/)!;
+    expect(Number(cy) / 36000).toBeLessThanOrEqual(72);
+    const originalParagraph = paragraphs(original).find((p) =>
+      p.includes('w:name="msc_cover"'),
+    )!;
+    const [, originalCx, originalCy] = originalParagraph.match(
+      /<wp:extent cx="(\d+)" cy="(\d+)"\/>/,
+    )!;
+    expect(Number(cx) / Number(cy)).toBeCloseTo(
+      Number(originalCx) / Number(originalCy),
+      5,
+    );
+    expect(p.match(/<a:srcRect[^>]*\/>/)?.[0]).toBe(
+      originalParagraph.match(/<a:srcRect[^>]*\/>/)?.[0],
+    );
+    expect(xml).toContain('w:name="msc_cover_contacts_end"');
+  });
+  it('keeps the complete attachment list together for a partial gallery', async () => {
+    const xml = await xmlOf({ photos: { vessel: [await photo(800, 600)] } });
+    const body = paragraphs(xml);
+    const start = body.findIndex((p) => p.includes('w:name="s6"'));
+    const attachments = body.slice(start).filter((p) => textOf(p));
+    expect(attachments).toHaveLength(7);
+    expect(
+      attachments.slice(0, -1).every((p) => p.includes('<w:keepNext/>')),
+    ).toBe(true);
+    expect(attachments.at(-1)).not.toContain('<w:keepNext/>');
+  });
+  it('does not inherit cropped panorama frames for operator photos in a partial Survey attendance gallery', async () => {
+    const xml = await xmlOf({
+      photos: { survey_attendance: [await photo(800, 600)] },
+    });
+    const group = xml.slice(
+      xml.indexOf('w:name="s5_3"'),
+      xml.indexOf('w:name="s5_4"'),
+    );
+    const [, cx, cy] = group.match(/<wp:extent cx="(\d+)" cy="(\d+)"\/>/)!;
+    expect(Number(cx) / 36000).toBeCloseTo(80, 3);
+    expect(Number(cy) / 36000).toBeCloseTo(60, 3);
+    expect(group).not.toContain('<a:srcRect');
+    expect(group).toContain('w:line="240"');
+  });
   it('preserves the default institutional logo bytes instead of recompressing them', async () => {
     const source = new PizZip(
       await readFile(

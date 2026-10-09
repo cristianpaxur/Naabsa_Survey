@@ -26,7 +26,7 @@
 | [014](./014%20-%20Recuperação%20de%20Erros%20e%20Resiliência%20Operacional/spec.md) | Recuperação de Erros e Resiliência Operacional | pós-PRD | 🟠 Código completo | 10/10 (aceite CA-001..004 pendente na stack local) |
 | [015](./015-correcao-integrada/spec.md) | Correções integradas de IA, fotos, texto, acesso e editor | auditoria C01–C15 | 🟠 Código e validação local concluídos | HEIC na imagem e aceite com serviços pendentes |
 | [016](./016-msc-functional/spec.md) | MSC funcional de ponta a ponta | correção do modelo MSC aprovado | 🟠 Código e validação local concluídos | 8/8 (ativação em nuvem pendente) |
-| [017](./017-msc-feedback-video/spec.md) | Correções MSC a partir do vídeo de 02/10/2026 e do Word de exemplo | feedback do usuário | 🟡 Fidelidade e validação local concluídas | 10/12 (9/9 páginas idênticas no Word; DAMLA/Collabora pendentes) |
+| [017](./017-msc-feedback-video/spec.md) | Correções MSC a partir do vídeo de 02/10/2026 e do Word de exemplo | feedback do usuário | 🟡 Fidelidade e correções locais concluídas | 12/14 (9/9 páginas idênticas; ECR/layout corrigidos localmente; DAMLA/publicação pendentes) |
 
 ---
 

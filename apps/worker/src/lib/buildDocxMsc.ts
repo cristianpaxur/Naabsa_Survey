@@ -23,6 +23,8 @@ export interface DocxInputMsc {
   numberFormats?: NumberFormatMap;
   logo: Buffer | null;
   coverPhoto?: Buffer | null;
+  /** Reduced only after native pagination detects overflowing cover contacts. */
+  coverMaxHeightMm?: number;
   photos: {
     vessel?: Buffer[];
     engine_room?: Buffer[];
@@ -501,7 +503,8 @@ async function fillImages(
     drawing: XmlNode,
     buffer: Buffer,
     cover = false,
-  ): Promise<void> {
+    partialGallery = false,
+  ): Promise<boolean> {
     const original = await sharp(buffer).metadata();
     const preserveBytes =
       (original.format === 'jpeg' || original.format === 'png') &&
@@ -514,10 +517,14 @@ async function fillImages(
     const box = {
       width: cover
         ? 160
-        : Math.min(80, Number(extent.getAttribute('cx')) / 36000),
+        : partialGallery
+          ? 80
+          : Math.min(80, Number(extent.getAttribute('cx')) / 36000),
       height: cover
-        ? 120
-        : Math.min(60, Number(extent.getAttribute('cy')) / 36000),
+        ? Math.min(120, Math.max(40, input.coverMaxHeightMm ?? 120))
+        : partialGallery
+          ? 60
+          : Math.min(60, Number(extent.getAttribute('cy')) / 36000),
     };
     const size = fitPhotoSize(
       { width: meta.width!, height: meta.height! },
@@ -531,13 +538,35 @@ async function fillImages(
     const croppedAspect =
       (meta.width! * (1 - fraction('l') - fraction('r'))) /
       (meta.height! * (1 - fraction('t') - fraction('b')));
-    const keepFrame = Math.abs(croppedAspect - sourceAspect) < 0.0001;
+    const sourceId = all(drawing, 'a:blip')[0]!.getAttribute('r:embed');
+    const sourceRelation = all(rels, 'Relationship').find(
+      (node) => node.getAttribute('Id') === sourceId,
+    );
+    const sourceBytes =
+      sourceRelation &&
+      zip
+        .file(posix.normalize(`word/${sourceRelation.getAttribute('Target')}`))
+        ?.asNodeBuffer();
+    // The exemplar crop belongs to its original bitmap. Never transfer it to
+    // operator photos or a partial gallery's new row geometry.
+    const keepCrop =
+      !partialGallery &&
+      !!sourceBytes?.equals(normalized) &&
+      Math.abs(croppedAspect - sourceAspect) < 0.0001;
+    const sourceWidth = Number(extent.getAttribute('cx')) / 36000,
+      sourceHeight = Number(extent.getAttribute('cy')) / 36000;
+    const keepFrame =
+      keepCrop &&
+      (!cover || (sourceWidth <= box.width && sourceHeight <= box.height));
+    const fitted = keepCrop
+      ? fitPhotoSize({ width: sourceWidth, height: sourceHeight }, box)
+      : size;
     const width = keepFrame
         ? extent.getAttribute('cx')!
-        : String(Math.round(size.width * 36000)),
+        : String(Math.round(fitted.width * 36000)),
       height = keepFrame
         ? extent.getAttribute('cy')!
-        : String(Math.round(size.height * 36000));
+        : String(Math.round(fitted.height * 36000));
     extent.setAttribute('cx', width);
     extent.setAttribute('cy', height);
     for (const ext of all(drawing, 'a:ext'))
@@ -545,7 +574,7 @@ async function fillImages(
         ext.setAttribute('cx', width);
         ext.setAttribute('cy', height);
       }
-    if (!keepFrame) for (const crop of all(drawing, 'a:srcRect')) remove(crop);
+    if (!keepCrop) for (const crop of all(drawing, 'a:srcRect')) remove(crop);
     const id = `rIdMscImage${++imageId}`,
       target = `media/msc-image-${imageId}.${preserveBytes && original.format === 'jpeg' ? 'jpeg' : 'png'}`;
     const relation = rels.createElementNS(REL, 'Relationship');
@@ -558,6 +587,7 @@ async function fillImages(
     relRoot.appendChild(relation);
     all(drawing, 'a:blip')[0]!.setAttribute('r:embed', id);
     zip.file(`word/${target}`, normalized);
+    return !!sourceBytes?.equals(normalized);
   }
   const cover = ancestor(bookmark(doc, 'msc_cover'), 'w:p'),
     coverBuffer = input.coverPhoto ?? input.photos.vessel?.[0];
@@ -572,6 +602,7 @@ async function fillImages(
     ['ecr', 's5_4', input.photos.hull?.length ? 's5_5' : 's6'],
   ];
   if (input.photos.hull?.length) groups.push(['hull', 's5_5', 's6']);
+  let partialGallery = false;
   for (const [slot, startId, endId] of groups) {
     const start = ancestor(bookmark(doc, startId), 'w:p'),
       end = ancestor(bookmark(doc, endId), 'w:p');
@@ -586,19 +617,39 @@ async function fillImages(
       photos = input.photos[slot] ?? [];
     const prototype = ancestor(drawings[0]!, 'w:r').cloneNode(true),
       imageParagraph = ancestor(drawings.at(-1)!, 'w:p');
+    let galleryChanged = photos.length !== drawings.length;
     for (const [index, drawing] of drawings.entries()) {
-      if (photos[index]) await replaceImage(drawing, photos[index]!);
+      if (photos[index])
+        galleryChanged =
+          !(await replaceImage(
+            drawing,
+            photos[index]!,
+            false,
+            photos.length !== drawings.length,
+          )) || galleryChanged;
       else remove(drawing);
     }
     for (const photo of photos.slice(drawings.length)) {
       const run = prototype.cloneNode(true);
-      await replaceImage(all(run, 'w:drawing')[0]!, photo);
+      await replaceImage(all(run, 'w:drawing')[0]!, photo, false, true);
       imageParagraph.appendChild(run);
     }
     // The source's 4:3 landscape pairs wrap naturally. Narrower frames need
     // explicit pair breaks to avoid three or four photos on one line.
     for (const paragraph of nodes.filter((node) => node.nodeName === 'w:p')) {
       const images = all(paragraph, 'w:drawing');
+      if (galleryChanged && images.length) {
+        const properties = children(paragraph, 'w:pPr')[0]!;
+        let spacing = children(properties, 'w:spacing')[0];
+        if (!spacing) {
+          spacing = doc.createElementNS(W, 'w:spacing');
+          properties.appendChild(spacing);
+        }
+        // A 50% line height in the exemplar clips inline photos in Collabora.
+        // Let the complete frame determine the line height for operator photos.
+        spacing.setAttribute('w:line', '240');
+        spacing.setAttribute('w:lineRule', 'auto');
+      }
       const needsPairBreaks = images.some((image) => {
         const extent = all(image, 'wp:extent')[0]!;
         return (
@@ -612,6 +663,51 @@ async function fillImages(
             doc.createElementNS(W, 'w:br'),
           );
     }
+    if (photos.length !== drawings.length) {
+      partialGallery = true;
+      // Unfilled source rows are padding for the exemplar's photo count. Keep
+      // semantic text and section properties, but remove their empty frames.
+      for (const node of nodes)
+        if (
+          node.nodeName === 'w:p' &&
+          !(node.textContent ?? '').trim() &&
+          !all(node, 'w:drawing').length &&
+          !all(node, 'w:sectPr').length
+        )
+          remove(node);
+      if (photos.length) {
+        property(doc, start, 'w:pPr', 'w:keepNext');
+        if (slot === 'vessel') {
+          const reportHeading = ancestor(bookmark(doc, 's5'), 'w:p');
+          for (let node = reportHeading.nextSibling; node && node !== start; ) {
+            const next = node.nextSibling;
+            if (
+              node.nodeName === 'w:p' &&
+              !(node.textContent ?? '').trim() &&
+              !all(node, 'w:drawing').length &&
+              !all(node, 'w:sectPr').length
+            )
+              remove(node);
+            node = next;
+          }
+          property(doc, reportHeading, 'w:pPr', 'w:keepNext');
+        }
+      }
+    }
+  }
+  if (partialGallery) {
+    // A shorter gallery can leave room for only part of this fixed six-item
+    // list. Keep its heading, spacer and items together instead of orphaning
+    // the final certificate on a page by itself.
+    const attachments: XmlNode[] = [];
+    for (
+      let node: XmlNode | null = ancestor(bookmark(doc, 's6'), 'w:p');
+      node?.nodeName === 'w:p';
+      node = node.nextSibling
+    )
+      attachments.push(node);
+    for (const paragraph of attachments.slice(0, -1))
+      property(doc, paragraph, 'w:pPr', 'w:keepNext');
   }
   all(doc, 'wp:docPr').forEach((node, index) =>
     node.setAttribute('id', String(index + 100)),
@@ -714,6 +810,18 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   )!;
   const preceding = children(contents.parentNode!);
   const beforeContents = preceding[preceding.indexOf(contents) - 1]!;
+  const contactTable = preceding
+    .slice(0, preceding.indexOf(contents))
+    .filter((node) => node.nodeName === 'w:tbl')
+    .at(-1)!;
+  const contactEnd = all(contactTable, 'w:p').at(-1)!;
+  const mark = doc.createElementNS(W, 'w:bookmarkStart');
+  mark.setAttribute('w:id', '99999');
+  mark.setAttribute('w:name', 'msc_cover_contacts_end');
+  contactEnd.appendChild(mark);
+  const markEnd = doc.createElementNS(W, 'w:bookmarkEnd');
+  markEnd.setAttribute('w:id', '99999');
+  contactEnd.appendChild(markEnd);
   const coverSpacer = preceding[preceding.indexOf(contents) - 2]!;
   // An extra empty cover paragraph can flow onto page 2 in LibreOffice before
   // this break and create a blank page. Keep only the original leading line.

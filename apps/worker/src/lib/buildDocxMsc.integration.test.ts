@@ -14,6 +14,7 @@ import {
   type DocxInputMsc,
   type TimeLogRow,
 } from './buildDocxMsc';
+import { buildPaginatedDocxMsc, mscPagesFromPdfText } from './mscPagination';
 
 const execFileAsync = promisify(execFile);
 const fixtures = new URL('../../../../tests/fixtures/', import.meta.url);
@@ -76,6 +77,7 @@ const syntheticColors: Record<string, readonly [number, number, number]> = {
   engine: [68, 119, 102],
   ecr: [136, 102, 68],
   hull: [102, 85, 136],
+  survey: [136, 85, 34],
 };
 const photoIdentity = (image: PdfImage) =>
   Object.entries(syntheticColors).find(([, rgb]) =>
@@ -100,6 +102,7 @@ interface PdfPage {
   height?: number;
   /** null means the text-only inspector cannot confirm image placement. */
   images: PdfImage[] | null;
+  surveyVisiblePixels?: number;
 }
 interface PdfInspection {
   engine: string;
@@ -134,7 +137,9 @@ with pdfplumber.open(sys.argv[1]) as document:
             images.append({"width": float(image["width"]), "height": float(image["height"]),
                 "x0": float(image["x0"]), "top": float(image["top"]),
                 "sourceWidth": int(size[0]), "sourceHeight": int(size[1]), "sampleRgb": sample_rgb(image)})
-        pages.append({"page": index + 1, "text": page.extract_text() or "",
+        rendered=document.pages[index].to_image(resolution=72).original.convert("RGB")
+        survey_pixels=sum(count for count,rgb in rendered.getcolors(rendered.width*rendered.height) if all(abs(rgb[i]-target)<=3 for i,target in enumerate((136,85,34))))
+        pages.append({"page": index + 1, "text": page.extract_text() or "", "surveyVisiblePixels":survey_pixels,
             "width": float(page.mediabox.width), "height": float(page.mediabox.height), "images": images})
 print(json.dumps({"engine": "pypdf/pdfplumber", "pages": pages}, ensure_ascii=True))`;
 
@@ -256,6 +261,7 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
     let runtimeDir: string;
     let outputDir: string;
     let input: DocxInputMsc;
+    let surveyAttendancePhoto: Buffer;
     let converter: typeof import('./soffice');
     const evidence: Record<string, unknown> = {};
 
@@ -331,6 +337,7 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
         },
         timeLogRows: fixtureLogRows(workbook),
       };
+      surveyAttendancePhoto = await photo(800, 600, '#885522');
       evidence['fixtureFields'] = expectedFields;
       evidence['notes'] = [
         'Synthetic cover/landscape/portrait photos; odd Vessel/Engine Room groups and empty Survey attendance.',
@@ -349,6 +356,7 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
       ['compact', 12],
       ['long', 45],
       ['multiline', 12],
+      ['long-contacts', 12],
     ] as const)(
       '%s: measured TOC, intact Time log, photos and fixture values',
       async (name, count) => {
@@ -364,22 +372,60 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
         });
         if (name === 'multiline')
           expect(rows.every((row) => row.event.length === 97)).toBe(true);
-        const caseInput = { ...input, timeLogRows: rows };
+        const caseInput = {
+          ...input,
+          timeLogRows: rows,
+          ...(name === 'long-contacts'
+            ? {
+                coverPhoto: input.photos.vessel![0],
+                photos: {
+                  ...input.photos,
+                  survey_attendance: [
+                    surveyAttendancePhoto,
+                    surveyAttendancePhoto,
+                  ],
+                },
+                data: {
+                  ...input.data,
+                  manager: 'MSC SHIPMANAGEMENT LIMITED, LIMASSOL, CYPRUS',
+                  surveyors: 'ARMANDO JUNIOR',
+                  captain: 'MUKESH MAHENDRA MIRANDA',
+                  chief_engineer: 'SIBI JESU ANTHONY',
+                },
+              }
+            : {}),
+        };
         const pass1 = await buildReportDocxMsc(caseInput);
         // Persist the first pass too if native measurement fails before final assembly.
         const docxPath = join(outputDir, `${name}.docx`);
         await writeFile(docxPath, pass1);
-        const measured = await converter.measureBookmarkPages(pass1);
-        const docx = await buildReportDocxMsc({
-          ...caseInput,
-          tocPages: measured,
+        if (name === 'long-contacts')
+          expect(
+            (await converter.measureBookmarkPages(pass1))[
+              'msc_cover_contacts_end'
+            ],
+          ).toBeGreaterThan(1);
+        const docx = await buildPaginatedDocxMsc(caseInput, {
+          build: buildReportDocxMsc,
+          measure: converter.measureBookmarkPages,
         });
+        const measured = await converter.measureBookmarkPages(docx);
         await writeFile(docxPath, docx);
         const pdf = await converter.convertDocxToPdf(docx);
         const pdfPath = join(outputDir, `${name}.pdf`);
         await writeFile(pdfPath, pdf);
         expect(pdf.subarray(0, 5).toString('ascii')).toBe('%PDF-');
         const inspected = await inspectPdf(pdfPath);
+        const pdfMeasured = mscPagesFromPdfText(
+          docx,
+          inspected.pages.map((page) => page.text).join('\f'),
+        );
+        expect(pdfMeasured['msc_cover_contacts_end']).toBe(1);
+        expect(normalize(inspected.pages[0]!.text)).toContain(
+          name === 'long-contacts'
+            ? 'SIBI JESU ANTHONY'
+            : String(caseInput.data['chief_engineer']),
+        );
         const headings = bookmarkHeadings(docx);
         const firstTocEntry = new RegExp(
           `${escapeRegex(sections['s1']!.body)}[\\s.·…]+\\d+(?=\\s|$)`,
@@ -527,10 +573,35 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
         }
 
         const vesselPage = actualHeadings['s5_1']![0]!;
+        for (const label of [
+          'Survey Report issued by undersigned surveyor',
+          'Berthing message',
+          'VRS updated',
+          'Last manual sounding',
+          'Logbook update',
+          'Sludge removal certificates',
+        ])
+          expect(
+            inspected.pages
+              .filter((page) =>
+                page.text
+                  .split(/\r?\n/)
+                  .some(
+                    (line) =>
+                      normalize(line).replace(/^[•]\s*/u, '') === label,
+                  ),
+              )
+              .map((page) => page.page),
+            `${name}: complete attachment block stays with its heading`,
+          ).toEqual([actualHeadings['s6']![0]!]);
         expect(
           actualHeadings['s5']![0],
           `${name}: source Photographic Report precedes Vessel`,
         ).toBeLessThanOrEqual(vesselPage);
+        expect(
+          actualHeadings['s5']![0],
+          `${name}: Photographic Report stays with Vessel and its first photo`,
+        ).toBe(vesselPage);
         if (inspected.pages.every((page) => page.images !== null)) {
           // PDF export may resample raster dimensions. The uniform fixture colors identify
           // input photos independently of resolution and distinguish them from institutional logos.
@@ -540,7 +611,8 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
             )
             .filter((image) => photoIdentity(image));
           const firstVesselImage = photos.find(
-            (image) => photoIdentity(image) === 'landscape',
+            (image) =>
+              image.page >= vesselPage && photoIdentity(image) === 'landscape',
           );
           expect(
             firstVesselImage,
@@ -549,10 +621,10 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
           expect(
             firstVesselImage!.page,
             'source Vessel title precedes its first PDF photo',
-          ).toBeGreaterThanOrEqual(vesselPage);
+          ).toBe(vesselPage);
           const gallery = photos.filter((image) => image.page >= vesselPage);
-          expect(gallery).toHaveLength(9);
-          expect(photos).toHaveLength(10);
+          expect(gallery).toHaveLength(name === 'long-contacts' ? 11 : 9);
+          expect(photos).toHaveLength(name === 'long-contacts' ? 12 : 10);
           expect(gallery.map(photoIdentity)).toEqual([
             'landscape',
             'portrait',
@@ -560,11 +632,20 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
             'engine',
             'engine',
             'engine',
+            ...(name === 'long-contacts' ? ['survey', 'survey'] : []),
             'ecr',
             'hull',
             'hull',
           ]);
           const mmToPt = 72 / 25.4;
+          if (name === 'long-contacts')
+            expect(
+              inspected.pages.reduce(
+                (sum, page) => sum + (page.surveyVisiblePixels ?? 0),
+                0,
+              ),
+              'complete visible Survey attendance frames, without 50% line-height clipping',
+            ).toBeGreaterThan(2 * 80 * 60 * mmToPt * mmToPt * 0.9);
           for (const image of photos) {
             const cover = image.page < vesselPage;
             expect(image.width).toBeLessThanOrEqual(

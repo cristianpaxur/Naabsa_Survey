@@ -339,7 +339,7 @@ export async function buildWorkingDocx(
 
   // ── MSC: builder dedicado (sem variantes, sem sheetImages, sem phases). ──
   if (row.type_slug === 'msc') {
-    const { buildReportDocxMsc } = await import('../lib/buildDocxMsc');
+    const { buildPaginatedDocxMsc } = await import('../lib/mscPagination');
     const { data: photoRows } = await svc
       .from('report_photos')
       .select('slot_id, processed_path, position, crop')
@@ -384,9 +384,7 @@ export async function buildWorkingDocx(
       photos,
       timeLogRows,
     };
-    const pass1 = await buildReportDocxMsc(base);
-    const pages = await measureBookmarkPages(pass1);
-    const docx = await buildReportDocxMsc({ ...base, tocPages: pages });
+    const docx = await buildPaginatedDocxMsc(base);
     return { docx, data, variant: null };
   }
 

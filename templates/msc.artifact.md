@@ -91,6 +91,25 @@ Conditional source narrative markers are `msc_background_sludge_disposal`,
 `msc_background_sludge_rate`, `msc_found_survey`, `msc_sounding_actor`,
 `msc_temp_engine_room`, `msc_temp_sea_water`, `msc_records_updated`.
 
+Runtime pagination also adds the nonvisual `msc_cover_contacts_end` bookmark
+after the last contact value. The source cover frame is retained when it fits;
+native pagination may reduce only the cover photograph to keep complete
+contacts on page 1. Text, table geometry and fonts remain unchanged.
+
+When a gallery has a different photo count from the reference, remove unused
+empty gallery paragraphs, fit its photos within 80 by 60 mm without inheriting
+the exemplar bitmap's crop, and keep its heading with the first photo. In a
+partial Vessel gallery, keep Photographic Report with Vessel too. Original
+bitmap crops are preserved only for the matching original exemplar images
+with the reference photo count. This preserves the nine-page fidelity case.
+For changed photo rows, use full automatic line height (`w:line=240`);
+the source's half line height can clip inline bitmaps in Collabora even when
+their drawing extents are correct. Keep original line properties for the
+unchanged full exemplar case.
+For partial galleries, keep the Attachment heading, spacer and six bullet
+items together so the final certificate cannot spill alone onto a new page.
+The complete exemplar preserves the source properties of that block.
+
 Unsupported source quantities (`sludge_disposed`, `retained_chief`,
 `consumption_flowmeter_difference`, `consumption_flowmeter_percentage`)
 and historical attendance fields must resolve to an em dash when unavailable.

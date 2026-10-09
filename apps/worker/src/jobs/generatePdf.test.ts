@@ -22,7 +22,32 @@ import {
 const convertDocxMock = vi.hoisted(() => vi.fn());
 vi.mock('../lib/soffice', () => ({
   convertDocxToPdf: convertDocxMock,
-  measureBookmarkPages: vi.fn(async () => ({})),
+  measureBookmarkPages: vi.fn(async () => ({
+    msc_cover_contacts_end: 1,
+    ...Object.fromEntries(
+      [
+        's1',
+        's2',
+        's3',
+        's3_1',
+        's3_2',
+        's3_3',
+        's3_4',
+        's3_5',
+        's3_6',
+        's3_7',
+        's3_8',
+        's4',
+        's5',
+        's5_1',
+        's5_2',
+        's5_3',
+        's5_4',
+        's5_5',
+        's6',
+      ].map((id) => [id, 3]),
+    ),
+  })),
 }));
 vi.mock('../lib/documentLayoutQa', () => ({
   validateDocumentLayout: async () => ({

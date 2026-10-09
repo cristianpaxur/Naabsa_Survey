@@ -202,13 +202,26 @@ describe('MSC — fidelity to the revised Word template', () => {
     expect(tocText).not.toContain('Gross volume - m3');
   });
 
-  it('preserves every source body heading paragraph property, including the original pagination rules', async () => {
+  it('preserves every source body heading paragraph property for a complete gallery, including the original pagination rules', async () => {
     const templateXml = new PizZip(await readFile(templatePath))
       .file('word/document.xml')!
       .asText();
     const sourceHeadings = headingParagraphs(templateXml);
+    const image = await sharp({
+      create: { width: 800, height: 600, channels: 3, background: '#456789' },
+    })
+      .png()
+      .toBuffer();
     const outputHeadings = headingParagraphs(
-      await documentXml({ data: { last_attendance: 'Yes' } }),
+      await documentXml({
+        data: { last_attendance: 'Yes' },
+        photos: {
+          vessel: Array(8).fill(image),
+          engine_room: Array(6).fill(image),
+          survey_attendance: Array(12).fill(image),
+          ecr: Array(4).fill(image),
+        },
+      }),
     );
     expect(Object.keys(sourceHeadings)).toEqual(
       expect.arrayContaining(['s4', 's5', 's5_1', 's5_3']),
