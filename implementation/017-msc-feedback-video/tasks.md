@@ -1,6 +1,6 @@
 # Tarefas — 017
 
-Status: **fidelidade e correções locais concluídas, 13/14 tarefas**. F-001 a F-005 e T-006 concluídas localmente; 9/9 páginas pixel idênticas no Word e correções da geração online registradas em validation.md. Causa do DAMLA comprovada e correção preparada. T-009 mantém ativação, publicação e aceite externo no Collabora.
+Status: **ECR e Word publicados e validados, 13/14 tarefas**. F-001 a F-005 e T-006 concluídas localmente; 9/9 páginas pixel idênticas no ensaio Word. ECR ativo e geração real aberta no Collabora após deploy `67a3016`, com seis páginas completas inspecionadas e dados/fotos preservados. Causa do DAMLA comprovada e correção preparada. T-009 mantém as intervenções DAMLA e eventual reconstrução específica do Word antigo.
 
 - [x] **F-001:** Template real sanitizado, original intacto e slots documentados.
 - [x] **F-002:** Builder baseado no template, com hierarquia e formatação exatas.
@@ -82,7 +82,7 @@ Status: **fidelidade e correções locais concluídas, 13/14 tarefas**. F-001 a 
   - **Critério de conclusão:** desenhos e tamanhos originais da galeria, proporção e ordem preservadas, pares de fotos, capa separada e paginação original dos títulos.
 
 - [ ] **T-009:** Validar Word/PDF completo e preparar instruções de ativação
-  - **Estado:** validação local, diagnóstico DAMLA e instruções de ativação prontos. ECR aplicado e verificado; valores/Word/fotos/lixeira preservados e quatro revisões antigas de IA invalidadas conforme autorizado. Dokploy e Autodeploy na branch identificados; uma falha real de leitura do superscrito foi corrigida e o ensaio completo passou no Collabora com seis páginas, 12 eventos e sete fotos. Restam acompanhar a publicação e verificar o documento na interface, ativar o modelo por rótulos e atualizar os valores DAMLA com autorização. O documento editado existente está preservado; sua reconstrução exige conferir e conservar essa versão.
+  - **Estado:** ECR aplicado e verificado; valores/Word/fotos/lixeira preservados e quatro revisões antigas de IA invalidadas conforme autorizado. Web/worker publicados no Dokploy em `67a3016`. A geração real antes falhada abriu no Collabora; seis páginas da prévia completa, sumário, 12 eventos e sete fotos (incluindo duas ECR) inspecionados. Hashes dos dados protegidos e nove registros de fotos iguais antes/depois. Restam ativar o modelo por rótulos e atualizar os valores DAMLA com autorização. O documento editado anterior está preservado; sua reconstrução exige conferir e conservar essa versão.
   - **Cobre:** RF-001, RF-002, RF-003, RF-004, RF-005, RF-006, RF-007, RF-008, RF-009
   - **Valida:** CA-001, CA-002, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009
   - **Testes:** CT-001, CT-002, CT-003, CT-004, CT-005, CT-006, CT-007, CT-008, CT-009

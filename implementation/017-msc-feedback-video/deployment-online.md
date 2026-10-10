@@ -1,6 +1,6 @@
 # Ativação das correções da geração online
 
-Estado: ECR aplicado e confirmado na página de fotos. Dokploy de produção identificado em 10/10/2026: web e worker acompanham `codex/msc-video-feedback` com publicação automática após push e registram o commit `057b566` concluído. Uma falha real de paginação por superscrito destacado no PDF foi reproduzida e corrigida; o candidato passou no Collabora do destino e está preparado para o próximo push. Nenhum Word existente foi substituído nesta preparação.
+Estado: ECR aplicado e confirmado na página de fotos. Web e worker publicados pelo Dokploy em `67a3016`, na branch `codex/msc-video-feedback`. A geração MSC que falhava abriu no Collabora; suas seis páginas de prévia foram inspecionadas, com sumário, Time log e ECR conferidos. Dados e fotos preservados. A ativação 0022 e a correção dos valores DAMLA permanecem separadas; nenhum Word editado anterior foi reconstruído.
 
 ## Conferência após o push — 10/10/2026
 
@@ -66,6 +66,16 @@ O parser corrigido aceita a linha completa ou a linha base acompanhada pelo expo
 O candidato foi executado em memória no worker, sem editar arquivos do container ou registros, com a planilha, dados efetivos, formatos numéricos, logo, crops e sete fotos da geração real. A implementação anterior falhou novamente; a corrigida concluiu a montagem numerada e a conversão: seis páginas, 12 eventos, Vessel/Engine room/Survey attendance na 5, ECR e Attachment na 6. Todas as 18 seções foram localizadas; contatos terminaram na página 1. Hashes das linhas do relatório e das fotos permaneceram iguais. Evidência privada: `collabora-full-recheck.json` em `tmp/msc-production-activation-20261010/`.
 
 Validação local: sete novos casos, 12 testes de paginação aprovados; core 215, db 27, web 231 e worker 228 = **701 aprovados**, mais **sete golden**. A primeira execução conjunta sofreu seis timeouts de 5 s nas suítes de montagem/fidelidade; a repetição isolada completa do worker com dois workers passou, sem alterar código ou limites desses testes. Typecheck do worker, lint, Prettier dos arquivos alterados e build completo passaram. O próximo passo é acompanhar o deploy automático após o push e reabrir somente a geração falhada sem Word publicado, preservando os documentos existentes. A 0022 e a atualização dos valores DAMLA continuam separadas.
+
+## Publicação e aceite real do Word — 10/10/2026
+
+O push autorizado publicou `67a3016cb3cfab242ae9b01afb5417c7d6fb5895`. O Dokploy registrou **Done** para worker (8 s) e web (1 min 52 s). O novo worker `dda861716a69` contém o parser com SHA-256 `aa602de9d77bda3883b6fcbe752ed3117f307180e44deac370477a180bd94be5`, igual ao candidato validado. Banco, heartbeat, fila e bucket privado passaram nos checks antes e depois da abertura.
+
+O relatório `fae24adc-81aa-473b-bbb3-b93519b615c0` estava em `editing`, revisão 0 e sem `working_docx_path`. Abrir seu editor enfileirou a montagem normal: agora possui Word na revisão 1, com a mesma geração. O Collabora abriu `MSC_SABRINA.docx` e indicou seis páginas. O botão Preview produziu o PDF real, sem aprovar o relatório. Foram baixadas e renderizadas todas as seis páginas, inspecionando alinhamento, espaços, contatos completos, sumário, título com m³, 12 eventos inteiros do Time log, sete fotos e anexos completos. Vessel/Engine room/Survey attendance ficam na 5; as duas fotos ECR e Attachment, na 6. Os números do sumário conferem com os títulos efetivos. A quantidade difere da referência de nove páginas porque esta geração tem sete fotos alocadas e seus próprios dados.
+
+O hash de todas as colunas protegidas do relatório permaneceu igual, assim como o hash dos **nove registros de fotos** desta geração (sete alocados/renderizados). A comparação exclui somente caminho/revisão/data de gravação do Word, metadados de lock WOPI e `updated_at`; geração, status, valores, formatos, spec e demais colunas são protegidos. Não houve substituição de documento existente, mudanças nos dados, envio/alocação de fotos, aprovação ou execução de migrations adicionais.
+
+Evidências privadas em `tmp/msc-production-activation-20261010/`: `web-deployment-67a3016.txt`, `worker-deployment-67a3016.txt`, `word-before-retry.json`, `word-after-retry.json`, `published-preview.pdf` (SHA-256 `d0889a3896f13fdc3e0114478e768b1e8bdda109f8d888017bd37e5fb2cf7821`), seis `published-page-*.png` e capturas do editor/sumário/ECR. Webhooks e tokens não integram as evidências salvas. A prévia do relatório foi deixada aberta no Chrome.
 
 ## Execução autorizada
 
