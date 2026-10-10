@@ -98,7 +98,19 @@ export function extract(
       data[name] = null;
       continue;
     }
-    const cell = ws!.getCell(field.cell);
+    const resolved = resolveSourceCell(ws, field);
+    if (resolved.error) {
+      data[name] = null;
+      issues.push({
+        field: name,
+        cell: null,
+        level: 'error',
+        origin: 'extraction',
+        message: resolved.error,
+      });
+      continue;
+    }
+    const cell = ws.getCell(resolved.address);
     const raw = normalizeCell(cell.value);
     const res = coerceField(raw, field, { date1904 });
     data[name] = res.value;
@@ -109,7 +121,7 @@ export function extract(
     if (res.error !== undefined) {
       issues.push({
         field: name,
-        cell: field.cell,
+        cell: resolved.address,
         level: 'error',
         origin: 'extraction',
         message: res.error,
@@ -125,6 +137,42 @@ export function extract(
     tables,
     issues: [...issues, ...tableIssues],
   };
+}
+
+function resolveSourceCell(
+  ws: ExcelJS.Worksheet,
+  field: FieldDef,
+): { address: string; error?: string } {
+  if (!field.row_anchor) return { address: field.cell };
+  const anchor = field.row_anchor;
+  const bounds = /^([A-Z]+)([1-9]\d*):\1([1-9]\d*)$/.exec(anchor.range);
+  const valueColumn = /^([A-Z]+)\d+$/.exec(field.cell)?.[1];
+  if (
+    !bounds ||
+    !valueColumn ||
+    Number(bounds[3]) < Number(bounds[2]) ||
+    Number(bounds[3]) - Number(bounds[2]) >= 100 ||
+    Number(bounds[3]) > 1048576 ||
+    !anchor.expect.trim()
+  ) {
+    return {
+      address: field.cell,
+      error: `Campo '${field.label}': busca de rótulo inválida.`,
+    };
+  }
+  const rows: number[] = [];
+  for (let row = Number(bounds[2]); row <= Number(bounds[3]); row++) {
+    const label = normalizeCell(ws.getCell(`${bounds[1]}${row}`).value);
+    if (typeof label === 'string' && label.trim() === anchor.expect.trim())
+      rows.push(row);
+  }
+  if (rows.length !== 1) {
+    return {
+      address: field.cell,
+      error: `Campo '${field.label}': rótulo '${anchor.expect}' ${rows.length === 0 ? 'ausente' : 'duplicado'} em ${ws.name}!${anchor.range}. Confira a planilha antes de preencher a revisão.`,
+    };
+  }
+  return { address: `${valueColumn}${rows[0]}` };
 }
 
 /** Aba efetiva de um item: a própria (v2) ou a aba única do spec (v1). */

@@ -19,7 +19,10 @@ import { collectFields } from './extract';
 import { isCalculatedDifferenceField } from '../review-policy';
 
 const MSC_SOURCE_REVIEW_FIELDS = new Set([
-  'voy', 'purifier_temp', 'purifier_flow', 'purifier_bowl_freq',
+  'voy',
+  'purifier_temp',
+  'purifier_flow',
+  'purifier_bowl_freq',
 ]);
 
 export function validate(
@@ -36,15 +39,25 @@ export function validate(
     const value = data[name] ?? null;
     issues.push(...validateField(name, field, value));
     if (
-      spec.report_type === 'msc' && MSC_SOURCE_REVIEW_FIELDS.has(name) && !field.required
-      && (value === null || (typeof value === 'string' && value.trim() === ''))
+      spec.report_type === 'msc' &&
+      MSC_SOURCE_REVIEW_FIELDS.has(name) &&
+      !field.required &&
+      (value === null || (typeof value === 'string' && value.trim() === ''))
     ) {
       const sheet = field.sheet ?? spec.source.sheet;
-      const source = sheet ? `${sheet}!${field.cell}` : field.cell;
-      issues.push(mk(
-        name, field.cell, 'warning',
-        `Campo '${field.label}' ausente em ${source}. Confira e preencha a célula de origem ou informe um valor na revisão.`,
-      ));
+      const source = field.row_anchor
+        ? `${sheet ? `${sheet}!` : ''}${field.row_anchor.range} (rótulo '${field.row_anchor.expect}', coluna ${field.cell.replace(/\d+$/, '')})`
+        : sheet
+          ? `${sheet}!${field.cell}`
+          : field.cell;
+      issues.push(
+        mk(
+          name,
+          field.cell,
+          'warning',
+          `Campo '${field.label}' ausente em ${source}. Confira e preencha a célula de origem ou informe um valor na revisão.`,
+        ),
+      );
     }
   }
   for (const rule of spec.validations ?? []) {

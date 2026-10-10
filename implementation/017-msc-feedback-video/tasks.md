@@ -1,6 +1,6 @@
 # Tarefas — 017
 
-Status: **fidelidade e correções locais concluídas, 12/14 tarefas**. F-001 a F-005 concluídas; 9/9 páginas pixel idênticas no Word e correções da geração online registradas em validation.md. T-006 continua dependente do DAMLA; T-009 mantém publicação e aceite externo no Collabora.
+Status: **fidelidade e correções locais concluídas, 13/14 tarefas**. F-001 a F-005 e T-006 concluídas localmente; 9/9 páginas pixel idênticas no Word e correções da geração online registradas em validation.md. Causa do DAMLA comprovada e correção preparada. T-009 mantém ativação, publicação e aceite externo no Collabora.
 
 - [x] **F-001:** Template real sanitizado, original intacto e slots documentados.
 - [x] **F-002:** Builder baseado no template, com hierarquia e formatação exatas.
@@ -53,15 +53,15 @@ Status: **fidelidade e correções locais concluídas, 12/14 tarefas**. F-001 a 
   - **Risco:** low
   - **Critério de conclusão:** data longa em inglês no texto; datas numéricas preservadas no Time log; vazios/inválidos cobertos.
 
-- [ ] **T-006:** Identificar a origem dos dados em branco e aplicar a correção comprovada
-  - **Estado:** contrato local, overrides/zero e avisos de ausência validados. Não foi reproduzido erro de extração/merge; falta XLSX/registro DAMLA para identificar a causa específica. Não há justificativa para remapear spec ou reescrever histórico.
+- [x] **T-006:** Identificar a origem dos dados em branco e aplicar a correção comprovada
+  - **Estado:** XLSX e registro real consultados em 10/10/2026. Purificadores em K32/K33/K34, três linhas abaixo do spec; viagem 635S já salva. Leitura por rótulos validada nas duas posições e no DAMLA real, alterando somente os três valores extraídos e preservando tabelas. Migration 0022 prepara cópia para novos relatórios; ativação e atualização autorizada do DAMLA existente integram T-009. Detalhes em [damla-diagnosis.md](damla-diagnosis.md).
   - **Cobre:** RF-007
   - **Valida:** CA-007
   - **Testes:** CT-007
   - **Arquivos esperados:** `msc-extract.test.ts`, `apps/worker/src/jobs/generatePdf.ts`/teste, spec MSC somente se comprovado necessário e evidência de diagnóstico
   - **Dependências:** T-001
   - **Risco:** high
-  - **Critério de conclusão:** viagem/purificadores chegam ao DOCX; overrides/zero preservados; causa do DAMLA documentada sem sobrescrever histórico. Depende do XLSX/registro DAMLA para comprovar a causa publicada.
+  - **Critério de conclusão:** viagem/purificadores chegam ao DOCX; overrides/zero preservados; causa do DAMLA documentada sem sobrescrever histórico. Comprovado por fonte/spec/extração e ensaio OOXML local.
 
 - [x] **T-007:** Corrigir quebra e cabeçalho do Time log
   - **Cobre:** RF-008
@@ -82,7 +82,7 @@ Status: **fidelidade e correções locais concluídas, 12/14 tarefas**. F-001 a 
   - **Critério de conclusão:** desenhos e tamanhos originais da galeria, proporção e ordem preservadas, pares de fotos, capa separada e paginação original dos títulos.
 
 - [ ] **T-009:** Validar Word/PDF completo e preparar instruções de ativação
-  - **Estado:** validação local e instruções de ativação prontas. A geração real MSC SABRINA foi inspecionada no Collabora; o ambiente de backend/publicação não está acessível pelos conectores locais. Restam confirmação do DAMLA (T-006), aplicação da migration/publicação e aceite do candidato no Collabora do destino. O documento editado existente está preservado; sua reconstrução exige conferir e conservar essa versão.
+  - **Estado:** validação local, diagnóstico DAMLA e instruções de ativação prontos. A geração real MSC SABRINA foi inspecionada no Collabora e o Supabase de destino foi identificado. Restam aprovação/aplicação ECR, identificação/publicação web/worker, ativação do modelo por rótulos e atualização autorizada dos valores DAMLA, além do aceite no Collabora. O documento editado existente está preservado; sua reconstrução exige conferir e conservar essa versão.
   - **Cobre:** RF-001, RF-002, RF-003, RF-004, RF-005, RF-006, RF-007, RF-008, RF-009
   - **Valida:** CA-001, CA-002, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009
   - **Testes:** CT-001, CT-002, CT-003, CT-004, CT-005, CT-006, CT-007, CT-008, CT-009

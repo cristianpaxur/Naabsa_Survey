@@ -5,14 +5,14 @@ status: in_progress
 priority: high
 risk: medium
 created_at: "2026-10-09"
-updated_at: "2026-10-09"
+updated_at: "2026-10-10"
 owner: codex
 depends_on: ["016"]
 requirements: ["RF-001", "RF-002", "RF-003", "RF-004", "RF-005", "RF-006", "RF-007", "RF-008", "RF-009", "RF-010", "RF-011", "RF-012"]
 ---
 # 017 — Correções do relatório MSC apontadas no vídeo
 
-Corrigir o MSC gerado conforme os ajustes de alinhamento, dados e paginação apresentados no vídeo. Após a preparação e explicação das nove mudanças, o usuário autorizou a execução local com “pode seguir”, em 09/10/2026. O diagnóstico do DAMLA continua dependente da planilha e do registro originais.
+Corrigir o MSC gerado conforme os ajustes de alinhamento, dados e paginação apresentados no vídeo. Após a preparação e explicação das nove mudanças, o usuário autorizou a execução local com “pode seguir”, em 09/10/2026. A causa do DAMLA foi comprovada pela planilha e pelo registro originais em 10/10/2026; a ativação em produção continua pendente.
 
 ## Fontes e precedência
 
@@ -35,7 +35,7 @@ O esclarecimento do usuário resolve a intenção principal do trecho do sumári
 
 A renderização local anterior em LibreOffice apresentou diferenças em fotos ancoradas. A referência visual do usuário é o Word; a nova validação compara o pacote nativo e todas as páginas, distinguindo diferenças do conversor de diferenças do modelo. Movimentos sem justificativa fora dos campos dinâmicos são falhas de fidelidade.
 
-O arquivo XLSX original do relatório DAMLA e seu registro no ambiente publicado não foram fornecidos. A causa dos valores em branco nesse relatório permanece a confirmar; a fixture SABRINA e o contrato local já contêm os campos dos purificadores.
+O XLSX original e o registro DAMLA foram consultados somente em leitura no Supabase informado, em 10/10/2026. O bloco dos purificadores foi deslocado de K29/K30/K31 para K32/K33/K34. A viagem já está salva como 635S. A correção preparada usa rótulos de linha no spec e preserva as fontes históricas; evidências e limites em [damla-diagnosis.md](damla-diagnosis.md).
 
 ## Pontos do vídeo e requisitos
 
@@ -108,7 +108,7 @@ Redesenho da aplicação, mudanças do Draft Survey, execução de migrations/se
 
 1. Collabora e LibreOffice local podem ter fontes e paginação diferentes; validar no motor utilizado pelo ambiente de destino.
 2. O catálogo Vessel já existe. Corrigir quebra/visibilidade, em vez de inserir cópias.
-3. A planilha DAMLA e o spec congelado são necessários para encerrar o diagnóstico dos dados em branco; a fixture SABRINA não comprova a causa em produção.
+3. Planilha DAMLA e spec congelado comprovam o deslocamento dos três purificadores. A fixture SABRINA permanece como regressão; ativação do modelo e atualização dos valores existentes precisam de execução específica em produção.
 4. Alterar margens/fotos muda páginas e números do sumário; repetir a medição depois do layout final.
 5. As dimensões propostas derivam do Word indicado pelo usuário; conferir a leitura de fotos verticais e de detalhe em escala normal.
 

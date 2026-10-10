@@ -1,6 +1,6 @@
 # Validação — 017: MSC igual à referência Word
 
-Data: **09/10/2026**. Estado: **gerador e fidelidade local concluídos**; publicação, aceite no Collabora de destino e diagnóstico específico do DAMLA permanecem externos.
+Data: **10/10/2026**, com verificações anteriores preservadas abaixo. Estado: **gerador, fidelidade local e diagnóstico DAMLA concluídos**; ativação, publicação e aceite no Collabora de destino permanecem pendentes.
 
 ## Resultado visual final
 
@@ -103,4 +103,14 @@ Todas as 26 páginas desses PDFs foram renderizadas e inspecionadas. No último 
 
 Logs finais: `tmp-msc-online-worker-final.log` e `tmp-msc-online-native-final.log`; demais evidências em `tmp/msc-online-review-20261009/`. A suíte de fidelidade foi ajustada para conferir as regras originais com uma galeria completa; a galeria parcial tem seu próprio teste de agrupamento dos anexos. Não foram reduzidas assertions para aceitar imagens recortadas: o teste nativo mede pixels visíveis, além das dimensões OOXML/PDF.
 
-Publicação/aceite remoto continuam pendentes: os conectores e ambientes locais não acessam o backend desse domínio, e o endpoint público de conversão responde HTTP 403 para a estação. O Word editado existente foi preservado e não muda automaticamente com deploy/migration. Sua atualização requer cópia preservada e conferência das fontes/edições com guarda de revisão/geração. F-004/F-005 concluídas localmente; T-006/T-009 permanecem abertas.
+Publicação/aceite remoto continuavam pendentes nessa verificação: os conectores e ambientes locais não acessavam o backend desse domínio, e o endpoint público de conversão respondia HTTP 403 para a estação. O Word editado existente foi preservado e não muda automaticamente com deploy/migration. Sua atualização requer cópia preservada e conferência das fontes/edições com guarda de revisão/geração.
+
+## Diagnóstico real DAMLA e preparação do banco — 10/10/2026
+
+O Chrome autenticado permitiu consultar o Supabase de destino e baixar o XLSX DAMLA. O diagnóstico comprovou que os três purificadores estão em K32/K33/K34, enquanto o spec lê K29/K30/K31; a viagem 635S já está salva. Fonte, hashes, valores e limites estão em [damla-diagnosis.md](damla-diagnosis.md).
+
+O teste de deslocamento falhou com três nulos antes da correção e passou depois. A extração real com uma cópia do spec e somente as três âncoras alterou exatamente esses três campos; todos os demais campos/tabelas ficaram iguais. Os quatro valores esperados apareceram no OOXML do ensaio local. Esse ensaio não é um documento completo para entrega. A migration 0022 ativa uma cópia para novos relatórios, mantém todos os registros existentes/Word/slots e tem teste de idempotência em PostgreSQL isolado.
+
+As suítes regulares passaram: core 215, db 27, web 231, worker 221, total **694**, com seis opt-in separados. Os **sete golden** passaram. Typecheck e consistência das migrations de reparo passaram. O lint normal passou; o format:check geral detectou arquivos anteriores fora da alteração e arquivos de evidência em tmp. A conferência de formatação dos arquivos de fonte modificados é feita separadamente. Nenhum conversor remoto foi acessado nem arquivo de produção substituído nesta etapa.
+
+A execução isolada ECR foi validada contra a cópia real, incluindo hashes, triggers de revisão, rollback de falha posterior e idempotência. Move sete relatórios abertos, preserva valores/Word/112 registros de fotos/três relatórios na lixeira e invalida quatro revisões de IA (15 avisos IA). Está pronta para aprovação, sem aplicação em produção. T-006 concluída localmente; T-009 cobre as ativações, publicação e atualização autorizada do DAMLA.

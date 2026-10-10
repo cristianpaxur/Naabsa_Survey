@@ -121,7 +121,18 @@
       "properties": {
         "sheet": { "$ref": "#/definitions/sheetName" },
         "cell": { "$ref": "#/definitions/cell" },
-        "type": { "enum": ["string", "number", "date", "enum", "boolean", "time"] },
+        "type": {
+          "enum": ["string", "number", "date", "enum", "boolean", "time"]
+        },
+        "row_anchor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["range", "expect"],
+          "properties": {
+            "range": { "$ref": "#/definitions/range" },
+            "expect": { "type": "string", "minLength": 1 }
+          }
+        },
         "label": { "type": "string", "minLength": 1 },
         "section": { "type": "string", "minLength": 1 },
         "unit": { "type": "string" },

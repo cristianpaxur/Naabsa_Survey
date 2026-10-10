@@ -8,7 +8,13 @@
 
 // ── Campos ──
 
-export type FieldType = 'string' | 'number' | 'date' | 'enum' | 'boolean' | 'time';
+export type FieldType =
+  | 'string'
+  | 'number'
+  | 'date'
+  | 'enum'
+  | 'boolean'
+  | 'time';
 
 /** Atributos comuns a todos os tipos de campo. */
 export interface BaseFieldDef {
@@ -19,6 +25,13 @@ export interface BaseFieldDef {
   sheet?: string;
   /** Célula de origem (ex.: "B7"). */
   cell: string;
+  /** Localiza a linha pelo rótulo; usa a coluna de `cell` nessa linha. */
+  row_anchor?: {
+    /** Uma coluna, até 100 linhas (ex.: "H29:H40"). */
+    range: string;
+    /** Texto exato do rótulo, desconsiderando espaços nas extremidades. */
+    expect: string;
+  };
   /** Rótulo exibido na revisão. */
   label: string;
   /** Seção de agrupamento na revisão. */

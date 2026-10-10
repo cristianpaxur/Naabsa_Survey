@@ -32,10 +32,38 @@ export function validateSpec(input: unknown): SpecValidationResult {
 
   // Estrutura válida pelo schema → checagens semânticas do contrato (v1/v2),
   // que o JSON Schema sozinho não expressa (requiredness condicional por aba).
-  const semantic = semanticChecks(input as unknown as ReportSpec);
+  const spec = input as unknown as ReportSpec;
+  const semantic = [...semanticChecks(spec), ...rowAnchorChecks(spec)];
   if (semantic.length > 0) return { valid: false, errors: semantic };
 
   return { valid: true, spec: input as unknown as ReportSpec };
+}
+
+function rowAnchorChecks(spec: ReportSpec): string[] {
+  const errors: string[] = [];
+  const blocks = [
+    spec.source.common,
+    ...Object.values(spec.source.by_variant ?? {}),
+  ];
+  for (const block of blocks) {
+    for (const [name, field] of Object.entries(block.fields)) {
+      const anchor = field.row_anchor;
+      if (!anchor) continue;
+      const bounds = /^([A-Z]+)([1-9]\d*):\1([1-9]\d*)$/.exec(anchor.range);
+      if (
+        !bounds ||
+        Number(bounds[3]) < Number(bounds[2]) ||
+        Number(bounds[3]) - Number(bounds[2]) >= 100 ||
+        Number(bounds[3]) > 1048576 ||
+        !anchor.expect.trim()
+      ) {
+        errors.push(
+          `Campo '${name}': row_anchor exige uma coluna, 1 a 100 linhas válidas e rótulo não vazio.`,
+        );
+      }
+    }
+  }
+  return errors;
 }
 
 /**

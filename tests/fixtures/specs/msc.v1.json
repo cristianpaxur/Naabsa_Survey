@@ -27,119 +27,774 @@
 
     "common": {
       "fields": {
-        "appointed_service": { "sheet": "Summary", "cell": "B6",  "type": "string", "label": "Serviço",                  "section": "Serviço" },
-        "vessel_name":        { "sheet": "Summary", "cell": "B7",  "type": "string", "required": true, "label": "Navio",  "section": "Identificação" },
-        "voy":                { "sheet": "Summary", "cell": "B8",  "type": "string", "label": "Viagem",                    "section": "Identificação" },
+        "appointed_service": {
+          "sheet": "Summary",
+          "cell": "B6",
+          "type": "string",
+          "label": "Serviço",
+          "section": "Serviço"
+        },
+        "vessel_name": {
+          "sheet": "Summary",
+          "cell": "B7",
+          "type": "string",
+          "required": true,
+          "label": "Navio",
+          "section": "Identificação"
+        },
+        "voy": {
+          "sheet": "Summary",
+          "cell": "B8",
+          "type": "string",
+          "label": "Viagem",
+          "section": "Identificação"
+        },
 
-        "grade_1":         { "sheet": "Summary", "cell": "B9",  "type": "string", "label": "Grade 1",   "section": "Cargas" },
-        "grade_1_present": { "sheet": "Summary", "cell": "C9",  "type": "enum",   "options": ["YES", "NO"], "label": "Grade 1 — presente?", "section": "Cargas" },
-        "grade_2":         { "sheet": "Summary", "cell": "B10", "type": "string", "label": "Grade 2",   "section": "Cargas" },
-        "grade_2_present": { "sheet": "Summary", "cell": "C10", "type": "enum",   "options": ["YES", "NO"], "label": "Grade 2 — presente?", "section": "Cargas" },
-        "grade_3":         { "sheet": "Summary", "cell": "B11", "type": "string", "label": "Grade 3",   "section": "Cargas" },
-        "grade_3_present": { "sheet": "Summary", "cell": "C11", "type": "enum",   "options": ["YES", "NO"], "label": "Grade 3 — presente?", "section": "Cargas" },
-        "grade_4":         { "sheet": "Summary", "cell": "B12", "type": "string", "label": "Grade 4",   "section": "Cargas" },
-        "grade_4_present": { "sheet": "Summary", "cell": "C12", "type": "enum",   "options": ["YES", "NO"], "label": "Grade 4 — presente?", "section": "Cargas" },
+        "grade_1": {
+          "sheet": "Summary",
+          "cell": "B9",
+          "type": "string",
+          "label": "Grade 1",
+          "section": "Cargas"
+        },
+        "grade_1_present": {
+          "sheet": "Summary",
+          "cell": "C9",
+          "type": "enum",
+          "options": ["YES", "NO"],
+          "label": "Grade 1 — presente?",
+          "section": "Cargas"
+        },
+        "grade_2": {
+          "sheet": "Summary",
+          "cell": "B10",
+          "type": "string",
+          "label": "Grade 2",
+          "section": "Cargas"
+        },
+        "grade_2_present": {
+          "sheet": "Summary",
+          "cell": "C10",
+          "type": "enum",
+          "options": ["YES", "NO"],
+          "label": "Grade 2 — presente?",
+          "section": "Cargas"
+        },
+        "grade_3": {
+          "sheet": "Summary",
+          "cell": "B11",
+          "type": "string",
+          "label": "Grade 3",
+          "section": "Cargas"
+        },
+        "grade_3_present": {
+          "sheet": "Summary",
+          "cell": "C11",
+          "type": "enum",
+          "options": ["YES", "NO"],
+          "label": "Grade 3 — presente?",
+          "section": "Cargas"
+        },
+        "grade_4": {
+          "sheet": "Summary",
+          "cell": "B12",
+          "type": "string",
+          "label": "Grade 4",
+          "section": "Cargas"
+        },
+        "grade_4_present": {
+          "sheet": "Summary",
+          "cell": "C12",
+          "type": "enum",
+          "options": ["YES", "NO"],
+          "label": "Grade 4 — presente?",
+          "section": "Cargas"
+        },
 
-        "terminal":        { "sheet": "Summary", "cell": "B13", "type": "string", "label": "Terminal",   "section": "Identificação" },
-        "port":            { "sheet": "Summary", "cell": "B14", "type": "string", "label": "Porto",      "section": "Identificação" },
-        "surveyors":       { "sheet": "Summary", "cell": "B15", "type": "string", "label": "Surveyors",  "section": "Identificação" },
-        "last_attendance": { "sheet": "Summary", "cell": "B16", "type": "enum",   "options": ["Yes", "No"], "label": "Last attendance?", "section": "Identificação" },
+        "terminal": {
+          "sheet": "Summary",
+          "cell": "B13",
+          "type": "string",
+          "label": "Terminal",
+          "section": "Identificação"
+        },
+        "port": {
+          "sheet": "Summary",
+          "cell": "B14",
+          "type": "string",
+          "label": "Porto",
+          "section": "Identificação"
+        },
+        "surveyors": {
+          "sheet": "Summary",
+          "cell": "B15",
+          "type": "string",
+          "label": "Surveyors",
+          "section": "Identificação"
+        },
+        "last_attendance": {
+          "sheet": "Summary",
+          "cell": "B16",
+          "type": "enum",
+          "options": ["Yes", "No"],
+          "label": "Last attendance?",
+          "section": "Identificação"
+        },
 
-        "berthing_date": { "sheet": "Summary", "cell": "B18", "type": "date", "format": "Month Do, YYYY", "label": "Berthing date", "section": "Prazos" },
-        "berthing_time": { "sheet": "Summary", "cell": "B19", "type": "time", "label": "Berthing time",                       "section": "Prazos" },
+        "berthing_date": {
+          "sheet": "Summary",
+          "cell": "B18",
+          "type": "date",
+          "format": "Month Do, YYYY",
+          "label": "Berthing date",
+          "section": "Prazos"
+        },
+        "berthing_time": {
+          "sheet": "Summary",
+          "cell": "B19",
+          "type": "time",
+          "label": "Berthing time",
+          "section": "Prazos"
+        },
 
-        "imo":            { "sheet": "Summary", "cell": "B21", "type": "string", "label": "IMO",                       "section": "Navio" },
-        "flag":           { "sheet": "Summary", "cell": "B22", "type": "string", "label": "Bandeira",                  "section": "Navio" },
-        "port_registry":  { "sheet": "Summary", "cell": "B23", "type": "string", "label": "Porto de registro",         "section": "Navio" },
-        "gross_tonnage":  { "sheet": "Summary", "cell": "B24", "type": "number", "decimals": 3, "unit": "mt", "label": "GRT (mt)",      "section": "Navio" },
-        "net_tonnage":    { "sheet": "Summary", "cell": "B25", "type": "number", "decimals": 3, "unit": "mt", "label": "NET (mt)",      "section": "Navio" },
-        "delivered":      { "sheet": "Summary", "cell": "B26", "type": "number", "decimals": 0,                  "label": "Ano de entrega",            "section": "Navio" },
-        "owner":          { "sheet": "Summary", "cell": "B27", "type": "string", "label": "Owner",                     "section": "Navio" },
-        "manager":        { "sheet": "Summary", "cell": "B28", "type": "string", "label": "Manager",                   "section": "Navio" },
-        "call_sign":      { "sheet": "Summary", "cell": "B29", "type": "string", "label": "Call sign",                 "section": "Navio" },
-        "type":           { "sheet": "Summary", "cell": "B30", "type": "string", "label": "Tipo",                      "section": "Navio" },
-        "loa":            { "sheet": "Summary", "cell": "B31", "type": "number", "decimals": 2, "unit": "m", "label": "LOA (m)",       "section": "Navio" },
-        "lbp":            { "sheet": "Summary", "cell": "B32", "type": "number", "decimals": 2, "unit": "m", "label": "LBP (m)",       "section": "Navio" },
-        "breadth":        { "sheet": "Summary", "cell": "B33", "type": "number", "decimals": 2, "unit": "m", "label": "Boca (m)",      "section": "Navio" },
-        "depth":          { "sheet": "Summary", "cell": "B34", "type": "number", "decimals": 2, "unit": "m", "label": "Pontal (m)",    "section": "Navio" },
-        "light_ship":     { "sheet": "Summary", "cell": "B35", "type": "number", "decimals": 2, "unit": "t", "label": "Light ship (t)","section": "Navio" },
+        "imo": {
+          "sheet": "Summary",
+          "cell": "B21",
+          "type": "string",
+          "label": "IMO",
+          "section": "Navio"
+        },
+        "flag": {
+          "sheet": "Summary",
+          "cell": "B22",
+          "type": "string",
+          "label": "Bandeira",
+          "section": "Navio"
+        },
+        "port_registry": {
+          "sheet": "Summary",
+          "cell": "B23",
+          "type": "string",
+          "label": "Porto de registro",
+          "section": "Navio"
+        },
+        "gross_tonnage": {
+          "sheet": "Summary",
+          "cell": "B24",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "GRT (mt)",
+          "section": "Navio"
+        },
+        "net_tonnage": {
+          "sheet": "Summary",
+          "cell": "B25",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "NET (mt)",
+          "section": "Navio"
+        },
+        "delivered": {
+          "sheet": "Summary",
+          "cell": "B26",
+          "type": "number",
+          "decimals": 0,
+          "label": "Ano de entrega",
+          "section": "Navio"
+        },
+        "owner": {
+          "sheet": "Summary",
+          "cell": "B27",
+          "type": "string",
+          "label": "Owner",
+          "section": "Navio"
+        },
+        "manager": {
+          "sheet": "Summary",
+          "cell": "B28",
+          "type": "string",
+          "label": "Manager",
+          "section": "Navio"
+        },
+        "call_sign": {
+          "sheet": "Summary",
+          "cell": "B29",
+          "type": "string",
+          "label": "Call sign",
+          "section": "Navio"
+        },
+        "type": {
+          "sheet": "Summary",
+          "cell": "B30",
+          "type": "string",
+          "label": "Tipo",
+          "section": "Navio"
+        },
+        "loa": {
+          "sheet": "Summary",
+          "cell": "B31",
+          "type": "number",
+          "decimals": 2,
+          "unit": "m",
+          "label": "LOA (m)",
+          "section": "Navio"
+        },
+        "lbp": {
+          "sheet": "Summary",
+          "cell": "B32",
+          "type": "number",
+          "decimals": 2,
+          "unit": "m",
+          "label": "LBP (m)",
+          "section": "Navio"
+        },
+        "breadth": {
+          "sheet": "Summary",
+          "cell": "B33",
+          "type": "number",
+          "decimals": 2,
+          "unit": "m",
+          "label": "Boca (m)",
+          "section": "Navio"
+        },
+        "depth": {
+          "sheet": "Summary",
+          "cell": "B34",
+          "type": "number",
+          "decimals": 2,
+          "unit": "m",
+          "label": "Pontal (m)",
+          "section": "Navio"
+        },
+        "light_ship": {
+          "sheet": "Summary",
+          "cell": "B35",
+          "type": "number",
+          "decimals": 2,
+          "unit": "t",
+          "label": "Light ship (t)",
+          "section": "Navio"
+        },
 
-        "captain":        { "sheet": "Summary", "cell": "B37", "type": "string", "label": "Capitão",          "section": "Comando" },
-        "chief_engineer": { "sheet": "Summary", "cell": "B38", "type": "string", "label": "Chefe de máquinas","section": "Comando" },
-        "surveyed_by":    { "sheet": "Summary", "cell": "B39", "type": "string", "label": "Quem sondou",      "section": "Comando" },
+        "captain": {
+          "sheet": "Summary",
+          "cell": "B37",
+          "type": "string",
+          "label": "Capitão",
+          "section": "Comando"
+        },
+        "chief_engineer": {
+          "sheet": "Summary",
+          "cell": "B38",
+          "type": "string",
+          "label": "Chefe de máquinas",
+          "section": "Comando"
+        },
+        "surveyed_by": {
+          "sheet": "Summary",
+          "cell": "B39",
+          "type": "string",
+          "label": "Quem sondou",
+          "section": "Comando"
+        },
 
-        "purifier_temp":      { "sheet": "Sludge", "cell": "K29", "type": "number", "decimals": 0, "unit": "°C", "label": "Temperatura purificador (°C)", "section": "Purificadores" },
-        "purifier_flow":      { "sheet": "Sludge", "cell": "K30", "type": "string",                       "label": "Fluxo por purificador",         "section": "Purificadores" },
-        "purifier_bowl_freq": { "sheet": "Sludge", "cell": "K31", "type": "number", "decimals": 0, "unit": "min","label": "Frequência de descarga (min)",  "section": "Purificadores" },
+        "purifier_temp": {
+          "sheet": "Sludge",
+          "cell": "K29",
+          "row_anchor": { "range": "H29:H40", "expect": "Temperature (°C)" },
+          "type": "number",
+          "decimals": 0,
+          "unit": "°C",
+          "label": "Temperatura purificador (°C)",
+          "section": "Purificadores"
+        },
+        "purifier_flow": {
+          "sheet": "Sludge",
+          "cell": "K30",
+          "row_anchor": {
+            "range": "H29:H40",
+            "expect": "Flow setting by each purifier (1 x 1,1m3)"
+          },
+          "type": "string",
+          "label": "Fluxo por purificador",
+          "section": "Purificadores"
+        },
+        "purifier_bowl_freq": {
+          "sheet": "Sludge",
+          "cell": "K31",
+          "row_anchor": {
+            "range": "H29:H40",
+            "expect": "Bowl disch freq. in minutes (60;120)"
+          },
+          "type": "number",
+          "decimals": 0,
+          "unit": "min",
+          "label": "Frequência de descarga (min)",
+          "section": "Purificadores"
+        },
 
-        "temp_storage_infrared": { "sheet": "Time Log", "cell": "C36", "type": "string", "label": "FO Storage (IR)",   "section": "Temperaturas" },
-        "temp_service":          { "sheet": "Time Log", "cell": "C37", "type": "string", "label": "Service tanks",     "section": "Temperaturas" },
-        "temp_do":               { "sheet": "Time Log", "cell": "C38", "type": "string", "label": "DO storage",        "section": "Temperaturas" },
-        "temp_engine_room":      { "sheet": "Time Log", "cell": "C39", "type": "number", "decimals": 0, "unit": "°C", "label": "Engine room (°C)", "section": "Temperaturas" },
-        "temp_sea_water":        { "sheet": "Time Log", "cell": "C40", "type": "number", "decimals": 0, "unit": "°C", "label": "Sea water (°C)",   "section": "Temperaturas" },
+        "temp_storage_infrared": {
+          "sheet": "Time Log",
+          "cell": "C36",
+          "type": "string",
+          "label": "FO Storage (IR)",
+          "section": "Temperaturas"
+        },
+        "temp_service": {
+          "sheet": "Time Log",
+          "cell": "C37",
+          "type": "string",
+          "label": "Service tanks",
+          "section": "Temperaturas"
+        },
+        "temp_do": {
+          "sheet": "Time Log",
+          "cell": "C38",
+          "type": "string",
+          "label": "DO storage",
+          "section": "Temperaturas"
+        },
+        "temp_engine_room": {
+          "sheet": "Time Log",
+          "cell": "C39",
+          "type": "number",
+          "decimals": 0,
+          "unit": "°C",
+          "label": "Engine room (°C)",
+          "section": "Temperaturas"
+        },
+        "temp_sea_water": {
+          "sheet": "Time Log",
+          "cell": "C40",
+          "type": "number",
+          "decimals": 0,
+          "unit": "°C",
+          "label": "Sea water (°C)",
+          "section": "Temperaturas"
+        },
 
-        "vrs_updated":           { "sheet": "Time Log", "cell": "G32", "type": "string", "label": "VRS atualizado", "section": "Documentos" },
-        "logbook_updated":       { "sheet": "Time Log", "cell": "C33", "type": "string", "label": "Logbook atualizado", "section": "Documentos" },
+        "vrs_updated": {
+          "sheet": "Time Log",
+          "cell": "G32",
+          "type": "string",
+          "label": "VRS atualizado",
+          "section": "Documentos"
+        },
+        "logbook_updated": {
+          "sheet": "Time Log",
+          "cell": "C33",
+          "type": "string",
+          "label": "Logbook atualizado",
+          "section": "Documentos"
+        },
 
-        "grade_1_surveyor":      { "sheet": "Qtt Sumary", "cell": "F11", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 1 — surveyor", "section": "Quantidades" },
-        "grade_1_vrs":           { "sheet": "Qtt Sumary", "cell": "F12", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 1 — VRS", "section": "Quantidades" },
-        "grade_1_difference":    { "sheet": "Qtt Sumary", "cell": "F13", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 1 — diferença", "section": "Quantidades" },
-        "grade_1_percentage":    { "sheet": "Qtt Sumary", "cell": "F14", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 1 — percentual", "section": "Quantidades" },
-        "grade_2_surveyor":      { "sheet": "Qtt Sumary", "cell": "F16", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 2 — surveyor", "section": "Quantidades" },
-        "grade_2_vrs":           { "sheet": "Qtt Sumary", "cell": "F17", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 2 — VRS", "section": "Quantidades" },
-        "grade_2_difference":    { "sheet": "Qtt Sumary", "cell": "F18", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 2 — diferença", "section": "Quantidades" },
-        "grade_2_percentage":    { "sheet": "Qtt Sumary", "cell": "F19", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 2 — percentual", "section": "Quantidades" },
-        "grade_3_surveyor":      { "sheet": "Qtt Sumary", "cell": "F21", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 3 — surveyor", "section": "Quantidades" },
-        "grade_3_vrs":           { "sheet": "Qtt Sumary", "cell": "F22", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 3 — VRS", "section": "Quantidades" },
-        "grade_3_difference":    { "sheet": "Qtt Sumary", "cell": "F23", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 3 — diferença", "section": "Quantidades" },
-        "grade_3_percentage":    { "sheet": "Qtt Sumary", "cell": "F24", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 3 — percentual", "section": "Quantidades" },
-        "grade_4_surveyor":      { "sheet": "Qtt Sumary", "cell": "F26", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 4 — surveyor", "section": "Quantidades" },
-        "grade_4_vrs":           { "sheet": "Qtt Sumary", "cell": "F27", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 4 — VRS", "section": "Quantidades" },
-        "grade_4_difference":    { "sheet": "Qtt Sumary", "cell": "F28", "type": "number", "decimals": 3, "unit": "mt", "label": "Grade 4 — diferença", "section": "Quantidades" },
-        "grade_4_percentage":    { "sheet": "Qtt Sumary", "cell": "F29", "type": "number", "decimals": 2, "unit": "%", "label": "Grade 4 — percentual", "section": "Quantidades" },
+        "grade_1_surveyor": {
+          "sheet": "Qtt Sumary",
+          "cell": "F11",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 1 — surveyor",
+          "section": "Quantidades"
+        },
+        "grade_1_vrs": {
+          "sheet": "Qtt Sumary",
+          "cell": "F12",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 1 — VRS",
+          "section": "Quantidades"
+        },
+        "grade_1_difference": {
+          "sheet": "Qtt Sumary",
+          "cell": "F13",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 1 — diferença",
+          "section": "Quantidades"
+        },
+        "grade_1_percentage": {
+          "sheet": "Qtt Sumary",
+          "cell": "F14",
+          "type": "number",
+          "decimals": 2,
+          "unit": "%",
+          "label": "Grade 1 — percentual",
+          "section": "Quantidades"
+        },
+        "grade_2_surveyor": {
+          "sheet": "Qtt Sumary",
+          "cell": "F16",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 2 — surveyor",
+          "section": "Quantidades"
+        },
+        "grade_2_vrs": {
+          "sheet": "Qtt Sumary",
+          "cell": "F17",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 2 — VRS",
+          "section": "Quantidades"
+        },
+        "grade_2_difference": {
+          "sheet": "Qtt Sumary",
+          "cell": "F18",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 2 — diferença",
+          "section": "Quantidades"
+        },
+        "grade_2_percentage": {
+          "sheet": "Qtt Sumary",
+          "cell": "F19",
+          "type": "number",
+          "decimals": 2,
+          "unit": "%",
+          "label": "Grade 2 — percentual",
+          "section": "Quantidades"
+        },
+        "grade_3_surveyor": {
+          "sheet": "Qtt Sumary",
+          "cell": "F21",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 3 — surveyor",
+          "section": "Quantidades"
+        },
+        "grade_3_vrs": {
+          "sheet": "Qtt Sumary",
+          "cell": "F22",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 3 — VRS",
+          "section": "Quantidades"
+        },
+        "grade_3_difference": {
+          "sheet": "Qtt Sumary",
+          "cell": "F23",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 3 — diferença",
+          "section": "Quantidades"
+        },
+        "grade_3_percentage": {
+          "sheet": "Qtt Sumary",
+          "cell": "F24",
+          "type": "number",
+          "decimals": 2,
+          "unit": "%",
+          "label": "Grade 3 — percentual",
+          "section": "Quantidades"
+        },
+        "grade_4_surveyor": {
+          "sheet": "Qtt Sumary",
+          "cell": "F26",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 4 — surveyor",
+          "section": "Quantidades"
+        },
+        "grade_4_vrs": {
+          "sheet": "Qtt Sumary",
+          "cell": "F27",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 4 — VRS",
+          "section": "Quantidades"
+        },
+        "grade_4_difference": {
+          "sheet": "Qtt Sumary",
+          "cell": "F28",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Grade 4 — diferença",
+          "section": "Quantidades"
+        },
+        "grade_4_percentage": {
+          "sheet": "Qtt Sumary",
+          "cell": "F29",
+          "type": "number",
+          "decimals": 2,
+          "unit": "%",
+          "label": "Grade 4 — percentual",
+          "section": "Quantidades"
+        },
 
-        "sludge_surveyor":       { "sheet": "Qtt Sumary", "cell": "F31", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge — surveyor", "section": "Sludge" },
-        "sludge_berthing":       { "sheet": "Qtt Sumary", "cell": "F32", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge — berthing report", "section": "Sludge" },
-        "sludge_difference":     { "sheet": "Qtt Sumary", "cell": "F33", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge — diferença", "section": "Sludge" },
-        "sludge_percentage":     { "sheet": "Qtt Sumary", "cell": "F34", "type": "number", "decimals": 2, "unit": "%", "label": "Sludge — percentual", "section": "Sludge" },
-        "last_discharge_date":   { "sheet": "Sludge", "cell": "D27", "type": "date", "format": "YYYY-MM-DD", "label": "Última descarga", "section": "Sludge" },
-        "last_discharge_quantity": { "sheet": "Sludge", "cell": "D28", "type": "number", "decimals": 3, "unit": "m³", "label": "Última descarga — quantidade", "section": "Sludge" },
-        "retained_after_last_discharge": { "sheet": "Sludge", "cell": "D29", "type": "number", "decimals": 3, "unit": "m³", "label": "Retido após última descarga", "section": "Sludge" },
-        "sludge_generated_chief": { "sheet": "Sludge", "cell": "D31", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge gerado — comandante", "section": "Sludge" },
-        "consumption_chief":      { "sheet": "Sludge", "cell": "D32", "type": "number", "decimals": 3, "unit": "mt", "label": "Consumo — comandante", "section": "Sludge" },
-        "sludge_rate_chief":      { "sheet": "Sludge", "cell": "D33", "type": "number", "decimals": 3, "unit": "%", "label": "Taxa de sludge — comandante", "section": "Sludge" },
-        "retained_surveyor":      { "sheet": "Sludge", "cell": "D37", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge ROB — surveyor", "section": "Sludge" },
-        "sludge_generated_surveyor": { "sheet": "Sludge", "cell": "D38", "type": "number", "decimals": 3, "unit": "m³", "label": "Sludge gerado — surveyor", "section": "Sludge" },
-        "consumption_surveyor":   { "sheet": "Sludge", "cell": "D39", "type": "number", "decimals": 3, "unit": "mt", "label": "Consumo — surveyor", "section": "Sludge" },
-        "sludge_difference_surveyor": { "sheet": "Sludge", "cell": "D40", "type": "number", "decimals": 3, "unit": "m³", "label": "Diferença de sludge — surveyor", "section": "Sludge" },
-        "sludge_rate_surveyor":   { "sheet": "Sludge", "cell": "D41", "type": "number", "decimals": 3, "unit": "%", "label": "Taxa de sludge — surveyor", "section": "Sludge" },
-        "retained_after_discharge": { "sheet": "Sludge", "cell": "D42", "type": "number", "decimals": 3, "unit": "m³", "label": "Retido após descarga", "section": "Sludge" },
+        "sludge_surveyor": {
+          "sheet": "Qtt Sumary",
+          "cell": "F31",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Sludge — surveyor",
+          "section": "Sludge"
+        },
+        "sludge_berthing": {
+          "sheet": "Qtt Sumary",
+          "cell": "F32",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Sludge — berthing report",
+          "section": "Sludge"
+        },
+        "sludge_difference": {
+          "sheet": "Qtt Sumary",
+          "cell": "F33",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Sludge — diferença",
+          "section": "Sludge"
+        },
+        "sludge_percentage": {
+          "sheet": "Qtt Sumary",
+          "cell": "F34",
+          "type": "number",
+          "decimals": 2,
+          "unit": "%",
+          "label": "Sludge — percentual",
+          "section": "Sludge"
+        },
+        "last_discharge_date": {
+          "sheet": "Sludge",
+          "cell": "D27",
+          "type": "date",
+          "format": "YYYY-MM-DD",
+          "label": "Última descarga",
+          "section": "Sludge"
+        },
+        "last_discharge_quantity": {
+          "sheet": "Sludge",
+          "cell": "D28",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Última descarga — quantidade",
+          "section": "Sludge"
+        },
+        "retained_after_last_discharge": {
+          "sheet": "Sludge",
+          "cell": "D29",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Retido após última descarga",
+          "section": "Sludge"
+        },
+        "sludge_generated_chief": {
+          "sheet": "Sludge",
+          "cell": "D31",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Sludge gerado — comandante",
+          "section": "Sludge"
+        },
+        "consumption_chief": {
+          "sheet": "Sludge",
+          "cell": "D32",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Consumo — comandante",
+          "section": "Sludge"
+        },
+        "sludge_rate_chief": {
+          "sheet": "Sludge",
+          "cell": "D33",
+          "type": "number",
+          "decimals": 3,
+          "unit": "%",
+          "label": "Taxa de sludge — comandante",
+          "section": "Sludge"
+        },
+        "retained_surveyor": {
+          "sheet": "Sludge",
+          "cell": "D37",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Sludge ROB — surveyor",
+          "section": "Sludge"
+        },
+        "sludge_generated_surveyor": {
+          "sheet": "Sludge",
+          "cell": "D38",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Sludge gerado — surveyor",
+          "section": "Sludge"
+        },
+        "consumption_surveyor": {
+          "sheet": "Sludge",
+          "cell": "D39",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Consumo — surveyor",
+          "section": "Sludge"
+        },
+        "sludge_difference_surveyor": {
+          "sheet": "Sludge",
+          "cell": "D40",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Diferença de sludge — surveyor",
+          "section": "Sludge"
+        },
+        "sludge_rate_surveyor": {
+          "sheet": "Sludge",
+          "cell": "D41",
+          "type": "number",
+          "decimals": 3,
+          "unit": "%",
+          "label": "Taxa de sludge — surveyor",
+          "section": "Sludge"
+        },
+        "retained_after_discharge": {
+          "sheet": "Sludge",
+          "cell": "D42",
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Retido após descarga",
+          "section": "Sludge"
+        },
 
-        "flowmeter_logbook_total": { "sheet": "LOG Audit", "cell": "E36", "type": "number", "decimals": 3, "unit": "mt", "label": "Total logbook", "section": "Flowmeter" },
-        "flowmeter_total":       { "sheet": "LOG Audit", "cell": "E37", "type": "number", "decimals": 3, "unit": "mt", "label": "Total flowmeter", "section": "Flowmeter" },
-        "flowmeter_difference":  { "sheet": "LOG Audit", "cell": "E38", "type": "number", "decimals": 3, "unit": "mt", "label": "Diferença flowmeter", "section": "Flowmeter" },
-        "flowmeter_accuracy":    { "sheet": "LOG Audit", "cell": "E39", "type": "number", "decimals": 2, "unit": "%", "label": "Acurácia flowmeter", "section": "Flowmeter" }
+        "flowmeter_logbook_total": {
+          "sheet": "LOG Audit",
+          "cell": "E36",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Total logbook",
+          "section": "Flowmeter"
+        },
+        "flowmeter_total": {
+          "sheet": "LOG Audit",
+          "cell": "E37",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Total flowmeter",
+          "section": "Flowmeter"
+        },
+        "flowmeter_difference": {
+          "sheet": "LOG Audit",
+          "cell": "E38",
+          "type": "number",
+          "decimals": 3,
+          "unit": "mt",
+          "label": "Diferença flowmeter",
+          "section": "Flowmeter"
+        },
+        "flowmeter_accuracy": {
+          "sheet": "LOG Audit",
+          "cell": "E39",
+          "type": "number",
+          "decimals": 2,
+          "unit": "%",
+          "label": "Acurácia flowmeter",
+          "section": "Flowmeter"
+        }
       }
     },
 
     "tables": [
-      { "id": "time_log",            "label": "Time Log",                 "sheet": "Time Log", "range": "B4:I16" },
-      { "id": "sludge_misc",         "label": "Sludge — miscellaneous",   "sheet": "Sludge",   "range": "B11:L13" },
-      { "id": "sludge_tanks_before", "label": "Sludge tanks (before)",    "sheet": "Sludge",   "range": "B16:I23" },
-      { "id": "sludge_tanks_after",  "label": "Sludge tanks (after)",     "sheet": "Sludge",   "range": "H16:I23" }
+      {
+        "id": "time_log",
+        "label": "Time Log",
+        "sheet": "Time Log",
+        "range": "B4:I16"
+      },
+      {
+        "id": "sludge_misc",
+        "label": "Sludge — miscellaneous",
+        "sheet": "Sludge",
+        "range": "B11:L13"
+      },
+      {
+        "id": "sludge_tanks_before",
+        "label": "Sludge tanks (before)",
+        "sheet": "Sludge",
+        "range": "B16:I23"
+      },
+      {
+        "id": "sludge_tanks_after",
+        "label": "Sludge tanks (after)",
+        "sheet": "Sludge",
+        "range": "H16:I23"
+      }
     ]
   },
 
   "validations": [
-    { "rule": "range", "field": "loa",           "min": 50,   "max": 400,   "level": "warning", "message": "LOA fora do intervalo usual (50–400 m) — confira Summary!B31." },
-    { "rule": "range", "field": "gross_tonnage", "min": 0,    "max": 300000, "level": "warning", "message": "GRT fora do intervalo usual — confira Summary!B24." }
+    {
+      "rule": "range",
+      "field": "loa",
+      "min": 50,
+      "max": 400,
+      "level": "warning",
+      "message": "LOA fora do intervalo usual (50–400 m) — confira Summary!B31."
+    },
+    {
+      "rule": "range",
+      "field": "gross_tonnage",
+      "min": 0,
+      "max": 300000,
+      "level": "warning",
+      "message": "GRT fora do intervalo usual — confira Summary!B24."
+    }
   ],
 
   "photo_slots": [
-    { "id": "vessel",            "label": "Vessel (capa)",         "aspect": "4:3", "required": false },
-    { "id": "engine_room",       "label": "Engine room",           "aspect": "4:3", "required": false },
-    { "id": "survey_attendance", "label": "Survey attendance",     "aspect": "4:3", "required": false },
-    { "id": "ecr",               "label": "ECR (Engine Control Room)", "aspect": "4:3", "required": false },
-    { "id": "hull",              "label": "Hull (casco)",          "aspect": "4:3", "required": false }
+    {
+      "id": "vessel",
+      "label": "Vessel (capa)",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "engine_room",
+      "label": "Engine room",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "survey_attendance",
+      "label": "Survey attendance",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "ecr",
+      "label": "ECR (Engine Control Room)",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "hull",
+      "label": "Hull (casco)",
+      "aspect": "4:3",
+      "required": false
+    }
   ]
 }
