@@ -1,6 +1,6 @@
 # Ativação das correções da geração online
 
-Estado: ECR aplicado no Supabase de produção em 10/10/2026, após autorização explícita, e confirmado na página de fotos do relatório. Serviços web/worker e revisão publicada ainda precisam ser identificados; as correções de layout do Word ainda aguardam publicação e aceite no Collabora. Nenhum Word existente foi substituído.
+Estado: ECR aplicado e confirmado na página de fotos. Dokploy de produção identificado em 10/10/2026: web e worker acompanham `codex/msc-video-feedback` com publicação automática após push e registram o commit `057b566` concluído. Uma falha real de paginação por superscrito destacado no PDF foi reproduzida e corrigida; o candidato passou no Collabora do destino e está preparado para o próximo push. Nenhum Word existente foi substituído nesta preparação.
 
 ## Conferência após o push — 10/10/2026
 
@@ -52,6 +52,20 @@ Evidências locais privadas: `tmp/msc-production-activation-20261010/production-
 - Registrar backup verificável do banco e, para qualquer reconstrução da MSC SABRINA, preservar seu registro, fotos, planilha, overrides e o objeto `working_docx_path` atual. Registrar geração e revisão antes da intervenção.
 - Contar specs MSC sem ECR e relatórios abertos não excluídos que os usam. A migration 0021 bloqueia a linha do tipo MSC e as linhas de relatórios atualizadas; estimar volume e executar na janela acordada.
 - Confirmar no worker que `COLLABORA_CONVERSION_URL` aponta para o mesmo serviço do editor e que o worker consegue converter para PDF. O acesso externo da estação respondeu HTTP 403; não alterar a lista de permissões para contornar esse bloqueio.
+
+## Dokploy identificado e falha de paginação reproduzida — 10/10/2026
+
+O painel informado pelo usuário é **Dokploy v0.30.2**, em `http://76.13.234.129:3000`, organização Paxur, projeto **Naabsa_Surveys**, ambiente **production**. Os serviços `web` (`05Y251QP0Hho86-q5-aMn`) e `worker` (`65rR3ki0J0fNV7J6YfF-S`) usam o repositório `cristianpaxur/Naabsa_Survey`, branch `codex/msc-video-feedback`, raiz `/`, Dockerfiles `Dockerfile.web` e `Dockerfile.worker`. Ambos têm Autodeploy ativo, On Push, sem filtro Watch Paths. Portanto, o push já autorizado também dispara os dois deploys; não é necessário acionar Deploy/Rebuild manualmente nem mudar a configuração.
+
+O histórico de ambos registra `057b566`, `a4168c9`, `2587df0` e `4a586cf` como concluídos. O log de build do worker em `2587df0` confirma a cópia de `templates/msc.clean.docx`. O container atual `942d6e570057` iniciou às 16:16:30 e registrou `worker pronto`. Liveness pública respondeu HTTP 200; a consulta no próprio worker confirmou banco, heartbeat, fila e bucket privado saudáveis. A conversão interna pelo Collabora também funcionou, sem alterar permissões de rede.
+
+Às 18:12:56–18:13:02, a montagem do relatório `fae24adc-81aa-473b-bbb3-b93519b615c0` falhou três vezes: `Paginação MSC: seção s3_4 (Gross volume - m3) ausente ou ambígua no PDF`. O ensaio vazio passa porque esse título permanece na página 3. Com os dados reais, o título inicia a página 4 e o Poppler extrai o `3` sobrescrito em uma linha anterior a `3.4.Gross volume - m`. O OOXML mantém exatamente esse expoente em um run com `w:vertAlign="superscript"`; o título está presente e a falha é da identificação textual.
+
+O parser corrigido aceita a linha completa ou a linha base acompanhada pelo expoente exato indicado no OOXML, somente em uma linha imediatamente adjacente da mesma página. Continua rejeitando unidade ausente/diferente, título ausente, expoente em outra página e páginas ambíguas. Não altera o pacote Word, dados ou estilos.
+
+O candidato foi executado em memória no worker, sem editar arquivos do container ou registros, com a planilha, dados efetivos, formatos numéricos, logo, crops e sete fotos da geração real. A implementação anterior falhou novamente; a corrigida concluiu a montagem numerada e a conversão: seis páginas, 12 eventos, Vessel/Engine room/Survey attendance na 5, ECR e Attachment na 6. Todas as 18 seções foram localizadas; contatos terminaram na página 1. Hashes das linhas do relatório e das fotos permaneceram iguais. Evidência privada: `collabora-full-recheck.json` em `tmp/msc-production-activation-20261010/`.
+
+Validação local: sete novos casos, 12 testes de paginação aprovados; core 215, db 27, web 231 e worker 228 = **701 aprovados**, mais **sete golden**. A primeira execução conjunta sofreu seis timeouts de 5 s nas suítes de montagem/fidelidade; a repetição isolada completa do worker com dois workers passou, sem alterar código ou limites desses testes. Typecheck do worker, lint, Prettier dos arquivos alterados e build completo passaram. O próximo passo é acompanhar o deploy automático após o push e reabrir somente a geração falhada sem Word publicado, preservando os documentos existentes. A 0022 e a atualização dos valores DAMLA continuam separadas.
 
 ## Execução autorizada
 

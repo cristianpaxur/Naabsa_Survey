@@ -1,6 +1,6 @@
 # Validação — 017: MSC igual à referência Word
 
-Data: **10/10/2026**, com verificações anteriores preservadas abaixo. Estado: **gerador, fidelidade local e diagnóstico DAMLA concluídos; ECR aplicado e verificado em produção**. Publicação do worker, ativação das âncoras DAMLA e aceite no Collabora de destino permanecem pendentes.
+Data: **10/10/2026**, com verificações anteriores preservadas abaixo. Estado: **gerador, fidelidade local e diagnóstico DAMLA concluídos; ECR ativo; Dokploy identificado e nova correção de paginação validada no Collabora do destino**. Acompanhamento da publicação, ativação das âncoras DAMLA e aceite do documento pela interface permanecem pendentes.
 
 ## Resultado visual final
 
@@ -122,3 +122,11 @@ Após a autorização explícita do usuário, a transação isolada da 0021 foi 
 O navegador abriu a página `/photos` de `cc1e98bc-d3c3-4a3c-8a13-f5bcbe30df66` e mostrou **ECR (Engine Control Room)** com o botão “Alocar”, junto aos três grupos anteriores. Evidências em `tmp/msc-production-activation-20261010/production-verification.json`, `database-after.jpg` e `ecr-photos-after.jpg`; alcance, preservação e recuperação em [deployment-online.md](deployment-online.md). Valores, Word e lixeira foram conferidos contra a cópia anterior; não foram gerados novos arquivos nem enviadas fotos de teste. As quatro revisões antigas de IA e os 15 avisos IA foram invalidados conforme aprovado.
 
 Esse aceite conclui a ativação ECR. As correções do Word/Collabora e a leitura por rótulos ainda dependem de publicar o worker; a 0022 e a atualização do DAMLA existente não foram executadas.
+
+## Superscrito separado pelo Collabora — 10/10/2026
+
+O Dokploy mostrou web/worker na branch das correções, com `057b566` concluído. O log da geração real `fae24adc-81aa-473b-bbb3-b93519b615c0` comprovou falha ao ler Gross volume. Um ensaio com dados vazios passou; com os dados reais falhou porque o `3` sobrescrito de `m³` saiu em outra linha no topo da página 4. O parser usa os runs sobrescritos do próprio OOXML para reconhecer somente essa separação adjacente, mantendo os checks de presença, unidade e página única.
+
+TDD: os dois casos de expoente destacado falharam antes da alteração, assim como a detecção de ambiguidade envolvendo um deles. Depois, os 12 testes de paginação passaram; os casos de unidade ausente/diferente e expoente em outra página também passaram. A fonte modificada foi compilada e executada somente em memória no worker para um ensaio completo com os dados/planilha/fotos reais, sem publicar Word nem editar registros. O parser anterior reproduziu o erro; o candidato gerou seis páginas, 12 eventos, sete fotos (1 Vessel, 2 Engine room, 2 Survey attendance, 2 ECR), todas as 18 seções e números estáveis. Dados e fotos permaneceram com os mesmos hashes. Evidência em `tmp/msc-production-activation-20261010/collabora-full-recheck.json`.
+
+Core **215**, db **27**, web **231**, worker **228**: **701 testes aprovados**, seis opt-in separados; **sete golden** aprovados. A primeira execução conjunta teve seis timeouts na montagem/fidelidade; a suíte inteira do worker repetida isoladamente com dois workers passou com os mesmos limites. Typecheck do worker, lint, Prettier dos dois arquivos alterados, `git diff --check` e build completo passaram. O template e o builder não foram modificados. Logs em `pagination-regression-tests.log`, `pagination-worker-isolated-tests.log`, `pagination-golden-tests.log` e `pagination-build.log` no diretório privado de evidências.

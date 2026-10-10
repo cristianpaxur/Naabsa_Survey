@@ -60,16 +60,49 @@ export function mscPagesFromPdfText(
       paragraph = paragraph.parentNode;
     if (!paragraph)
       throw new Error(`Paginação MSC: seção ${id} sem parágrafo.`);
-    const label = Array.from(paragraph.getElementsByTagName('w:t'))
-      .map((node) => node.textContent ?? '')
-      .join('');
-    const wanted = normalize(id.slice(1).replace('_', '.') + '. ' + label);
-    const matches = pages.flatMap((page, index) =>
-      index + 1 > contents[0]! &&
-      page.split(/\r?\n/).some((line) => normalize(line) === wanted)
-        ? [index + 1]
-        : [],
+    const textNodes = Array.from(paragraph.getElementsByTagName('w:t'));
+    const label = textNodes.map((node) => node.textContent ?? '').join('');
+    const superscriptNodes = new Set(
+      Array.from(paragraph.getElementsByTagName('w:r'))
+        .filter((run) =>
+          Array.from(run.getElementsByTagName('w:vertAlign')).some(
+            (alignment) => alignment.getAttribute('w:val') === 'superscript',
+          ),
+        )
+        .flatMap((run) => Array.from(run.getElementsByTagName('w:t'))),
     );
+    const exponent = normalize(
+      textNodes
+        .filter((node) => superscriptNodes.has(node))
+        .map((node) => node.textContent ?? '')
+        .join(''),
+    );
+    const baseline = normalize(
+      id.slice(1).replace('_', '.') +
+        '. ' +
+        textNodes
+          .filter((node) => !superscriptNodes.has(node))
+          .map((node) => node.textContent ?? '')
+          .join(''),
+    );
+    const wanted = normalize(id.slice(1).replace('_', '.') + '. ' + label);
+    const matches = pages.flatMap((page, index) => {
+      if (index + 1 <= contents[0]!) return [];
+      const lines = page.split(/\r?\n/);
+      const found = lines.some((line, lineIndex) => {
+        if (normalize(line) === wanted) return true;
+        // At page tops Poppler may place the unit's superscript on its own
+        // baseline. Require that exact OOXML exponent next to the full heading.
+        return (
+          exponent !== '' &&
+          normalize(line) === baseline &&
+          [lineIndex - 1, lineIndex + 1].some(
+            (adjacent) => normalize(lines[adjacent] ?? '') === exponent,
+          )
+        );
+      });
+      return found ? [index + 1] : [];
+    });
     if (matches.length !== 1)
       throw new Error(
         `Paginação MSC: seção ${id} (${label}) ausente ou ambígua no PDF.`,
