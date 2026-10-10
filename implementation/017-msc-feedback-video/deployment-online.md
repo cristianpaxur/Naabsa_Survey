@@ -1,6 +1,6 @@
 # Ativação das correções da geração online
 
-Estado: Supabase de produção identificado e consultado; serviços web/worker e revisão publicada ainda precisam ser identificados. Não houve migration, deploy ou substituição do Word do relatório inspecionado.
+Estado: ECR aplicado no Supabase de produção em 10/10/2026, após autorização explícita, e confirmado na página de fotos do relatório. Serviços web/worker e revisão publicada ainda precisam ser identificados; as correções de layout do Word ainda aguardam publicação e aceite no Collabora. Nenhum Word existente foi substituído.
 
 ## Conferência após o push — 10/10/2026
 
@@ -12,7 +12,7 @@ Estado: Supabase de produção identificado e consultado; serviços web/worker e
 - O conector EasyPanel disponível lista projetos `innerworks`, `monitoramento` e `glpi`, sem Naabsa. A conexão de navegador fornece apenas o Chrome; a aba de publicação `Environment: pr…` da captura está no Edge e não está disponível nessa conexão. Foi solicitado seu endereço para identificar o ambiente correto.
 - O usuário informou `https://naabsasurveys-supabase-61ca72-76-13-234-129.sslip.io`. O endereço responde HTTP 401 com `WWW-Authenticate: Basic realm="service"` e `Server: kong/3.9.3`; o navegador conectado também exige autenticação. Nenhum arquivo `.env*` do checkout consultado corresponde a esse host. A inspeção do banco aguarda login nesse endereço; o vínculo com a aplicação, o histórico de migrations e o backup ainda não foram verificados.
 
-Próxima verificação: identificar o painel/serviços, revisão publicada, banco e backup; conferir migrations pendentes e alcance do Collabora. Depois apresentar a ativação específica para aprovação e executar o smoke test do ECR e de uma nova geração MSC. O Word editado existente exige a preservação descrita abaixo.
+As observações desta seção registram o estado anterior à ativação abaixo. Próxima etapa: identificar o painel/serviços e a revisão publicada, conferir o alcance do Collabora e preparar a publicação das correções do worker. O Word editado existente exige a preservação descrita abaixo.
 
 ## Banco acessado e ativação isolada preparada — 10/10/2026
 
@@ -26,9 +26,24 @@ Esse banco não contém `naabsa_internal.migrations`. Os únicos históricos enc
 - `activate-ecr.sql` verifica hashes/quantidades antes de alterar, mantém as cópias antigas e confere os efeitos antes de terminar. Foram testadas uma divergência de origem e uma falha proposital depois da migration; ambas interrompem e desfazem toda a operação. A migration original continua idempotente. O wrapper vinculado à cópia anterior aborta se a ativação já tiver ocorrido ou se os registros mudarem.
 - A recuperação por vínculo usa os IDs anteriores registrados nos eventos de auditoria, após conferir o estado atual e ausência de fotos ECR nos relatórios a reverter. Preservar as revisões crescentes, dados atuais, novas specs e auditoria; não restaurar linhas inteiras sobre edições posteriores. A cópia integral foi validada para restauração isolada e conserva os estados de IA anteriores para consulta.
 
-Estado: aplicação no banco de produção aguardando aprovação explícita. Preparação e validação não equivalem a execução. A publicação das correções do worker e a verificação de uma nova geração Word/Collabora continuam pendentes.
+Essa preparação foi aprovada e executada conforme a seção seguinte. A publicação das correções do worker e a verificação de uma nova geração Word/Collabora continuam pendentes.
 
-O diagnóstico do DAMLA também foi concluído em leitura: os purificadores estão três linhas abaixo do mapeamento congelado. A leitura por rótulos e a migration 0022 foram preparadas e testadas localmente; [damla-diagnosis.md](damla-diagnosis.md) especifica o alcance. A aprovação pendente do ECR se restringe à 0021. A 0022 exige publicar o core/worker compatível antes de ativar o modelo, e não modifica relatórios existentes. A atualização dos três valores do DAMLA será uma intervenção separada com guarda de revisão e autorização.
+O diagnóstico do DAMLA também foi concluído em leitura: os purificadores estão três linhas abaixo do mapeamento congelado. A leitura por rótulos e a migration 0022 foram preparadas e testadas localmente; [damla-diagnosis.md](damla-diagnosis.md) especifica o alcance. A autorização recebida para o ECR se restringe à 0021. A 0022 exige publicar o core/worker compatível antes de ativar o modelo, e não modifica relatórios existentes. A atualização dos três valores do DAMLA será uma intervenção separada com guarda de revisão e autorização.
+
+## ECR aplicado e conferido em produção — 10/10/2026
+
+O usuário respondeu “Autorizo aplicar a correção do ECR” à proposta de criar duas versões de modelo, atualizar sete relatórios abertos e invalidar quatro revisões antigas de IA, preservando valores, fotos e Word. `activate-ecr.sql` foi colado em uma consulta nova no SQL Editor; a cópia do conteúdo pela interface conferiu integralmente com os 21.330 caracteres do arquivo validado. A operação foi executada uma vez e retornou `active_msc_version=4`, `updated_reports=7` e `ecr_enabled_for_current_report=true`. Não houve divergência das guardas nem execução do runner geral.
+
+A consulta posterior, somente de leitura, foi verificada às **16:12:58 de Brasília (19:12:58 UTC)**. Comparou hashes calculados da cópia anterior com as linhas efetivas, considerando somente as mudanças autorizadas de spec e revisão. Confirmou:
+
+- Dez relatórios existentes, com sete vínculos atualizados e três relatórios da lixeira integralmente preservados. Valores e todas as colunas/caminhos/revisões de documento continuam iguais.
+- Quatro specs: duas originais intactas e duas cópias cujo conteúdo difere somente pela versão e pelo slot ECR opcional. O modelo ativo é a versão 4.
+- Os hashes dos **112 registros de fotos** são iguais aos da cópia anterior. A configuração do tipo MSC conserva as demais colunas.
+- Oito eventos de auditoria: sete `msc_ecr_report_spec_updated` e um `msc_ecr_spec_added`. As quatro revisões antigas de IA e os 15 avisos de origem IA foram removidos pelos triggers previstos; nenhuma revisão antiga permanece nos relatórios abertos.
+
+A página publicada `https://surveyors.paxur.com.br/reports/cc1e98bc-d3c3-4a3c-8a13-f5bcbe30df66/photos` exibiu os quatro grupos: Vessel, Engine room, Survey attendance e **ECR (Engine Control Room)**, com botão “Alocar”, proporção 4:3 e indicação opcional. Não foi necessário publicar containers para essa correção dos vínculos. Não foram enviadas/alocadas fotos de teste nem aberto o editor para produzir um documento.
+
+Evidências locais privadas: `tmp/msc-production-activation-20261010/production-verification.json`, `verify-ecr-production.sql`, `database-after.jpg` e `ecr-photos-after.jpg`. A tela de fotos foi deixada aberta no Chrome. A autorização e esta execução não abrangem a migration 0022, valores DAMLA, publicação do worker ou reconstrução de documentos existentes.
 
 ## Prechecks
 

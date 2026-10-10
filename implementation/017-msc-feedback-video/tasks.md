@@ -82,7 +82,7 @@ Status: **fidelidade e correções locais concluídas, 13/14 tarefas**. F-001 a 
   - **Critério de conclusão:** desenhos e tamanhos originais da galeria, proporção e ordem preservadas, pares de fotos, capa separada e paginação original dos títulos.
 
 - [ ] **T-009:** Validar Word/PDF completo e preparar instruções de ativação
-  - **Estado:** validação local, diagnóstico DAMLA e instruções de ativação prontos. A geração real MSC SABRINA foi inspecionada no Collabora e o Supabase de destino foi identificado. Restam aprovação/aplicação ECR, identificação/publicação web/worker, ativação do modelo por rótulos e atualização autorizada dos valores DAMLA, além do aceite no Collabora. O documento editado existente está preservado; sua reconstrução exige conferir e conservar essa versão.
+  - **Estado:** validação local, diagnóstico DAMLA e instruções de ativação prontos. ECR aprovado, aplicado no Supabase de destino e verificado na página de fotos em 10/10/2026: sete relatórios atualizados, valores/Word/112 registros de fotos/lixeira preservados; quatro revisões antigas de IA invalidadas conforme autorizado. Restam identificação/publicação web/worker, ativação do modelo por rótulos e atualização autorizada dos valores DAMLA, além do aceite no Collabora. O documento editado existente está preservado; sua reconstrução exige conferir e conservar essa versão.
   - **Cobre:** RF-001, RF-002, RF-003, RF-004, RF-005, RF-006, RF-007, RF-008, RF-009
   - **Valida:** CA-001, CA-002, CA-003, CA-004, CA-005, CA-006, CA-007, CA-008, CA-009
   - **Testes:** CT-001, CT-002, CT-003, CT-004, CT-005, CT-006, CT-007, CT-008, CT-009

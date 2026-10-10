@@ -12,7 +12,7 @@ requirements: ["RF-001", "RF-002", "RF-003", "RF-004", "RF-005", "RF-006", "RF-0
 ---
 # 017 — Correções do relatório MSC apontadas no vídeo
 
-Corrigir o MSC gerado conforme os ajustes de alinhamento, dados e paginação apresentados no vídeo. Após a preparação e explicação das nove mudanças, o usuário autorizou a execução local com “pode seguir”, em 09/10/2026. A causa do DAMLA foi comprovada pela planilha e pelo registro originais em 10/10/2026; a ativação em produção continua pendente.
+Corrigir o MSC gerado conforme os ajustes de alinhamento, dados e paginação apresentados no vídeo. Após a preparação e explicação das nove mudanças, o usuário autorizou a execução local com “pode seguir”, em 09/10/2026. A causa do DAMLA foi comprovada pela planilha e pelo registro originais em 10/10/2026. A ativação isolada ECR foi autorizada, aplicada e verificada em produção nesse dia; publicação do worker, ativação da leitura DAMLA e aceite do Word no Collabora continuam pendentes.
 
 ## Fontes e precedência
 
