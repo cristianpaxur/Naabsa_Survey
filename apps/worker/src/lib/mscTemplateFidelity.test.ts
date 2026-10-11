@@ -72,6 +72,76 @@ async function documentXml(input: Partial<DocxInputMsc> = {}) {
 }
 
 describe('MSC — fidelity to the revised Word template', () => {
+  it('keeps matching exemplar photos visible in Collabora without changing their frames', async () => {
+    const template = new PizZip(await readFile(templatePath));
+    const relationships = template
+      .file('word/_rels/document.xml.rels')!
+      .asText();
+    const photos = (start: number, count: number) =>
+      Array.from({ length: count }, (_, index) => {
+        const relation = relationships.match(
+          new RegExp(`<Relationship[^>]*Id="rId${start + index}"[^>]*/>`),
+        )![0];
+        return template
+          .file(`word/${relation!.match(/Target="([^"]+)"/)![1]}`)!
+          .asNodeBuffer();
+      });
+    const source = paragraphs(
+      template.file('word/document.xml')!.asText(),
+    ).filter((p) => p.includes('w:name="msc_photos_'));
+    const output = paragraphs(
+      await documentXml({
+        photos: {
+          vessel: photos(16, 8),
+          engine_room: photos(24, 6),
+          survey_attendance: photos(30, 12),
+          ecr: photos(42, 4),
+        },
+      }),
+    ).filter((p) => p.includes('w:name="msc_photos_'));
+    expect(output.flatMap((p) => [...p.matchAll(/<w:drawing>/g)])).toHaveLength(
+      30,
+    );
+    expect(
+      output.flatMap((p) =>
+        [...p.matchAll(/<wp:extent\b[^>]*\/>/g)].map((m) => m[0]),
+      ),
+    ).toEqual(
+      source.flatMap((p) =>
+        [...p.matchAll(/<wp:extent\b[^>]*\/>/g)].map((m) => m[0]),
+      ),
+    );
+    for (const paragraph of output)
+      expect(properties(paragraph, 'pPr')).not.toContain('w:line="120"');
+  });
+
+  it('keeps source Time log styles while replacing only trailing nonbreaking padding', async () => {
+    const xml = await documentXml({
+      timeLogRows: Array.from({ length: 3 }, (_, index) => ({
+        event: `Event ${index + 1}\u00a0\u00a0 `,
+        date: '2026-06-15',
+        start: '12:30',
+        flag: '',
+        end: '',
+      })),
+    });
+    const table = [...xml.matchAll(/<w:tbl\b[\s\S]*?<\/w:tbl>/g)]
+      .map((m) => m[0])
+      .find((t) => t.includes('w:name="msc_time_log"'))!;
+    const thirdRow = [...table.matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)][3]![0];
+    const emptyCells = [...thirdRow.matchAll(/<w:tc\b[\s\S]*?<\/w:tc>/g)]
+      .map((m) => m[0])
+      .filter((cell) => !textOf(cell));
+    expect(emptyCells).toHaveLength(2);
+    for (const [index, cell] of emptyCells.entries()) {
+      expect(cell).toContain('<w:pStyle w:val="Ttulo"/>');
+      expect(cell).toContain('<w:sz w:val="20"/>');
+      if (index === 1) expect(cell).toContain('<w:jc w:val="right"/>');
+    }
+    expect(thirdRow).not.toContain('\u00a0');
+    expect(thirdRow).toContain('Event 3   ');
+  });
+
   it('carries editable embedded originals so Collabora does not substitute the source fonts', async () => {
     const output = new PizZip(await buildReportDocxMsc(base));
     const fonts = output.file('word/fontTable.xml')!.asText();

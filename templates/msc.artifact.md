@@ -102,10 +102,10 @@ the exemplar bitmap's crop, and keep its heading with the first photo. In a
 partial Vessel gallery, keep Photographic Report with Vessel too. Original
 bitmap crops are preserved only for the matching original exemplar images
 with the reference photo count. This preserves the nine-page fidelity case.
-For changed photo rows, use full automatic line height (`w:line=240`);
+For all photo rows, use full automatic line height (`w:line=240`);
 the source's half line height can clip inline bitmaps in Collabora even when
-their drawing extents are correct. Keep original line properties for the
-unchanged full exemplar case.
+their drawing extents are correct, including matching exemplar bitmaps.
+This is a compatibility exception to the source paragraph properties.
 For partial galleries, keep the Attachment heading, spacer and six bullet
 items together so the final certificate cannot spill alone onto a new page.
 The complete exemplar preserves the source properties of that block.
@@ -164,6 +164,31 @@ all pixels outside that region, including the cover and entire body, match
 the reference on all nine pages. This does not establish literal 9/9 pixel
 identity or production Collabora identity. The online comparison remains
 required and will be recorded separately.
+
+Additional compatibility correction 2026-10-11: the production nine-page
+exemplar test confirmed all embedded fonts are loaded, including Sitka Small.
+It also exposed an enlarged third Time Log row and clipped Survey attendance
+images. Isolated rendering rejected the initial Title-style hypothesis.
+Trailing nonbreaking spaces in the source Time Log event wrap into blank lines
+in Collabora. The builder now converts only trailing NBSPs to ordinary spaces,
+retaining character positions, run fragmentation, internal NBSPs and all styles.
+Explicit line breaks, text, table geometry and operator formatting are retained.
+The pure repairMscCollaboraLayout helper applies these known source patterns
+to an existing document without reconstructing its contents. Repeated repairs
+are no-ops. The original storage version must be retained and active WOPI
+sessions must be excluded when publishing a repair.
+
+Native Word still produces nine pages after these corrections. At 144 DPI,
+the seven pages outside Survey attendance remain pixel-identical outside
+the header text; pages 7 and 8 differ because full line height removes the
+source's overlapping photo row leading. Fixed-line-height alternatives were
+rejected because they displaced or clipped pictures. This is not an accepted
+claim of identical layout. Final production rendering and comparison remain
+pending; historical 9/9 comparisons above do not certify this version. The
+isolated production test with trailing NBSP normalization and full gallery
+line height restored nine pages, placed all photo groups and attachments on
+their source pages and retained the source Title styles. All nine rendered
+pages must still be inspected before acceptance.
 
 <!-- generated-source-evidence -->
 

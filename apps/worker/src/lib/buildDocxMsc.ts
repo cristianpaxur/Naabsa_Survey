@@ -617,16 +617,14 @@ async function fillImages(
       photos = input.photos[slot] ?? [];
     const prototype = ancestor(drawings[0]!, 'w:r').cloneNode(true),
       imageParagraph = ancestor(drawings.at(-1)!, 'w:p');
-    let galleryChanged = photos.length !== drawings.length;
     for (const [index, drawing] of drawings.entries()) {
       if (photos[index])
-        galleryChanged =
-          !(await replaceImage(
-            drawing,
-            photos[index]!,
-            false,
-            photos.length !== drawings.length,
-          )) || galleryChanged;
+        await replaceImage(
+          drawing,
+          photos[index]!,
+          false,
+          photos.length !== drawings.length,
+        );
       else remove(drawing);
     }
     for (const photo of photos.slice(drawings.length)) {
@@ -638,7 +636,7 @@ async function fillImages(
     // explicit pair breaks to avoid three or four photos on one line.
     for (const paragraph of nodes.filter((node) => node.nodeName === 'w:p')) {
       const images = all(paragraph, 'w:drawing');
-      if (galleryChanged && images.length) {
+      if (images.length) {
         const properties = children(paragraph, 'w:pPr')[0]!;
         let spacing = children(properties, 'w:spacing')[0];
         if (!spacing) {
@@ -646,7 +644,8 @@ async function fillImages(
           properties.appendChild(spacing);
         }
         // A 50% line height in the exemplar clips inline photos in Collabora.
-        // Let the complete frame determine the line height for operator photos.
+        // This also applies when the original bitmaps are reused: Collabora
+        // clips those pictures too; desktop Word overlaps only the row leading.
         spacing.setAttribute('w:line', '240');
         spacing.setAttribute('w:lineRule', 'auto');
       }
@@ -858,8 +857,79 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   );
   normalizeMissingDates(doc, values);
   fillTags(doc, doc, values, timeLogTexts);
-  // Operator text is filled last and never revisited by template transforms.
+  // Fill operator text after structural transforms, preserving substantive text.
   fillTimeLog(doc, input);
+  normalizeTimeLogPadding(doc);
   zip.file('word/document.xml', xmlTools.xml2str(doc));
   return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
+}
+
+function normalizeTimeLogPadding(doc: XmlDocument): boolean {
+  const mark = all(doc, 'w:bookmarkStart').find(
+    (node) => node.getAttribute('w:name') === 'msc_time_log',
+  );
+  if (!mark) return false;
+  const table = ancestor(mark, 'w:tbl');
+  let changed = false;
+  for (const paragraph of all(table, 'w:p')) {
+    if (
+      ['w:br', 'w:tab', 'w:drawing', 'w:object', 'w:fldChar'].some(
+        (tag) => all(paragraph, tag).length > 0,
+      )
+    )
+      continue;
+    // Word ignores trailing nonbreaking padding; Collabora wraps it into
+    // blank lines. Preserve every character position and run, using ordinary
+    // spaces only in the trailing suffix. Internal NBSPs remain meaningful.
+    for (const node of all(paragraph, 'w:t').reverse()) {
+      const text = node.textContent ?? '';
+      const suffix = /[\s\u00a0]*$/.exec(text)![0];
+      if (suffix.includes('\u00a0')) {
+        setText(
+          doc,
+          node,
+          text.slice(0, text.length - suffix.length) +
+            suffix.replace(/\u00a0/g, ' '),
+        );
+        changed = true;
+      }
+      if (suffix.length < text.length) break;
+    }
+  }
+  return changed;
+}
+
+/** Apply only known MSC compatibility fixes, retaining operator content. */
+export function repairMscCollaboraLayout(docx: Buffer): {
+  docx: Buffer;
+  changed: boolean;
+} {
+  const zip = new PizZip(docx);
+  const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+  let changed = normalizeTimeLogPadding(doc);
+  for (const paragraph of all(doc, 'w:p')) {
+    if (
+      !all(paragraph, 'w:bookmarkStart').some((mark) =>
+        mark.getAttribute('w:name')?.startsWith('msc_photos_'),
+      ) ||
+      !all(paragraph, 'w:drawing').length
+    )
+      continue;
+    const properties = children(paragraph, 'w:pPr')[0];
+    if (!properties) continue;
+    const spacing = children(properties, 'w:spacing')[0];
+    if (
+      spacing?.getAttribute('w:line') === '120' &&
+      spacing.getAttribute('w:lineRule') === 'auto'
+    ) {
+      spacing.setAttribute('w:line', '240');
+      changed = true;
+    }
+  }
+  if (!changed) return { docx, changed: false };
+  zip.file('word/document.xml', xmlTools.xml2str(doc));
+  return {
+    docx: zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }),
+    changed: true,
+  };
 }
