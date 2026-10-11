@@ -72,6 +72,77 @@ async function documentXml(input: Partial<DocxInputMsc> = {}) {
 }
 
 describe('MSC — fidelity to the revised Word template', () => {
+  it('carries editable embedded originals so Collabora does not substitute the source fonts', async () => {
+    const output = new PizZip(await buildReportDocxMsc(base));
+    const fonts = output.file('word/fontTable.xml')!.asText();
+    const relationships =
+      output.file('word/_rels/fontTable.xml.rels')?.asText() ?? '';
+    // Native Word renders the unavailable source GeoSlab with Calibri. The
+    // alternative must be explicit so Linux does not choose its own serif.
+    const headerFont = fonts.match(
+      /<w:font w:name="GeoSlab703 Md BT">[\s\S]*?<\/w:font>/,
+    )?.[0];
+    expect(headerFont).toContain('<w:altName w:val="Calibri"/>');
+    expect(headerFont).toContain('w:embedRegular');
+    for (const family of [
+      'Calibri',
+      'Tahoma',
+      'Arial',
+      'Times New Roman',
+      'Cambria',
+      'Symbol',
+    ]) {
+      const entry =
+        fonts.match(
+          new RegExp(`<w:font w:name="${family}">[\\s\\S]*?<\\/w:font>`),
+        )?.[0] ?? '';
+      expect(entry, `${family}: original embedded typeface`).toContain(
+        'w:embedRegular',
+      );
+      const links = [
+        ...entry.matchAll(
+          /<w:embed(?:Regular|Bold|Italic|BoldItalic)\b[^>]*r:id="([^"]+)"[^>]*w:fontKey="([^"]+)"/g,
+        ),
+      ];
+      expect(
+        links.length,
+        `${family}: embedded font relationship`,
+      ).toBeGreaterThan(0);
+      for (const [, id, fontKey] of links) {
+        const target = relationships.match(
+          new RegExp(`<Relationship\\b[^>]*Id="${id}"[^>]*Target="([^"]+)"`),
+        )?.[1];
+        expect(target, `${family}: linked payload`).toBeDefined();
+        const embedded = output.file(`word/${target}`)?.asNodeBuffer();
+        expect(
+          embedded?.length,
+          `${family}: actual font payload`,
+        ).toBeGreaterThan(32);
+        const decoded = Buffer.from(embedded!);
+        const key = Buffer.from(
+          fontKey!.replace(/[{}-]/g, ''),
+          'hex',
+        ).reverse();
+        for (let i = 0; i < 32; i++) decoded[i] = decoded[i]! ^ key[i % 16]!;
+        const sfntOffset =
+          decoded.toString('ascii', 0, 4) === 'ttcf'
+            ? decoded.readUInt32BE(12)
+            : 0;
+        let os2: number | undefined;
+        for (let i = 0; i < decoded.readUInt16BE(sfntOffset + 4); i++) {
+          const at = sfntOffset + 12 + 16 * i;
+          if (decoded.toString('ascii', at, at + 4) === 'OS/2')
+            os2 = decoded.readUInt32BE(at + 8);
+        }
+        expect(os2, `${family}: original OpenType permissions`).toBeDefined();
+        expect(
+          decoded.readUInt16BE(os2! + 8),
+          `${family}: editable embedding`,
+        ).toBe(8);
+      }
+    }
+  });
+
   it('keeps the original body hierarchy with automatic numbering and one destination per heading', async () => {
     const xml = await documentXml();
     const actual = headingParagraphs(xml);

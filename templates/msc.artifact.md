@@ -116,7 +116,8 @@ and historical attendance fields must resolve to an em dash when unavailable.
 Retain the application input interface. Source history values have no input
 contract and may never be reused as real attendance data.
 
-Fidelity gates: source SHA unchanged; ZIP member names unchanged; every
+Fidelity gates: source SHA unchanged; original ZIP member names retained,
+with only font relationships and embedded font members added; every
 preserve-only member exact bytes; original drawings/section/table geometry
 exact; same body block/paragraph counts; native numbering XML exact; no
 annotation text/highlights; no real report output retaining source photo
@@ -146,12 +147,27 @@ preserving each value's source run fragmentation resolved the differences.
 Canonical LibreOffice rendering was replaced by Word's native read-only
 export for this fidelity comparison, at the parent agent's direction; no
 renderer ever saved back to the retained DOCX or the clean template.
+Verified font compatibility 2026-10-11: the actual Collabora converter used
+Tahoma from an embedded DOCX probe; a second probe confirmed font-table
+altName selects an embedded original for an unavailable source family.
+The source header's GeoSlab is unavailable locally; native Word's measured
+MARINE width is 47.21652 pt at 14.04 pt, exactly the installed Calibri face.
+Therefore the source GeoSlab entry keeps its name and gains explicit Calibri
+as its alternative and embedded faces. Header XML remains byte-identical.
+Full original editable faces (OS/2 fsType=8) are obfuscated inside the document,
+never installed on the Linux host or shipped as loose font assets.
+The font table, font relationships, content type and embedding settings are
+the only added template changes. All source text, pictures, styles, tables,
+numbering and section properties remain unchanged. New outputs carry these
+fonts. Earlier nine-page pixel comparisons above use native Word and do not
+prove cross-engine Collabora identity; the production comparison is required.
+
 <!-- generated-source-evidence -->
 
 ```json
 {
   "source_sha256": "837c43da11ec830b2d11d26c5a2c2b533c8a7d7a05fc2e5b264a9a933fe7fcd0",
-  "template_sha256": "953bb17bd63576a9c1127dfa7bd2b166b83da148b29d202c798152bb57836056",
+  "template_sha256": "357c39819209132d81323b324f4538010b7f8595421126d513ecf2f098159e11",
   "body_blocks": 206,
   "body_paragraphs": 351,
   "geometry_verified": {
@@ -2186,10 +2202,10 @@ renderer ever saved back to the retained DOCX or the clean template.
   "package_preservation": [
     {
       "part": "[Content_Types].xml",
-      "size": 2849,
-      "sha256": "4a13ae54b0944b47edb9342ed1bf9147887e19847ebfae9fa516ff744da47f3d",
-      "mode": "preserve-only",
-      "unchanged": true
+      "size": 2952,
+      "sha256": "b11f31dd781e5610eb224749b79c7c687cf531b6277c857c005298e257a3d8ac",
+      "mode": "editable",
+      "unchanged": false
     },
     {
       "part": "_rels/.rels",
@@ -2501,8 +2517,8 @@ renderer ever saved back to the retained DOCX or the clean template.
     },
     {
       "part": "word/settings.xml",
-      "size": 64809,
-      "sha256": "6796a91234d0f4886e062622cafc6b97ad0ff5622df52abd3f3d612826cb44bd",
+      "size": 64875,
+      "sha256": "5f095141dcdf27153058f63626ed502c57087a5084454b1a322582e0009b7b84",
       "mode": "editable",
       "unchanged": false
     },
@@ -2592,10 +2608,10 @@ renderer ever saved back to the retained DOCX or the clean template.
     },
     {
       "part": "word/fontTable.xml",
-      "size": 4491,
-      "sha256": "270c159e426d75d4569c2105bb466dc6ecea7c6912546d0a5183672fd1c9123b",
-      "mode": "preserve-only",
-      "unchanged": true
+      "size": 6994,
+      "sha256": "b3bd4949b1333f228a3a55b4b882babdd26401d6551eeb970888cbc4cc3244ee",
+      "mode": "editable",
+      "unchanged": false
     },
     {
       "part": "customXml/_rels/item2.xml.rels",
@@ -2645,7 +2661,169 @@ renderer ever saved back to the retained DOCX or the clean template.
       "sha256": "80482f86e196171d66001e0e74d1900408a3aaf2463e54005d251b5f2db9a0b0",
       "mode": "preserve-only",
       "unchanged": true
+    },
+    {
+      "part": "word/fonts/msc-57e93ff143572bcc092c.odttf",
+      "size": 1650632,
+      "sha256": "21b15ec2cc14888edd8715c6f40c58fed93c835b113f459430f6945e2fe19fac",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-0a8296747536ead27d5f.odttf",
+      "size": 1615616,
+      "sha256": "bb132ecb8710d6292ca382f039510f654128af8dde47dfbf9f4cb4d077210b7f",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-7f150e9eabe5db3e1b0f.odttf",
+      "size": 1202512,
+      "sha256": "fcd10b6faa0d3a7d069642f83f4a0e073ff8d5ede00994bd1b46dd759a8836ff",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-760539bfedbe24e7853c.odttf",
+      "size": 1163904,
+      "sha256": "40e53ad44d4cbc4443bbb7ef594c8657bf7a98ad4ce371a3102f3264aaba4929",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-2db491080305b349588b.odttf",
+      "size": 1441448,
+      "sha256": "acd1f2a315c530130122944524699cc4dbbb83279bb64bf06cdb2b48259146a5",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-64ca9b15ca79927c3c4c.odttf",
+      "size": 1065868,
+      "sha256": "04e9398a3363a6dc809b8ced2895dccfc482549e5834eeeea72a0ae4b76fb5da",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-9af03d4ad44a3b413d92.odttf",
+      "size": 919260,
+      "sha256": "5ad6cff62db19994719d1269ef25e756f4881cd5035646febf8b13c4bc6f6b2d",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-b16ed1a15e0cabea8d41.odttf",
+      "size": 849284,
+      "sha256": "9b5b57c01c389c847a18ea92f8055f004e4f09aa598d44484a1853de387cbd2d",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-b3658eadae55e682b5f6.odttf",
+      "size": 1045720,
+      "sha256": "62acb01d2c600578901164af97936af1ad6e5084578ec3919e97d91b3ad9060d",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-e8f4e3baf6cc35fed6fc.odttf",
+      "size": 989780,
+      "sha256": "e11ee26015292924ba685952ff774129e08d466cb1cd5a30981980a4dc58710e",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-86b32db9a06f9694e2a3.odttf",
+      "size": 721584,
+      "sha256": "c1b9a03fea12ae9c19887f6f7c13b591b390f482e914c6f9e3bb68ce91ba8a14",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-267a411525980d648f10.odttf",
+      "size": 724872,
+      "sha256": "e7c573040b6905a7379021a9232d7af4b5be8639922e270adf52cf0a7d3c8d05",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-931c5de5c70401d9324d.odttf",
+      "size": 1190736,
+      "sha256": "94f0bad039ee5ea8c0e289b5b8582c889b4e4d16698f30cf1979902b19085d13",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-54fbe2c70af7c85a97be.odttf",
+      "size": 1170096,
+      "sha256": "bb881fdb694abd8d81eeae7c7a941771ba4cf00f60b6417ccf48b02e95fd506a",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-e7f7a88b65188328aea5.odttf",
+      "size": 962864,
+      "sha256": "2c81c0640c5bbc189873fa1fcbd031a062dc79c35e1f138517fb31dbe816ea6a",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-3a29d114cb5229e8dbda.odttf",
+      "size": 904204,
+      "sha256": "877b905ce5ca6301fee9ba5bda4b16b723f553382ab7f07657c63aab0a30a53f",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-84e70ccc1664482f4a96.odttf",
+      "size": 1792664,
+      "sha256": "0940051b2f893eeac94613861e8c8c5903da44f2175ba37a868dbf00554b1192",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-6685c657a7e292083e28.odttf",
+      "size": 841440,
+      "sha256": "a3bdc00bbac5a37ee2369c70ea0ecdf4725d4da2507c1667b39f9ba7558be492",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-6905f0ac846d1ec4326c.odttf",
+      "size": 892620,
+      "sha256": "051504a7b81e2316333f1ca39d630d06413f3fa51930dd1b3b2da8760453d51b",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-fa90f376ad37f308a819.odttf",
+      "size": 856672,
+      "sha256": "b0525279874c2b5b0317a9de843b9202cdee68edb280e8560c042b511ac72f80",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-bbf1192965e5266fbf23.odttf",
+      "size": 69036,
+      "sha256": "663440b4ec057b752d00f2feb55bfdfb0b3774a526e27d4086f24f17d9cfb164",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/_rels/fontTable.xml.rels",
+      "size": 4046,
+      "sha256": "66120411d1ffdd0abd3f43f5ae4ba2250d3b3a376f3a7324e55e7dcfb0aa1000",
+      "mode": "document-font-embedding",
+      "unchanged": false
     }
-  ]
+  ],
+  "font_embedding": {
+    "date": "2026-10-11",
+    "license": "Original OS/2 fsType 8 (editable document embedding), unmodified full fonts",
+    "header_alternative": "GeoSlab703 Md BT -> Calibri, measured native Word fallback",
+    "faces": 25,
+    "unique_font_payloads": 21,
+    "script": "scripts/embed-msc-fonts.mjs"
+  }
 }
 ```
