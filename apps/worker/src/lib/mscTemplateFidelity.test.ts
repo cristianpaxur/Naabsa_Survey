@@ -77,12 +77,12 @@ describe('MSC — fidelity to the revised Word template', () => {
     const fonts = output.file('word/fontTable.xml')!.asText();
     const relationships =
       output.file('word/_rels/fontTable.xml.rels')?.asText() ?? '';
-    // Native Word renders the unavailable source GeoSlab with Calibri. The
-    // alternative must be explicit so Linux does not choose its own serif.
+    // Word rasterizes the GeoSlab alternative, Sitka Small. Its invisible
+    // searchable PDF text says Calibri, so raster inspection is essential.
     const headerFont = fonts.match(
       /<w:font w:name="GeoSlab703 Md BT">[\s\S]*?<\/w:font>/,
     )?.[0];
-    expect(headerFont).toContain('<w:altName w:val="Calibri"/>');
+    expect(headerFont).toContain('<w:altName w:val="Sitka Small"/>');
     expect(headerFont).toContain('w:embedRegular');
     for (const family of [
       'Calibri',

@@ -2,6 +2,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { resolve, join } from 'node:path';
 const require = createRequire(
   new URL('../apps/worker/package.json', import.meta.url),
@@ -23,11 +25,11 @@ const directory = resolve(option('--fonts'));
 if (input === output)
   throw new Error('Preserve the input; choose a separate output.');
 const manifest = [
-  // Word's measured fallback for the missing source header font. Its alternative
-  // is explicit in the font table; the source header XML remains unchanged.
+  // Preserve the source alternative: the Small named instance of Sitka.
+  // Convert the variable face to its original static instance for OOXML.
   [
     'GeoSlab703 Md BT',
-    ['calibri.ttf', 'calibrib.ttf', 'calibrii.ttf', 'calibriz.ttf'],
+    ['SitkaVF.ttf', 'SitkaVF.ttf', 'SitkaVF-Italic.ttf', 'SitkaVF-Italic.ttf'],
   ],
   ['Calibri', ['calibri.ttf', 'calibrib.ttf', 'calibrii.ttf', 'calibriz.ttf']],
   ['Calibri Light', ['calibril.ttf', null, 'calibrili.ttf']],
@@ -57,21 +59,33 @@ for (const [family, files] of manifest) {
   const entryPattern = new RegExp(
     `<w:font w:name="${family}">[\\s\\S]*?<\\/w:font>`,
   );
-  let entry = table.match(entryPattern)?.[0];
+  const entry = table.match(entryPattern)?.[0];
   if (!entry) throw new Error(`Missing original font entry: ${family}`);
-  if (family === 'GeoSlab703 Md BT') {
-    if (!entry.includes('<w:altName w:val="Sitka Small"/>'))
-      throw new Error('Unexpected source header alternative.');
-    entry = entry.replace(
-      '<w:altName w:val="Sitka Small"/>',
-      '<w:altName w:val="Calibri"/>',
-    );
-  }
   let embeds = '';
   for (let face = 0; face < files.length; face++) {
     const file = files[face];
     if (!file) continue;
-    const original = readFileSync(join(directory, file));
+    const source = readFileSync(join(directory, file));
+    let original = source;
+    if (family === 'GeoSlab703 Md BT') {
+      if (!args.includes('--python') || !args.includes('--font-tools'))
+        throw new Error('Sitka embedding requires --python and --font-tools.');
+      const result = spawnSync(
+        option('--python'),
+        [
+          fileURLToPath(new URL('./msc-sitka-face.py', import.meta.url)),
+          join(directory, file),
+          face === 1 || face === 3 ? '700' : '400',
+          resolve(option('--font-tools')),
+        ],
+        { maxBuffer: 4 * 1024 * 1024 },
+      );
+      if (result.error || result.status !== 0)
+        throw new Error(
+          `Cannot materialize Sitka Small: ${result.error ?? result.stderr.toString()}`,
+        );
+      original = result.stdout;
+    }
     const sfnt =
       original.toString('ascii', 0, 4) === 'ttcf'
         ? original.readUInt32BE(12)
@@ -98,6 +112,13 @@ for (const [family, files] of manifest) {
     );
     embeds += `<w:embed${roles[face]} r:id="${id}" w:fontKey="${fontKey}" w:subsetted="0"/>`;
     receipt.push({
+      sourceSha256: createHash('sha256').update(source).digest('hex'),
+      ...(family === 'GeoSlab703 Md BT'
+        ? {
+            namedInstance: 'Small',
+            axes: { opsz: 6, wght: face === 1 || face === 3 ? 700 : 400 },
+          }
+        : {}),
       family,
       role: roles[face],
       sha256: sha,

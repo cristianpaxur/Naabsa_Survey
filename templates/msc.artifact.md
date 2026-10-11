@@ -147,27 +147,30 @@ preserving each value's source run fragmentation resolved the differences.
 Canonical LibreOffice rendering was replaced by Word's native read-only
 export for this fidelity comparison, at the parent agent's direction; no
 renderer ever saved back to the retained DOCX or the clean template.
-Verified font compatibility 2026-10-11: the actual Collabora converter used
-Tahoma from an embedded DOCX probe; a second probe confirmed font-table
-altName selects an embedded original for an unavailable source family.
-The source header's GeoSlab is unavailable locally; native Word's measured
-MARINE width is 47.21652 pt at 14.04 pt, exactly the installed Calibri face.
-Therefore the source GeoSlab entry keeps its name and gains explicit Calibri
-as its alternative and embedded faces. Header XML remains byte-identical.
-Full original editable faces (OS/2 fsType=8) are obfuscated inside the document,
-never installed on the Linux host or shipped as loose font assets.
-The font table, font relationships, content type and embedding settings are
-the only added template changes. All source text, pictures, styles, tables,
-numbering and section properties remain unchanged. New outputs carry these
-fonts. Earlier nine-page pixel comparisons above use native Word and do not
-prove cross-engine Collabora identity; the production comparison is required.
+Font compatibility correction 2026-10-11: actual Collabora probes confirm
+embedded document fonts and an original font-table alternative are honored.
+The source header uses GeoSlab with its retained alternative Sitka Small.
+Native Word rasterizes this variable-font alternative and emits invisible
+searchable text labeled Calibri; that PDF label must not identify the visible
+font. Raster comparison rejected the temporary Calibri alternative and the
+Sitka Text default. The original fvar Small instance is opsz=6 (STAT nominal
+is 8), weight 400 or 700. scripts/msc-sitka-face.py materializes that original
+named instance with all glyphs and unchanged editable embedding permissions.
+The four static Small faces are embedded only inside OOXML, alongside the
+21 original full faces (OS/2 fsType=8). No host font installation is used.
+Headers, styles, body, pictures, tables, numbering and margins are retained.
+Native Word comparison now differs only inside the rasterized header text;
+all pixels outside that region, including the cover and entire body, match
+the reference on all nine pages. This does not establish literal 9/9 pixel
+identity or production Collabora identity. The online comparison remains
+required and will be recorded separately.
 
 <!-- generated-source-evidence -->
 
 ```json
 {
   "source_sha256": "837c43da11ec830b2d11d26c5a2c2b533c8a7d7a05fc2e5b264a9a933fe7fcd0",
-  "template_sha256": "357c39819209132d81323b324f4538010b7f8595421126d513ecf2f098159e11",
+  "template_sha256": "829bf3e0dd5838f01fabf775f87d3b3fb0fefaabbf41da42c57999587d63dbd3",
   "body_blocks": 206,
   "body_paragraphs": 351,
   "geometry_verified": {
@@ -2608,8 +2611,8 @@ prove cross-engine Collabora identity; the production comparison is required.
     },
     {
       "part": "word/fontTable.xml",
-      "size": 6994,
-      "sha256": "b3bd4949b1333f228a3a55b4b882babdd26401d6551eeb970888cbc4cc3244ee",
+      "size": 6998,
+      "sha256": "9d0597368e207a10fc7fb7eb1323e2b34ab141e8752ba1585c97eff7f7dd8c40",
       "mode": "editable",
       "unchanged": false
     },
@@ -2661,6 +2664,34 @@ prove cross-engine Collabora identity; the production comparison is required.
       "sha256": "80482f86e196171d66001e0e74d1900408a3aaf2463e54005d251b5f2db9a0b0",
       "mode": "preserve-only",
       "unchanged": true
+    },
+    {
+      "part": "word/fonts/msc-d9a4d9a8f093f040ec51.odttf",
+      "size": 184772,
+      "sha256": "f8d814c9ebbd520212879f7df6abc934af51a38a82f546ec1ab69bfe701b3fb8",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-d9290ad5fb9e024bbc1a.odttf",
+      "size": 185048,
+      "sha256": "56950bdc7fde577d084d8eaf2e4c6972ce8bd1f6121db4b280ce6f8e91f466c8",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-39e993d9578e5ead483c.odttf",
+      "size": 198076,
+      "sha256": "92f409fdd6528eba96eb2420af0fc6d12544f934bbd15fd7088e2ed32c19346e",
+      "mode": "document-font-embedding",
+      "unchanged": false
+    },
+    {
+      "part": "word/fonts/msc-4c91eb549867df7fc717.odttf",
+      "size": 198492,
+      "sha256": "fd6dd2518741c5aa6ae85ab1b99c217cf24c4d43e34e2730ce56a7a2e9b0a433",
+      "mode": "document-font-embedding",
+      "unchanged": false
     },
     {
       "part": "word/fonts/msc-57e93ff143572bcc092c.odttf",
@@ -2812,18 +2843,20 @@ prove cross-engine Collabora identity; the production comparison is required.
     {
       "part": "word/_rels/fontTable.xml.rels",
       "size": 4046,
-      "sha256": "66120411d1ffdd0abd3f43f5ae4ba2250d3b3a376f3a7324e55e7dcfb0aa1000",
+      "sha256": "d011bbf08413340e1e61af63e5490a133ac12a79a14fb932229e9fcac893d9bc",
       "mode": "document-font-embedding",
       "unchanged": false
     }
   ],
   "font_embedding": {
     "date": "2026-10-11",
-    "license": "Original OS/2 fsType 8 (editable document embedding), unmodified full fonts",
-    "header_alternative": "GeoSlab703 Md BT -> Calibri, measured native Word fallback",
+    "license": "Original OS/2 fsType 8 retained (editable document embedding)",
+    "header_alternative": "Original GeoSlab703 Md BT -> Sitka Small, original fvar instance opsz=6",
     "faces": 25,
-    "unique_font_payloads": 21,
-    "script": "scripts/embed-msc-fonts.mjs"
+    "unique_font_payloads": 25,
+    "script": "scripts/embed-msc-fonts.mjs",
+    "sitka_instance_script": "scripts/msc-sitka-face.py",
+    "receipt": "tmp/msc-fonts-20261011/small-embedding-receipt.json"
   }
 }
 ```
