@@ -907,23 +907,46 @@ export function repairMscCollaboraLayout(docx: Buffer): {
   const zip = new PizZip(docx);
   const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
   let changed = normalizeTimeLogPadding(doc);
-  for (const paragraph of all(doc, 'w:p')) {
-    if (
-      !all(paragraph, 'w:bookmarkStart').some((mark) =>
-        mark.getAttribute('w:name')?.startsWith('msc_photos_'),
-      ) ||
-      !all(paragraph, 'w:drawing').length
-    )
-      continue;
-    const properties = children(paragraph, 'w:pPr')[0];
-    if (!properties) continue;
-    const spacing = children(properties, 'w:spacing')[0];
-    if (
-      spacing?.getAttribute('w:line') === '120' &&
-      spacing.getAttribute('w:lineRule') === 'auto'
+  for (const mark of all(doc, 'w:bookmarkStart').filter((node) =>
+    node.getAttribute('w:name')?.startsWith('msc_photos_'),
+  )) {
+    const first = ancestor(mark, 'w:p');
+    for (
+      let paragraph: XmlNode | null = first;
+      paragraph;
+      paragraph = paragraph.nextSibling
     ) {
-      spacing.setAttribute('w:line', '240');
-      changed = true;
+      if (paragraph.nodeName !== 'w:p') {
+        if (paragraph.nodeName === 'w:tbl' || paragraph.nodeName === 'w:sectPr')
+          break;
+        continue;
+      }
+      const properties = children(paragraph, 'w:pPr')[0];
+      const style =
+        properties &&
+        children(properties, 'w:pStyle')[0]?.getAttribute('w:val');
+      // Original rows have individual markers; inserted rows may not. Stop
+      // at the next gallery/section rather than changing unrelated photos.
+      if (
+        paragraph !== first &&
+        (all(paragraph, 'w:bookmarkStart').some((node) =>
+          /^(?:s\d+(?:_\d+)?|msc_photos_.+)$/.test(
+            node.getAttribute('w:name') ?? '',
+          ),
+        ) ||
+          /^(?:Heading|Ttulo)[1-9]$/.test(style ?? '') ||
+          all(paragraph, 'w:sectPr').length > 0)
+      )
+        break;
+      if (!properties || !all(paragraph, 'w:drawing').length) continue;
+      const spacing = children(properties, 'w:spacing')[0];
+      if (
+        spacing?.getAttribute('w:line') === '120' &&
+        spacing.getAttribute('w:lineRule') === 'auto'
+      ) {
+        spacing.setAttribute('w:line', '240');
+        changed = true;
+      }
     }
   }
   if (!changed) return { docx, changed: false };
