@@ -12,7 +12,7 @@
       "Planilha SABRINA tem 8 abas; Summary/Time Log/Sludge/Qtt Sumary/LOG Audit estão no escopo da spec v1. LNG, VacuoAr, Vessel Ullage ficam em ignore_sheets (a tabela de Ullage é input do operador, não sai no relatório).",
       "Time Log: cabeçalho em linha 4 (Date/Time/x/Time2), dados 5–16. Colunas usadas: B (evento), F (data), G (hora), H (flag), I (hora fim). Range: Time Log!B4:I16.",
       "Qtt Sumary: células F11..F19 guardam totais por grade (R HS, R VLS, DISTILLATES). Para v1 o builder só lê os valores disponíveis; ausentes viram '—' no DOCX.",
-      "Foto slots: vessel / engine_room / survey_attendance / ecr / hull. A capa não tem slot dedicado — vem do slot vessel[0] se presente. Fotos são opcionais para o fluxo de revisão."
+      "Foto slots: cover / vessel / engine_room / survey_attendance / ecr / hull. Capa tem slot dedicado, limitado a uma foto. Fotos são opcionais para o fluxo de revisão."
     ]
   },
 
@@ -326,7 +326,8 @@
           "cell": "K31",
           "row_anchor": {
             "range": "H29:H40",
-            "expect": "Bowl disch freq. in minutes (60;120)"
+            "expect": "Bowl disch freq. in minutes (60;120)",
+            "aliases": ["Bowl disch freq in minutes (60;120)"]
           },
           "type": "number",
           "decimals": 0,
@@ -574,6 +575,10 @@
         "last_discharge_date": {
           "sheet": "Sludge",
           "cell": "D27",
+          "row_anchor": {
+            "range": "B26:B36",
+            "expect": "Sludge - Last Disposal Date"
+          },
           "type": "date",
           "format": "YYYY-MM-DD",
           "label": "Última descarga",
@@ -582,6 +587,10 @@
         "last_discharge_quantity": {
           "sheet": "Sludge",
           "cell": "D28",
+          "row_anchor": {
+            "range": "B26:B36",
+            "expect": "Sludge - Last Disposal"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "m³",
@@ -591,6 +600,10 @@
         "retained_after_last_discharge": {
           "sheet": "Sludge",
           "cell": "D29",
+          "row_anchor": {
+            "range": "B26:B36",
+            "expect": "Sludge Retained Aft Last Disposal"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "m³",
@@ -600,6 +613,7 @@
         "sludge_generated_chief": {
           "sheet": "Sludge",
           "cell": "D31",
+          "row_anchor": { "range": "B26:B36", "expect": "Sludge Production" },
           "type": "number",
           "decimals": 3,
           "unit": "m³",
@@ -609,6 +623,10 @@
         "consumption_chief": {
           "sheet": "Sludge",
           "cell": "D32",
+          "row_anchor": {
+            "range": "B26:B36",
+            "expect": "Log book Consumption"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "mt",
@@ -618,6 +636,10 @@
         "sludge_rate_chief": {
           "sheet": "Sludge",
           "cell": "D33",
+          "row_anchor": {
+            "range": "B26:B36",
+            "expect": "Sludge Rate Production"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "%",
@@ -627,6 +649,10 @@
         "retained_surveyor": {
           "sheet": "Sludge",
           "cell": "D37",
+          "row_anchor": {
+            "range": "B37:B52",
+            "expect": "Sludge ROB at berthing"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "m³",
@@ -636,6 +662,7 @@
         "sludge_generated_surveyor": {
           "sheet": "Sludge",
           "cell": "D38",
+          "row_anchor": { "range": "B37:B52", "expect": "Sludge Production" },
           "type": "number",
           "decimals": 3,
           "unit": "m³",
@@ -645,6 +672,10 @@
         "consumption_surveyor": {
           "sheet": "Sludge",
           "cell": "D39",
+          "row_anchor": {
+            "range": "B37:B52",
+            "expect": "Log book Consumption"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "mt",
@@ -654,6 +685,10 @@
         "sludge_difference_surveyor": {
           "sheet": "Sludge",
           "cell": "D40",
+          "row_anchor": {
+            "range": "B37:B52",
+            "expect": "Difference btw logbook and FLM"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "m³",
@@ -663,6 +698,10 @@
         "sludge_rate_surveyor": {
           "sheet": "Sludge",
           "cell": "D41",
+          "row_anchor": {
+            "range": "B37:B52",
+            "expect": "Sludge Rate Production"
+          },
           "type": "number",
           "decimals": 3,
           "unit": "%",
@@ -672,6 +711,7 @@
         "retained_after_discharge": {
           "sheet": "Sludge",
           "cell": "D42",
+          "row_anchor": { "range": "B37:B52", "expect": "Sludge retained" },
           "type": "number",
           "decimals": 3,
           "unit": "m³",

@@ -1001,6 +1001,23 @@ export function replaceMscPhotoSections(
   const oldEnd = ancestor(bookmark(doc, 's6'), 'w:p');
   const newStart = ancestor(bookmark(fresh, 's5'), 'w:p');
   const newEnd = ancestor(bookmark(fresh, 's6'), 'w:p');
+  // Collabora rewrites style and numbering IDs when saving. Reuse the
+  // destination paragraph properties so new photo headings remain in its
+  // existing outline (and Attachment keeps its number).
+  const preserveParagraphProperties = (from: XmlNode, to: XmlNode) => {
+    const oldProperties = children(from).find(
+      (node) => node.nodeName === 'w:pPr',
+    );
+    if (!oldProperties) return;
+    for (const node of children(to).filter((node) => node.nodeName === 'w:pPr'))
+      remove(node);
+    to.insertBefore(oldProperties.cloneNode(true), to.firstChild);
+  };
+  const oldHeadings = new Map(
+    all(doc, 'w:bookmarkStart')
+      .filter((mark) => /^s5(?:_\d+)?$/.test(mark.getAttribute('w:name') ?? ''))
+      .map((mark) => [mark.getAttribute('w:name')!, ancestor(mark, 'w:p')]),
+  );
   const section = (start: XmlNode, end: XmlNode) => {
     const nodes: XmlNode[] = [];
     for (
@@ -1027,6 +1044,13 @@ export function replaceMscPhotoSections(
   const copied: XmlNode[] = [];
   for (const node of [...incoming, ...captions]) {
     const clone = node.cloneNode(true);
+    for (const mark of all(clone, 'w:bookmarkStart')) {
+      const id = mark.getAttribute('w:name') ?? '';
+      if (!/^s5(?:_\d+)?$/.test(id)) continue;
+      const existing = oldHeadings.get(id) ?? oldHeadings.get('s5_4');
+      if (existing)
+        preserveParagraphProperties(existing, ancestor(mark, 'w:p'));
+    }
     oldEnd.parentNode!.insertBefore(clone, oldEnd);
     copied.push(clone);
   }
@@ -1044,15 +1068,25 @@ export function replaceMscPhotoSections(
     (link) => link.getAttribute('w:anchor') === 's6',
   );
   if (!tocEnd) throw new Error('Sumário MSC sem entrada Attachment.');
-  for (const link of all(doc, 'w:hyperlink').filter((link) =>
+  const oldPhotoLinks = all(doc, 'w:hyperlink').filter((link) =>
     /^s5(?:_\d+)?$/.test(link.getAttribute('w:anchor') ?? ''),
-  ))
-    remove(ancestor(link, 'w:p'));
+  );
+  const oldTocParagraphs = new Map(
+    oldPhotoLinks.map((link) => [
+      link.getAttribute('w:anchor')!,
+      ancestor(link, 'w:p'),
+    ]),
+  );
+  for (const link of oldPhotoLinks) remove(ancestor(link, 'w:p'));
   for (const link of all(fresh, 'w:hyperlink').filter((link) =>
     /^s5(?:_\d+)?$/.test(link.getAttribute('w:anchor') ?? ''),
   )) {
     const clone = ancestor(link, 'w:p').cloneNode(true),
       end = ancestor(tocEnd, 'w:p');
+    const previous =
+      oldTocParagraphs.get(link.getAttribute('w:anchor')!) ??
+      oldTocParagraphs.get('s5_4');
+    if (previous) preserveParagraphProperties(previous, clone);
     end.parentNode!.insertBefore(clone, end);
   }
   const rels = xmlTools.str2xml(

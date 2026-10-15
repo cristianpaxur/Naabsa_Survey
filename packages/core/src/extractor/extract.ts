@@ -153,7 +153,8 @@ function resolveSourceCell(
     Number(bounds[3]) < Number(bounds[2]) ||
     Number(bounds[3]) - Number(bounds[2]) >= 100 ||
     Number(bounds[3]) > 1048576 ||
-    !anchor.expect.trim()
+    !anchor.expect.trim() ||
+    anchor.aliases?.some((label) => !label.trim())
   ) {
     return {
       address: field.cell,
@@ -161,10 +162,12 @@ function resolveSourceCell(
     };
   }
   const rows: number[] = [];
+  const labels = new Set(
+    [anchor.expect, ...(anchor.aliases ?? [])].map((label) => label.trim()),
+  );
   for (let row = Number(bounds[2]); row <= Number(bounds[3]); row++) {
     const label = normalizeCell(ws.getCell(`${bounds[1]}${row}`).value);
-    if (typeof label === 'string' && label.trim() === anchor.expect.trim())
-      rows.push(row);
+    if (typeof label === 'string' && labels.has(label.trim())) rows.push(row);
   }
   if (rows.length !== 1) {
     return {

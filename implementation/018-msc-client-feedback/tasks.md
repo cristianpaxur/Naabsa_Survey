@@ -6,4 +6,7 @@
 - [x] Preparar e testar migrations aditivas para slots, campos e revisão das fotos.
 - [x] Sincronizar fotos no Word preservando textos e protegendo concorrência.
 - [x] Validar interface local com 29 fotos, montagem, banco, tipos e build.
-- [ ] Aplicar lote em produção, publicar web/worker e conferir o CAROLINA corrigido no Collabora.
+- [x] Conferir migrations 0023–0025 e publicação inicial no servidor; criar novo MSC baseado no CAROLINA.
+- [x] Corrigir as regressões encontradas no ensaio real: fontes Sludge deslocadas e numeração/estilos reescritos pelo Collabora.
+- [ ] Publicar as correções do ensaio e ativar a 0026 para novas extrações.
+- [ ] Retomar o relatório de teste e concluir aprovação e geração do PDF pela interface.

@@ -42,6 +42,24 @@ function workbook(): ExcelJS.Workbook {
 }
 
 describe('extração por rótulo de linha', () => {
+  it('aceita uma grafia alternativa explícita e recusa duas linhas equivalentes', () => {
+    const spec = anchoredSpec();
+    spec.source.common.fields.purifier_temp!.row_anchor!.aliases = [
+      'Temp (°C)',
+    ];
+    expect(validateSpec(spec).valid).toBe(true);
+    const wb = workbook();
+    const ws = wb.getWorksheet('Sludge')!;
+    ws.getCell('H32').value = 'Temp (°C)';
+    ws.getCell('K32').value = 98;
+    expect(runExtraction(wb, spec).data.purifier_temp).toBe(98);
+    ws.getCell('H33').value = 'Temperature (°C)';
+    ws.getCell('K33').value = 100;
+    expect(runExtraction(wb, spec).data.purifier_temp).toBeNull();
+    spec.source.common.fields.purifier_temp!.row_anchor!.aliases = [' '];
+    expect(validateSpec(spec).valid).toBe(false);
+  });
+
   it.each([29, 32])(
     'lê a temperatura na linha %i sem usar um valor de outra linha',
     (row) => {

@@ -26,3 +26,11 @@ As migrations 0023 e 0024 copiam specs incompletos e atualizam vínculos de rela
 A 0025 acrescenta uma revisão de alterações das fotos, usada na publicação otimista. Deve ser aplicada antes de publicar web/worker, que passam a consultar essa coluna. Não executar o runner completo no banco legado sem histórico reconciliado; aplicar somente o lote preparado com cópia, transação e conferência dos campos protegidos.
 
 A correção do Word já existente exige uma nova versão: a atualização de fotos preserva os demais textos, inclusive os campos antigos em branco. Para a intervenção pontual no CAROLINA, reconferir a revisão/caminho, preservar o original, confirmar ausência de sessão WOPI ativa e comparar os dados antes da publicação. Não apagar o Word anterior nem mover fotos por inferência.
+
+## Regressões encontradas no ensaio real de 15/10
+
+O novo relatório de teste `5db77f1c-c00b-44df-8268-22ec328fd5c3` extraiu os 81 campos do modelo v8. A linha adicional da planilha CAROLINA desloca o bloco de Sludge: endereços fixos passam a ler valores de outra grandeza. As fontes de registros do comandante e do surveyor devem usar rótulos em intervalos separados. A frequência do purificador tem duas grafias conhecidas, com e sem ponto em `freq.`; ambas são explícitas no spec. Rótulos duplicados continuam sendo recusados.
+
+A migration 0026 cria uma nova spec ativa somente para novos relatórios. Preserva campos com células/abas/âncoras personalizadas e não modifica nenhum relatório existente nem seus valores, documentos ou alocações. Publicar web/worker com suporte a `row_anchor.aliases` antes de aplicar a migration. Não executar o runner completo no banco legado.
+
+O Collabora reescreve os IDs de estilos e numeração ao salvar um Word. Importar os parágrafos fotográficos do modelo sem adaptar suas propriedades deixa a seção sem a numeração esperada e impede a medição do sumário. A sincronização deve usar as propriedades de parágrafo do documento de destino, mantendo sua lista de seções e seus estilos, inclusive para entradas do sumário e Hull acrescentado depois.

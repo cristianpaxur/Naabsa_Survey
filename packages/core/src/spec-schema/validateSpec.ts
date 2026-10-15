@@ -55,7 +55,8 @@ function rowAnchorChecks(spec: ReportSpec): string[] {
         Number(bounds[3]) < Number(bounds[2]) ||
         Number(bounds[3]) - Number(bounds[2]) >= 100 ||
         Number(bounds[3]) > 1048576 ||
-        !anchor.expect.trim()
+        !anchor.expect.trim() ||
+        anchor.aliases?.some((label) => !label.trim())
       ) {
         errors.push(
           `Campo '${name}': row_anchor exige uma coluna, 1 a 100 linhas válidas e rótulo não vazio.`,

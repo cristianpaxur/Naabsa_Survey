@@ -45,6 +45,32 @@ beforeAll(async () => {
 });
 
 describe('MSC — contrato da planilha SABRINA', () => {
+  it.each([1, 3])(
+    'mantém os valores de Sludge após inserir %i linha(s) antes dos registros',
+    async (count) => {
+      const baseline = runExtraction(workbook, spec.spec);
+      const shifted = await readFixtureWorkbook();
+      shifted
+        .getWorksheet('Sludge')!
+        .spliceRows(26, 0, ...Array.from({ length: count }, () => []));
+      const result = runExtraction(shifted, spec.spec);
+      for (const [key, field] of Object.entries(
+        spec.spec.source.common.fields,
+      )) {
+        if (field.sheet === 'Sludge' && field.row_anchor) {
+          expect(result.data[key], key).toEqual(baseline.data[key]);
+          expect(result.numberFormats[key], key).toEqual(
+            baseline.numberFormats[key],
+          );
+          expect(result.issues.filter((issue) => issue.field === key)).toEqual(
+            [],
+          );
+        }
+      }
+      expect(result.data.last_discharge_date).toBeTruthy();
+    },
+  );
+
   it('extrai os purificadores quando três linhas adicionais deslocam o bloco como no DAMLA', async () => {
     const shifted = await readFixtureWorkbook();
     shifted.getWorksheet('Sludge')!.spliceRows(28, 0, [], [], []);

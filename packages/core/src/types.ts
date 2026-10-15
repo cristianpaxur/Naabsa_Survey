@@ -31,6 +31,8 @@ export interface BaseFieldDef {
     range: string;
     /** Texto exato do rótulo, desconsiderando espaços nas extremidades. */
     expect: string;
+    /** Outras grafias exatas conhecidas do mesmo rótulo. */
+    aliases?: string[];
   };
   /** Rótulo exibido na revisão. */
   label: string;

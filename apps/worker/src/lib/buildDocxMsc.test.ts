@@ -64,7 +64,16 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
       .replace(
         'Complying with Messrs.',
         'MANUAL BODY TEXT. Complying with Messrs.',
-      );
+      )
+      .replace(/w:numId w:val="15"/g, 'w:numId w:val="42"')
+      .replace(/w:pStyle w:val="Ttulo"/g, 'w:pStyle w:val="EditorTitle"');
+    before.file(
+      'word/numbering.xml',
+      before
+        .file('word/numbering.xml')!
+        .asText()
+        .replace(/w:numId="15"/g, 'w:numId="42"'),
+    );
     const attachments = paragraphs(xml).find((p) => p.includes('w:name="s6"'))!;
     xml = xml.replace(
       attachments,
@@ -92,6 +101,14 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
     ).toHaveLength(12);
     expect(actual.match(/w:name="s5_5"/g)).toHaveLength(1);
     expect(actual.match(/w:anchor="s5_5"/g)).toHaveLength(1);
+    for (const id of ['s5', 's5_1', 's5_2', 's5_3', 's5_4', 's5_5']) {
+      const oldId = id === 's5_5' ? 's5_4' : id;
+      const properties = (text: string, mark: string) =>
+        paragraphs(text)
+          .find((p) => p.includes(`w:name="${mark}"`))
+          ?.match(/<w:pPr>[\s\S]*?<\/w:pPr>/)?.[0];
+      expect(properties(actual, id), id).toBe(properties(xml, oldId));
+    }
     const ids = [
       ...actual.matchAll(/<w:bookmarkStart[^>]*w:id="([^"]+)"/g),
     ].map((m) => m[1]);
