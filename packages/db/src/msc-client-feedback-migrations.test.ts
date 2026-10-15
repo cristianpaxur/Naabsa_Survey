@@ -93,7 +93,11 @@ describe('MSC — corrections from the October 14 client videos', () => {
       expect(validateSpec(active.spec).valid).toBe(true);
       expect(active.spec.photo_slots).toEqual(canonical.photo_slots);
       expect(Object.keys(active.spec.source.common.fields)).toEqual(
-        expect.arrayContaining(Object.keys(canonical.source.common.fields)),
+        expect.arrayContaining(
+          Object.keys(canonical.source.common.fields).filter(
+            (key) => !['sludge_disposed', 'retained_chief'].includes(key),
+          ),
+        ),
       );
       expect(active.spec.source.common.fields.grade_1_surveyor.cell).toBe(
         'Z99',

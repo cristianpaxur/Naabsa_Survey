@@ -110,9 +110,15 @@ For partial galleries, keep the Attachment heading, spacer and six bullet
 items together so the final certificate cannot spill alone onto a new page.
 The complete exemplar preserves the source properties of that block.
 
-Unsupported source quantities (`sludge_disposed`, `retained_chief`,
-`consumption_flowmeter_difference`, `consumption_flowmeter_percentage`)
-and historical attendance fields must resolve to an em dash when unavailable.
+Disposal quantities `sludge_disposed` and `retained_chief` are extracted by
+Sludge row labels: the tank TOTAL row, column K, and "Sludge retained aft actual
+disposal", column D. The tank balance is distinct from truck capacity totals.
+The surveyor flowmeter comparison derives `consumption_flowmeter_difference`
+as flowmeter minus soundings, and `consumption_flowmeter_percentage` as that
+difference divided by flowmeter times 100, matching the source report example.
+Preserve explicit values and clears; missing inputs or a zero denominator
+leave the corresponding result unavailable. Historical attendance fields
+must resolve to an em dash when unavailable.
 Retain the application input interface. Source history values have no input
 contract and may never be reused as real attendance data.
 

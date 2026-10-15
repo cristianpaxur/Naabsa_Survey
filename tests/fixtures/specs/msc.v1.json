@@ -135,9 +135,8 @@
         "last_attendance": {
           "sheet": "Summary",
           "cell": "B16",
-          "type": "enum",
-          "options": ["Yes", "No"],
-          "label": "Last attendance?",
+          "type": "string",
+          "label": "Último atendimento (data ou Yes/No)",
           "section": "Identificação"
         },
 
@@ -691,9 +690,9 @@
           },
           "type": "number",
           "decimals": 3,
-          "unit": "m³",
-          "label": "Diferença de sludge — surveyor",
-          "section": "Sludge"
+          "unit": "mt",
+          "label": "Diferença consumo/flowmeter — surveyor",
+          "section": "Flowmeter"
         },
         "sludge_rate_surveyor": {
           "sheet": "Sludge",
@@ -754,6 +753,29 @@
           "unit": "%",
           "label": "Acurácia flowmeter",
           "section": "Flowmeter"
+        },
+        "sludge_disposed": {
+          "sheet": "Sludge",
+          "cell": "K24",
+          "row_anchor": { "range": "B17:B30", "expect": "TOTAL" },
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Quantidade de sludge descartada — tanques",
+          "section": "Sludge"
+        },
+        "retained_chief": {
+          "sheet": "Sludge",
+          "cell": "D34",
+          "row_anchor": {
+            "range": "B26:B40",
+            "expect": "Sludge retained aft actual disposal"
+          },
+          "type": "number",
+          "decimals": 3,
+          "unit": "m³",
+          "label": "Retido após descarga — comandante",
+          "section": "Sludge"
         }
       }
     },

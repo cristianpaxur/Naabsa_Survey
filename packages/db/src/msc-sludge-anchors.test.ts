@@ -20,6 +20,11 @@ describe('0026 — fontes Sludge de novos relatórios MSC', () => {
         ),
       );
       const legacy = structuredClone(canonical);
+      // These fields were introduced later by 0027, not the historical 0026.
+      delete canonical.source.common.fields.sludge_disposed;
+      delete canonical.source.common.fields.retained_chief;
+      delete legacy.source.common.fields.sludge_disposed;
+      delete legacy.source.common.fields.retained_chief;
       for (const field of Object.values(legacy.source.common.fields) as Array<
         Record<string, unknown>
       >) {

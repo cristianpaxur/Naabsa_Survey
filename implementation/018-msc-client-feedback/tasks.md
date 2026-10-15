@@ -11,3 +11,6 @@
 - [x] Publicar as correções do ensaio e ativar a 0026 para novas extrações.
 - [x] Retomar o relatório de teste e concluir aprovação e geração do PDF pela interface.
 - [x] Corrigir a quebra dos contatos do comando na capa após atualizar fotos e validar novamente o PDF nativo.
+- [x] Auditar todos os campos do CAROLINA e identificar ausências reais e falhas de mapeamento.
+- [x] Mapear descarte e retenção do comandante, completar a comparação do flowmeter e preparar a migration 0027 preservando customizações.
+- [x] Validar novamente o PDF, as suítes afetadas e registrar o commit dos mapeamentos.

@@ -45,6 +45,41 @@ beforeAll(async () => {
 });
 
 describe('MSC — contrato da planilha SABRINA', () => {
+  it('extrai descarte dos tanques e retenção do comandante pelos rótulos após deslocar linhas', async () => {
+    const baseline = runExtraction(workbook, spec.spec);
+    expect(baseline.data.sludge_disposed).toBeCloseTo(47.02, 9);
+    expect(baseline.data.retained_chief).toBeCloseTo(16.68, 9);
+    const shifted = await readFixtureWorkbook();
+    shifted.getWorksheet('Sludge')!.spliceRows(17, 0, [], []);
+    const result = runExtraction(shifted, spec.spec);
+    for (const field of ['sludge_disposed', 'retained_chief']) {
+      expect(result.data[field]).toEqual(baseline.data[field]);
+      expect(result.numberFormats[field]).toEqual(
+        baseline.numberFormats[field],
+      );
+      expect(result.issues.filter((issue) => issue.field === field)).toEqual(
+        [],
+      );
+    }
+  });
+
+  it('aceita data de último atendimento e preserva o Yes/No das planilhas anteriores', async () => {
+    const baseline = runExtraction(workbook, spec.spec).data.last_attendance;
+    expect(typeof baseline).toBe('string');
+    const dated = await readFixtureWorkbook();
+    dated.getWorksheet('Summary')!.getCell('B16').value = new Date(
+      '2026-05-28T00:00:00Z',
+    );
+    const result = runExtraction(dated, spec.spec);
+    expect(result.data.last_attendance).toBe('2026-05-28');
+    expect(
+      result.issues.filter((issue) => issue.field === 'last_attendance'),
+    ).toEqual([]);
+    expect(runExtraction(workbook, spec.spec).data.last_attendance).toBe(
+      baseline,
+    );
+  });
+
   it.each([1, 3])(
     'mantém os valores de Sludge após inserir %i linha(s) antes dos registros',
     async (count) => {

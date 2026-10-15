@@ -18,6 +18,9 @@ O Word existente foi baixado antes de qualquer intervenção. Seus 215 parágraf
 - O Time log não imprime bordas de grade.
 - Voltar das fotos atualiza as seções fotográficas e o sumário do Word, preserva textos e a versão anterior e recusa publicação concorrente.
 - A atualização das fotos preserva o estilo e a altura já ajustada da capa. Se os contatos transbordarem, reduz somente a foto proporcionalmente e mede novamente o sumário. Não publica um Word atualizado com os contatos do comando fora da primeira página.
+- Quantidade descartada vem do balanço dos tanques (`Sludge`, TOTAL, coluna K), distinto da soma dos caminhões. A retenção do comandante vem de `Sludge retained aft actual disposal`, coluna D. Ambos seguem os rótulos quando linhas são deslocadas e respeitam valores e precisão revisados pelo operador.
+- A diferença do surveyor é flowmeter menos soundings; o percentual é essa diferença dividida pelo flowmeter × 100, calculados antes do arredondamento. Valores explícitos, inclusive zero e limpeza, prevalecem. Falta de dados ou denominador zero deixa o resultado correspondente indisponível.
+- `Summary!B16` aceita data ou Yes/No de último atendimento, sem inventar valores numéricos históricos.
 - Publicação e ativação somente depois de aplicar a alteração aditiva de schema; conferir o CAROLINA real no Collabora.
 
 ## Alcance operacional

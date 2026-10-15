@@ -559,6 +559,8 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
         'grade_1_surveyor',
         'grade_1_vrs',
         'sludge_surveyor',
+        'sludge_disposed',
+        'retained_chief',
       ],
       overrides: { grade_1_vrs: 0, sludge_surveyor: '' },
     });
@@ -568,7 +570,23 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
     expect(typeof built.data.grade_1_surveyor).toBe('number');
     expect(built.data.grade_1_vrs).toBe(0);
     expect(built.data.sludge_surveyor).toBe('');
+    expect(built.data.sludge_disposed).toBeCloseTo(47.02, 9);
+    expect(built.data.retained_chief).toBeCloseTo(16.68, 9);
+    expect(text).toMatch(/Quantity disposed[\s.·…]*: 47\.02\b/);
+    expect(text).toMatch(/Quantity retained[\s.·…]*: 16\.68\b/);
     expect(text).toContain('0.000');
+  });
+
+  it('preserva zero, limpeza explícita e precisão manual nas novas quantidades', async () => {
+    const { built, text } = await buildMscCase({
+      missingExtractedFields: ['sludge_disposed', 'retained_chief'],
+      overrides: { sludge_disposed: 0, retained_chief: '' },
+      operatorNumberFormats: { sludge_disposed: 3 },
+    });
+    expect(built.data.sludge_disposed).toBe(0);
+    expect(built.data.retained_chief).toBe('');
+    expect(text).toMatch(/Quantity disposed[\s.·…]*: 0\.000\b/);
+    expect(text).toMatch(/Quantity retained[\s.·…]*: —/);
   });
 
   it('prioriza os overrides e a precisão salva pelo operador nas duas passagens', async () => {

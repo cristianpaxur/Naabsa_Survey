@@ -651,6 +651,81 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
       expect(textOf(paragraph)).toContain(expected);
     }
   });
+  it.each([
+    [
+      { flowmeter_total: 1689.099, consumption_surveyor: 981.008 },
+      ['708.091', '41.92'],
+    ],
+    [
+      { flowmeter_total: 1682.357, consumption_surveyor: 1736.1340778983003 },
+      ['-53.777', '-3.20'],
+    ],
+    [
+      {
+        flowmeter_total: 1689.099,
+        consumption_surveyor: 100,
+        flowmeter_soundings: 981.008,
+      },
+      ['708.091', '41.92'],
+    ],
+    [{ flowmeter_total: 10, consumption_surveyor: 10 }, ['0.000', '0.00']],
+    [{ flowmeter_total: 10, consumption_surveyor: 0 }, ['10.000', '100.00']],
+  ] as const)(
+    'derives the surveyor flowmeter comparison before rounding: %j',
+    async (data, expected) => {
+      const comparison = paragraphs(await xmlOf({ data }))
+        .map(textOf)
+        .find((p) => p.includes('mt or'))!;
+      for (const value of expected) expect(comparison).toContain(value);
+    },
+  );
+
+  it.each([
+    [{ flowmeter_total: 10 }, '—', '—'],
+    [{ consumption_surveyor: 8 }, '—', '—'],
+    [{ flowmeter_total: 0, consumption_surveyor: 8 }, '-8.000', '—'],
+    [
+      {
+        flowmeter_total: 10,
+        consumption_surveyor: 8,
+        flowmeter_soundings: null,
+      },
+      '—',
+      '—',
+    ],
+    [
+      {
+        flowmeter_total: 10,
+        consumption_surveyor: 8,
+        consumption_flowmeter_difference: '',
+        consumption_flowmeter_percentage: '',
+      },
+      '—',
+      '—',
+    ],
+    [
+      {
+        flowmeter_total: 10,
+        consumption_surveyor: 8,
+        consumption_flowmeter_difference: 0,
+        consumption_flowmeter_percentage: 0,
+      },
+      '0.000',
+      '0.00',
+    ],
+    [{ flowmeter_total: Infinity, consumption_surveyor: 8 }, '—', '—'],
+  ] as const)(
+    'preserves missing values, zero denominators and explicit flowmeter results: %j',
+    async (data, difference, percentage) => {
+      const xml = await xmlOf({ data });
+      const line = paragraphs(xml)
+        .map(textOf)
+        .find((p) => p.includes('mt or'))!;
+      expect(line).toContain(
+        `Dif………………….: ${difference} mt or ${percentage} %`,
+      );
+    },
+  );
   it('shows positive and negative grade differences with the signs used by the model', async () => {
     const text = textOf(
       await xmlOf({

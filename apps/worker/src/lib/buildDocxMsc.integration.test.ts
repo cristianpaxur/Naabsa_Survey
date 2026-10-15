@@ -606,6 +606,8 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
         const text = normalize(
           inspected.pages.map((page) => page.text).join('\n'),
         );
+        expect(text).toMatch(/Quantity disposed[\s.·…]*: 47\.020\b/);
+        expect(text).toMatch(/Quantity retained[\s.·…]*: 16\.680\b/);
         for (const value of [
           'MM623R',
           '60 minutes',

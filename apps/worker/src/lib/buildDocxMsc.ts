@@ -156,8 +156,31 @@ const NUMERIC_DECIMALS: Record<string, number> = {
   consumption_flowmeter_percentage: 2,
 };
 function templateData(input: DocxInputMsc): Record<string, string> {
+  const data = { ...input.data };
+  const flowmeter = data['flowmeter_total'];
+  const soundings = Object.hasOwn(data, 'flowmeter_soundings')
+    ? data['flowmeter_soundings']
+    : data['consumption_surveyor'];
+  const finite = (value: FieldValue | undefined): value is number =>
+    typeof value === 'number' && Number.isFinite(value);
+  // The source report uses (flowmeter - soundings) / flowmeter, matching
+  // LOG Audit's logbook comparison. Derive before formatting or rounding.
+  if (
+    !Object.hasOwn(data, 'consumption_flowmeter_difference') &&
+    finite(flowmeter) &&
+    finite(soundings)
+  )
+    data['consumption_flowmeter_difference'] = flowmeter - soundings;
+  const difference = data['consumption_flowmeter_difference'];
+  if (
+    !Object.hasOwn(data, 'consumption_flowmeter_percentage') &&
+    finite(flowmeter) &&
+    flowmeter !== 0 &&
+    finite(difference)
+  )
+    data['consumption_flowmeter_percentage'] = (difference / flowmeter) * 100;
   const result: Record<string, string> = {};
-  for (const [name, raw] of Object.entries(input.data)) {
+  for (const [name, raw] of Object.entries(data)) {
     if (typeof raw === 'number') {
       const grouped =
         !/^(delivered|loa|lbp|breadth|depth|purifier_|temp_)/.test(name);
