@@ -17,6 +17,7 @@ O Word existente foi baixado antes de qualquer intervenção. Seus 215 parágraf
 - Novos campos de quantidades são acrescentados sem substituir mapeamentos personalizados, valores existentes ou overrides. Campos ausentes de extrações antigas são lidos da planilha original durante a montagem.
 - O Time log não imprime bordas de grade.
 - Voltar das fotos atualiza as seções fotográficas e o sumário do Word, preserva textos e a versão anterior e recusa publicação concorrente.
+- A atualização das fotos preserva o estilo e a altura já ajustada da capa. Se os contatos transbordarem, reduz somente a foto proporcionalmente e mede novamente o sumário. Não publica um Word atualizado com os contatos do comando fora da primeira página.
 - Publicação e ativação somente depois de aplicar a alteração aditiva de schema; conferir o CAROLINA real no Collabora.
 
 ## Alcance operacional

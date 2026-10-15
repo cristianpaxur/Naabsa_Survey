@@ -1,6 +1,10 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
-import { buildReportDocxMsc, type DocxInputMsc } from './buildDocxMsc';
+import {
+  buildReportDocxMsc,
+  fitMscCoverPhoto,
+  type DocxInputMsc,
+} from './buildDocxMsc';
 import { collaboraConversionUrl } from './collaboraConversion';
 import { extractPdfText } from './pdfText';
 import { convertDocxToPdf, measureBookmarkPages } from './soffice';
@@ -136,6 +140,25 @@ interface PaginationDependencies {
   build: (input: DocxInputMsc) => Promise<Buffer>;
   measure: (docx: Buffer) => Promise<Record<string, number>>;
 }
+
+/** Fit the saved, edited Word after a photo refresh without rebuilding its text. */
+export async function fitMscCoverContacts(
+  docx: Buffer,
+  measure: (docx: Buffer) => Promise<Record<string, number>> = measureMscPages,
+): Promise<{ docx: Buffer; pages: Record<string, number> }> {
+  let candidate = docx;
+  for (const height of [undefined, 104, 88, 72]) {
+    if (height != null) candidate = fitMscCoverPhoto(docx, height);
+    const pages = await measure(candidate);
+    requireMeasuredPages(pages);
+    if (pages['msc_cover_contacts_end'] === 1)
+      return { docx: candidate, pages };
+  }
+  throw new Error(
+    'A capa MSC não comporta os contatos; revise os dados antes de atualizar as fotos.',
+  );
+}
+
 const samePages = (
   before: Record<string, number>,
   after: Record<string, number>,

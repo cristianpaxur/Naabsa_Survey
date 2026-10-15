@@ -11,10 +11,16 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { runExtraction, validateSpec } from '@naabsa/core';
 import {
   buildReportDocxMsc,
+  replaceMscPhotoSections,
+  updateMscTocPages,
   type DocxInputMsc,
   type TimeLogRow,
 } from './buildDocxMsc';
-import { buildPaginatedDocxMsc, mscPagesFromPdfText } from './mscPagination';
+import {
+  buildPaginatedDocxMsc,
+  fitMscCoverContacts,
+  mscPagesFromPdfText,
+} from './mscPagination';
 
 const execFileAsync = promisify(execFile);
 const fixtures = new URL('../../../../tests/fixtures/', import.meta.url);
@@ -351,6 +357,98 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
       vi.unstubAllGlobals();
       if (runtimeDir) await rm(runtimeDir, { recursive: true, force: true });
     });
+
+    it('refreshed cover: keeps command contacts on page 1 and remeasures the edited Word TOC', async () => {
+      const caseInput: DocxInputMsc = {
+        ...input,
+        coverPhoto: input.photos.vessel![0],
+        // A saved Word already has numeric TOC entries from its initial build.
+        tocPages: Object.fromEntries(
+          Object.keys(sections).map((id) => [id, 1]),
+        ),
+        data: {
+          ...input.data,
+          manager: 'MSC SHIPMANAGEMENT LIMITED, LIMASSOL, CYPRUS',
+          surveyors: 'ARMANDO JUNIOR',
+          captain: 'MUKESH MAHENDRA MIRANDA',
+          chief_engineer: 'SIBI JESU ANTHONY',
+        },
+      };
+      const saved = new PizZip(await buildReportDocxMsc(caseInput));
+      saved.file(
+        'word/document.xml',
+        saved
+          .file('word/document.xml')!
+          .asText()
+          .replaceAll('SemEspaamento', 'EditorNoSpacing')
+          .replace(
+            'Complying with Messrs.',
+            'MANUAL EDIT RETAINED. Complying with Messrs.',
+          ),
+      );
+      saved.file(
+        'word/styles.xml',
+        saved
+          .file('word/styles.xml')!
+          .asText()
+          .replaceAll('SemEspaamento', 'EditorNoSpacing'),
+      );
+      const refreshed = replaceMscPhotoSections(
+        saved.generate({ type: 'nodebuffer' }),
+        await buildReportDocxMsc(caseInput),
+      );
+      const measurements: Record<string, number>[] = [];
+      let pdf: Buffer;
+      const measure = async (docx: Buffer) => {
+        pdf = await converter.convertDocxToPdf(docx);
+        const measurementPath = join(outputDir, 'refreshed-cover-measure.pdf');
+        await writeFile(measurementPath, pdf);
+        const inspected = await inspectPdf(measurementPath);
+        const pages = mscPagesFromPdfText(
+          docx,
+          inspected.pages.map((page) => page.text).join('\f'),
+        );
+        measurements.push(pages);
+        return pages;
+      };
+      const fitted = await fitMscCoverContacts(refreshed, measure);
+      expect(measurements[0]!['msc_cover_contacts_end']).toBeGreaterThan(1);
+      expect(fitted.pages['msc_cover_contacts_end']).toBe(1);
+      const docx = updateMscTocPages(fitted.docx, fitted.pages);
+      expect(await measure(docx)).toEqual(fitted.pages);
+      const pdfPath = join(outputDir, 'refreshed-cover.pdf');
+      await writeFile(pdfPath, pdf!);
+      await writeFile(join(outputDir, 'refreshed-cover.docx'), docx);
+      const inspected = await inspectPdf(pdfPath);
+      expect(normalize(inspected.pages[0]!.text)).toContain(
+        'MUKESH MAHENDRA MIRANDA',
+      );
+      expect(normalize(inspected.pages[0]!.text)).toContain(
+        'SIBI JESU ANTHONY',
+      );
+      expect(inspected.pages[1]!.text).toContain('Contents');
+      expect(inspected.pages.map((page) => page.text).join('\n')).toContain(
+        'MANUAL EDIT RETAINED',
+      );
+      for (const [id, label] of Object.entries(bookmarkHeadings(docx))) {
+        const tocLabel = sections[id]!.toc ?? label;
+        expect(normalize(inspected.pages[1]!.text)).toMatch(
+          new RegExp(
+            `${escapeRegex(sections[id]!.number)}\\.?\\s+${escapeRegex(tocLabel)}[\\s.·…]+${fitted.pages[id]}(?=\\s|$)`,
+          ),
+        );
+      }
+      evidence['refreshed-cover'] = {
+        measurements,
+        pages: inspected.pages,
+        pdfPath,
+      };
+      await writeFile(
+        join(outputDir, 'pages.json'),
+        JSON.stringify(evidence, null, 2),
+        'utf8',
+      );
+    }, 300_000);
 
     it.each([
       ['compact', 12],

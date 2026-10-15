@@ -50,6 +50,55 @@ const photo = (width: number, height: number, background = '#456789') =>
     .toBuffer();
 
 describe('buildReportDocxMsc — template values and dynamic content', () => {
+  it('keeps the edited cover style and fitted height when refreshing a larger photo', async () => {
+    const previousPhoto = await photo(800, 600, '#ff0000');
+    const replacement = await photo(600, 800, '#00ff00');
+    const before = await zipOf({
+      coverPhoto: previousPhoto,
+      coverMaxHeightMm: 88,
+    });
+    const originalXml = before.file('word/document.xml')!.asText();
+    const originalCover = paragraphs(originalXml).find((p) =>
+      p.includes('w:name="msc_cover"'),
+    )!;
+    const editedCover = originalCover.replace('SemEspaamento', 'NoSpacing');
+    before.file(
+      'word/document.xml',
+      originalXml.replace(originalCover, editedCover),
+    );
+    const fresh = await buildReportDocxMsc({
+      ...base,
+      coverPhoto: replacement,
+    });
+    const result = new PizZip(
+      replaceMscPhotoSections(before.generate({ type: 'nodebuffer' }), fresh),
+    );
+    const actualCover = paragraphs(
+      result.file('word/document.xml')!.asText(),
+    ).find((p) => p.includes('w:name="msc_cover"'))!;
+    expect(actualCover.match(/<w:pPr>[\s\S]*?<\/w:pPr>/)?.[0]).toBe(
+      editedCover.match(/<w:pPr>[\s\S]*?<\/w:pPr>/)?.[0],
+    );
+    const dimensions = (xml: string) =>
+      [
+        ...xml.matchAll(
+          /<(?:wp:extent|a:ext)\b[^>]*cx="(\d+)"[^>]*cy="(\d+)"/g,
+        ),
+      ].map(([, width, height]) => ({ width: +width!, height: +height! }));
+    const frames = dimensions(actualCover);
+    expect(frames.length).toBeGreaterThanOrEqual(2);
+    for (const frame of frames) {
+      expect(frame.height).toBeLessThanOrEqual(88 * 36000);
+      expect(frame.width / frame.height).toBeCloseTo(600 / 800, 5);
+    }
+    const blipId = actualCover.match(/r:embed="([^"]+)"/)![1];
+    const target = result
+      .file('word/_rels/document.xml.rels')!
+      .asText()
+      .match(new RegExp(`Id="${blipId}"[^>]*Target="([^"]+)"`))![1];
+    expect(result.file(`word/${target}`)!.asNodeBuffer()).toEqual(replacement);
+  });
+
   it('refreshes photo sections and Contents while preserving manual text and package parts', async () => {
     const oldPhoto = await photo(800, 600, '#ff0000');
     const newPhoto = await photo(800, 600, '#00ff00');

@@ -10,3 +10,4 @@
 - [x] Corrigir as regressões encontradas no ensaio real: fontes Sludge deslocadas e numeração/estilos reescritos pelo Collabora.
 - [x] Publicar as correções do ensaio e ativar a 0026 para novas extrações.
 - [x] Retomar o relatório de teste e concluir aprovação e geração do PDF pela interface.
+- [x] Corrigir a quebra dos contatos do comando na capa após atualizar fotos e validar novamente o PDF nativo.

@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import PizZip from 'pizzip';
 import {
   buildPaginatedDocxMsc,
+  fitMscCoverContacts,
   mscPagesFromPdfText,
   measureMscPages,
 } from './mscPagination';
-import type { DocxInputMsc } from './buildDocxMsc';
+import { buildReportDocxMsc, type DocxInputMsc } from './buildDocxMsc';
+import sharp from 'sharp';
 
 const base: DocxInputMsc = {
   data: {},
@@ -26,6 +28,88 @@ vi.mock('./pdfText', () => ({ extractPdfText: extractText }));
 vi.mock('./collaboraConversion', () => ({ collaboraConversionUrl: endpoint }));
 
 describe('MSC pagination', () => {
+  it('leaves a saved cover untouched when the native measurement already fits', async () => {
+    const original = Buffer.from('saved Word with manual edits');
+    const measure = vi.fn(async () => tocPages);
+    expect(await fitMscCoverContacts(original, measure)).toEqual({
+      docx: original,
+      pages: tocPages,
+    });
+    expect(measure).toHaveBeenCalledTimes(1);
+  });
+
+  it('fits a refreshed cover in the edited Word and retains all text, crop and bitmap parts', async () => {
+    const cover = await sharp({
+      create: { width: 800, height: 600, channels: 3, background: '#123456' },
+    })
+      .png()
+      .toBuffer();
+    const built = await buildReportDocxMsc({
+      ...base,
+      data: { vessel_name: 'MANUAL CONTENT RETAINED' },
+      coverPhoto: cover,
+    });
+    const cropped = new PizZip(built);
+    const crop = '<a:srcRect l="1000" r="2000"/>';
+    cropped.file(
+      'word/document.xml',
+      cropped
+        .file('word/document.xml')!
+        .asText()
+        .replace('<a:stretch>', crop + '<a:stretch>'),
+    );
+    const original = cropped.generate({ type: 'nodebuffer' });
+    const height = (docx: Buffer) =>
+      +new PizZip(docx)
+        .file('word/document.xml')!
+        .asText()
+        .match(/<wp:extent cx="\d+" cy="(\d+)"/)![1]!;
+    const measure = vi.fn(async (docx: Buffer) => ({
+      ...tocPages,
+      msc_cover_contacts_end: height(docx) <= 88 * 36000 ? 1 : 2,
+    }));
+    const fitted = await fitMscCoverContacts(original, measure);
+    expect(height(fitted.docx)).toBe(88 * 36000);
+    expect(fitted.pages).toEqual(tocPages);
+    expect(measure).toHaveBeenCalledTimes(3);
+    const before = new PizZip(original),
+      after = new PizZip(fitted.docx);
+    expect(after.file('word/document.xml')!.asText()).toContain(crop);
+    const bodyText = (zip: PizZip) =>
+      [
+        ...zip
+          .file('word/document.xml')!
+          .asText()
+          .matchAll(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g),
+      ]
+        .map(([, text]) => text)
+        .join('');
+    expect(bodyText(after)).toEqual(bodyText(before));
+    for (const part of Object.keys(before.files).filter(
+      (name) => !before.files[name]!.dir && name !== 'word/document.xml',
+    ))
+      expect(
+        after
+          .file(part)!
+          .asNodeBuffer()
+          .equals(before.file(part)!.asNodeBuffer()),
+        part,
+      ).toBe(true);
+  });
+
+  it('rejects an overflowing saved cover or missing measurements instead of publishing it', async () => {
+    const docx = await buildReportDocxMsc(base);
+    const measure = vi.fn(async () => ({
+      ...tocPages,
+      msc_cover_contacts_end: 2,
+    }));
+    await expect(fitMscCoverContacts(docx, measure)).rejects.toThrow(/capa/i);
+    expect(measure).toHaveBeenCalledTimes(4);
+    await expect(fitMscCoverContacts(docx, async () => ({}))).rejects.toThrow(
+      /medir/i,
+    );
+  });
+
   it('retains original cover geometry when it fits and verifies the numbered final pass', async () => {
     const build = vi.fn(async (input: DocxInputMsc) =>
       Buffer.from(JSON.stringify(input)),

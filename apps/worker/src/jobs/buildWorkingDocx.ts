@@ -6,7 +6,7 @@ import {
   replaceMscPhotoSections,
   updateMscTocPages,
 } from '../lib/buildDocxMsc';
-import { measureMscPages } from '../lib/mscPagination';
+import { fitMscCoverContacts, measureMscPages } from '../lib/mscPagination';
 import { getServiceClient } from '../lib/supabase';
 import { loadReport, buildWorkingDocx as assembleDocx } from './generatePdf';
 
@@ -135,8 +135,11 @@ async function refreshWorkingPhotos(
       throw new Error('Não foi possível recuperar o Word atual.');
     const original = Buffer.from(await blob.arrayBuffer());
     const fresh = await assembleDocx(svc, reportId, row);
-    let docx = replaceMscPhotoSections(original, fresh.docx);
-    let pages = await measureMscPages(docx),
+    const fitted = await fitMscCoverContacts(
+      replaceMscPhotoSections(original, fresh.docx),
+    );
+    let docx = fitted.docx;
+    let pages = fitted.pages,
       stable = false;
     for (let attempt = 0; attempt < 2; attempt++) {
       docx = updateMscTocPages(docx, pages);
@@ -151,6 +154,8 @@ async function refreshWorkingPhotos(
       throw new Error(
         'A paginação das fotos não estabilizou. Tente novamente.',
       );
+    if (pages['msc_cover_contacts_end'] !== 1)
+      throw new Error('Os contatos do comando precisam permanecer na capa.');
     if ((await signature()) !== source.assignmentKey)
       throw new Error('As fotos mudaram. Tente avançar novamente.');
     const path = `${reportId}/working/${randomUUID()}.docx`;

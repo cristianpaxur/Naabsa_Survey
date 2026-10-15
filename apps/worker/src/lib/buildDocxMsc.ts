@@ -988,6 +988,34 @@ export function repairMscCollaboraLayout(docx: Buffer): {
   };
 }
 
+/** Shrink only the cover frame; retain its crop, bitmap and operator content. */
+export function fitMscCoverPhoto(docx: Buffer, maxHeightMm: number): Buffer {
+  const zip = new PizZip(docx);
+  const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+  const cover = ancestor(bookmark(doc, 'msc_cover'), 'w:p');
+  shrinkCoverFrame(cover, maxHeightMm * 36000);
+  zip.file('word/document.xml', xmlTools.xml2str(doc));
+  return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
+}
+
+function shrinkCoverFrame(cover: XmlNode, maxHeightEmu: number): void {
+  for (const drawing of all(cover, 'w:drawing')) {
+    const extent = all(drawing, 'wp:extent')[0];
+    if (!extent) continue;
+    const height = Number(extent.getAttribute('cy'));
+    if (height <= maxHeightEmu) continue;
+    const fitted = fitPhotoSize(
+      { width: Number(extent.getAttribute('cx')), height },
+      { width: Number(extent.getAttribute('cx')), height: maxHeightEmu },
+    );
+    for (const frame of [extent, ...all(drawing, 'a:ext')]) {
+      if (frame.getAttribute('cx') == null) continue;
+      frame.setAttribute('cx', String(Math.round(fitted.width)));
+      frame.setAttribute('cy', String(Math.round(fitted.height)));
+    }
+  }
+}
+
 /** Refresh allocated pictures while keeping the operator's other Word edits. */
 export function replaceMscPhotoSections(
   original: Buffer,
@@ -1059,6 +1087,9 @@ export function replaceMscPhotoSections(
   const newCover = ancestor(bookmark(fresh, 'msc_cover'), 'w:p').cloneNode(
     true,
   );
+  preserveParagraphProperties(cover, newCover);
+  const previousHeight = Number(all(cover, 'wp:extent')[0]?.getAttribute('cy'));
+  if (previousHeight > 0) shrinkCoverFrame(newCover, previousHeight);
   cover.parentNode!.insertBefore(newCover, cover);
   remove(cover);
   copied.push(newCover);

@@ -18,6 +18,12 @@ const state = vi.hoisted(() => ({
   objects: new Map<string, Buffer>(),
 }));
 const assemble = vi.hoisted(() => vi.fn());
+const measuredPages = vi.hoisted(() => ({
+  msc_cover_contacts_end: 1,
+  s1: 3,
+  s5: 5,
+  s6: 6,
+}));
 const replace = vi.hoisted(() =>
   vi.fn(() => Buffer.from('PHOTOS + ORIGINAL TEXT')),
 );
@@ -30,7 +36,11 @@ vi.mock('../lib/buildDocxMsc', () => ({
   updateMscTocPages: (docx: Buffer) => docx,
 }));
 vi.mock('../lib/mscPagination', () => ({
-  measureMscPages: async () => ({ s1: 3, s5: 5, s6: 6 }),
+  fitMscCoverContacts: async (docx: Buffer) => ({
+    docx,
+    pages: { msc_cover_contacts_end: 1, s1: 3, s5: 5, s6: 6 },
+  }),
+  measureMscPages: async () => ({ ...measuredPages }),
 }));
 vi.mock('../lib/supabase', () => ({
   getServiceClient: () => ({
@@ -99,6 +109,7 @@ const payload = () => ({
 });
 beforeEach(() => {
   vi.clearAllMocks();
+  measuredPages.msc_cover_contacts_end = 1;
   state.events = [];
   state.objects.clear();
   state.objects.set('original.docx', Buffer.from('ORIGINAL TEXT'));
@@ -115,6 +126,16 @@ beforeEach(() => {
   assemble.mockResolvedValue({ docx: Buffer.from('FRESH PHOTOS') });
 });
 describe('MSC photo refresh with optimistic publication', () => {
+  it('retains the saved Word when the final TOC pass moves cover contacts to page 2', async () => {
+    measuredPages.msc_cover_contacts_end = 2;
+    await expect(buildWorkingDocx(payload())).rejects.toThrow(
+      'permanecer na capa',
+    );
+    expect(state.row.working_docx_path).toBe('original.docx');
+    expect(state.row.working_docx_revision).toBe(4);
+    expect(state.objects.size).toBe(1);
+    expect(state.events.at(-1)?.action).toBe('photos_docx_sync_failed');
+  });
   it('publishes an immutable version and retains the original document and stage', async () => {
     await buildWorkingDocx(payload());
     expect(state.objects.get('original.docx')?.toString()).toBe(
