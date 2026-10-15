@@ -11,6 +11,9 @@ import {
   type AssignedPhotoState,
 } from '@/lib/photo-gate';
 import { enqueueProcessPhoto } from '@/lib/queue';
+import { enqueueBuildWorkingDocx } from '@/lib/queue';
+import { createHash } from 'node:crypto';
+import { serializePhotoAssignments, type PhotoAssignment } from '@naabsa/core';
 
 export interface Crop {
   x: number;
@@ -25,6 +28,10 @@ interface ReportRow {
   id: string;
   status: string;
   spec_id: string;
+  working_docx_path?: string | null;
+  working_docx_revision?: number;
+  working_docx_generation?: string;
+  photo_assignment_revision?: number;
 }
 
 interface PhotoRow {
@@ -42,7 +49,9 @@ async function loadReport(
 ): Promise<ReportRow | null> {
   const { data } = await supabase
     .from('reports')
-    .select('id,status,spec_id')
+    .select(
+      'id,status,spec_id,working_docx_path,working_docx_revision,working_docx_generation,photo_assignment_revision',
+    )
     .eq('id', reportId)
     .is('deleted_at', null)
     .maybeSingle();
@@ -290,7 +299,10 @@ export async function saveCrop(
  * slots `required`/`min` estão satisfeitos (defesa dupla com a UI), transiciona
  * in_review→editing e audita.
  */
-export async function advance(reportId: string): Promise<ActionResult> {
+export async function advance(
+  reportId: string,
+  retrySync = false,
+): Promise<ActionResult | { pending: true }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -311,7 +323,7 @@ export async function advance(reportId: string): Promise<ActionResult> {
   // processadas e as sugestões da IA tiverem sido confirmadas ou removidas.
   const { data: rows, error: photoLoadError } = await supabase
     .from('report_photos')
-    .select('slot_id,status,processed_path,ai_suggested')
+    .select('id,slot_id,position,crop,status,processed_path,ai_suggested')
     .eq('report_id', reportId)
     .is('removed_at', null)
     .not('slot_id', 'is', null);
@@ -334,8 +346,114 @@ export async function advance(reportId: string): Promise<ActionResult> {
     };
   }
 
+  if (spec.report_type === 'msc' && report.working_docx_path) {
+    const assignmentKey = createHash('sha256')
+      .update(serializePhotoAssignments((rows ?? []) as PhotoAssignment[]))
+      .digest('hex');
+    const { data: events, error: eventError } = await supabase
+      .from('audit_log')
+      .select('action,payload,created_at')
+      .eq('report_id', reportId)
+      .in('action', [
+        'photos_docx_sync_enqueued',
+        'photos_docx_synced',
+        'photos_docx_sync_failed',
+      ])
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (eventError)
+      return {
+        error: 'Não foi possível conferir a atualização das fotos no Word.',
+      };
+    type SyncEvent = {
+      action: string;
+      payload: {
+        assignmentKey?: string;
+        path?: string;
+        photoRevision?: number;
+        revision?: number;
+        message?: string;
+      };
+      created_at: string;
+    };
+    const last = (events as SyncEvent[] | null)?.find(
+      (event) =>
+        event.payload.assignmentKey === assignmentKey &&
+        event.payload.photoRevision === report.photo_assignment_revision &&
+        event.payload.path === report.working_docx_path &&
+        (event.action === 'photos_docx_synced' ||
+          event.payload.revision === report.working_docx_revision),
+    );
+    const samePhotos =
+      last?.payload.assignmentKey === assignmentKey &&
+      last.payload.photoRevision === report.photo_assignment_revision;
+    const synced =
+      samePhotos &&
+      last?.action === 'photos_docx_synced' &&
+      last.payload.path === report.working_docx_path;
+    if (!synced) {
+      if (
+        samePhotos &&
+        last?.action === 'photos_docx_sync_enqueued' &&
+        Date.now() - Date.parse(last.created_at) < 300_000
+      )
+        return { pending: true };
+      if (
+        samePhotos &&
+        last?.action === 'photos_docx_sync_failed' &&
+        !retrySync
+      )
+        return {
+          error:
+            last.payload.message ??
+            'Falha ao atualizar as fotos no Word. Tente novamente.',
+        };
+      const refreshPhotos = {
+        path: report.working_docx_path,
+        revision: report.working_docx_revision!,
+        assignmentKey,
+        photoRevision: report.photo_assignment_revision!,
+      };
+      await audit(supabase, {
+        reportId,
+        actor: user.id,
+        action: 'photos_docx_sync_enqueued',
+        payload: refreshPhotos,
+      });
+      try {
+        await enqueueBuildWorkingDocx(
+          {
+            reportId,
+            generation: report.working_docx_generation!,
+            refreshPhotos,
+          },
+          {
+            dedupe: !(samePhotos && last?.action === 'photos_docx_sync_failed'),
+          },
+        );
+      } catch {
+        await audit(supabase, {
+          reportId,
+          actor: user.id,
+          action: 'photos_docx_sync_failed',
+          payload: {
+            ...refreshPhotos,
+            message:
+              'A fila de atualização está indisponível. Tente novamente.',
+          },
+        });
+        return {
+          error: 'Não foi possível iniciar a atualização das fotos no Word.',
+        };
+      }
+      return { pending: true };
+    }
+  }
+
   try {
-    await transition(supabase, reportId, 'in_review', 'editing', user.id);
+    await transition(supabase, reportId, 'in_review', 'editing', user.id, {
+      expectedPhotoRevision: report.photo_assignment_revision,
+    });
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : 'Falha ao avançar.',

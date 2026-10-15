@@ -14,3 +14,7 @@ export * from './number-format';
 export * from './spec-schema';
 export * from './extractor';
 export * from './document-builder';
+export {
+  serializePhotoAssignments,
+  type PhotoAssignment,
+} from './photo-assignments';

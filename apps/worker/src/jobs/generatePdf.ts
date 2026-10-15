@@ -152,6 +152,7 @@ export interface ReportRow {
   pdf_paths: string[] | null;
   /** Slug do report_type — usado para escolher o builder (msc, draft_survey). */
   type_slug?: string | null;
+  photo_assignment_revision?: number;
 }
 
 export async function loadReport(
@@ -161,7 +162,7 @@ export async function loadReport(
   const { data, error } = await svc
     .from('reports')
     .select(
-      'status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, spreadsheet_path, created_by, pdf_paths, report_types(slug)',
+      'status, working_docx_path, working_docx_revision, working_docx_generation, approved_docx_path, approved_docx_revision, variant, spec_id, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, spreadsheet_path, created_by, pdf_paths, photo_assignment_revision, report_types(slug)',
     )
     .eq('id', reportId)
     .is('deleted_at', null)
@@ -301,39 +302,70 @@ export async function buildWorkingDocx(
     string,
     FieldValue
   >;
-  const data = effectiveData(spec, variant, extracted, overrides);
+  const currentExtraction = wb ? runExtraction(wb, spec, variant) : null;
+  // Additive MSC spec repairs introduce fields absent from older extractions.
+  // Fill only missing keys from the original workbook; persisted values,
+  // explicit clears and operator overrides keep their priority.
+  const assemblyExtracted =
+    row.type_slug === 'msc'
+      ? { ...currentExtraction?.data, ...extracted }
+      : extracted;
+  const data = effectiveData(spec, variant, assemblyExtracted, overrides);
   if (row.type_slug === 'draft_survey' && wb) {
     // A planilha é a fonte atual dos horários. Relatórios antigos podem ter
     // valores persistidos incorretos; um override manual explícito continua
     // tendo prioridade sobre a célula da planilha.
     const sources = [
-      ['initial_start', 'Inicial', 'G7'], ['initial_end', 'Inicial', 'H7'],
-      ['intermediate_start', 'Intermediario', 'G5'], ['intermediate_end', 'Intermediario', 'H5'],
-      ['final_start', 'final', 'G5'], ['final_end', 'final', 'H5'],
+      ['initial_start', 'Inicial', 'G7'],
+      ['initial_end', 'Inicial', 'H7'],
+      ['intermediate_start', 'Intermediario', 'G5'],
+      ['intermediate_end', 'Intermediario', 'H5'],
+      ['final_start', 'final', 'G5'],
+      ['final_end', 'final', 'H5'],
     ] as const;
     for (const [name, sheet, cell] of sources) {
       if (Object.hasOwn(overrides, name)) continue;
-      const raw = normalizeCell(wb.getWorksheet(sheet)?.getCell(cell).value ?? null);
-      const resolved = coerceField(raw, { type: 'time', cell, label: name, section: 'Datas' });
+      const raw = normalizeCell(
+        wb.getWorksheet(sheet)?.getCell(cell).value ?? null,
+      );
+      const resolved = coerceField(raw, {
+        type: 'time',
+        cell,
+        label: name,
+        section: 'Datas',
+      });
       if (resolved.value != null) data[name] = resolved.value;
     }
-    if (!Object.hasOwn(overrides, 'delivered') && (data['delivered'] == null || data['delivered'] === '')) {
-      const raw = normalizeCell(wb.getWorksheet('Capa')?.getCell('C19').value ?? null);
+    if (
+      !Object.hasOwn(overrides, 'delivered') &&
+      (data['delivered'] == null || data['delivered'] === '')
+    ) {
+      const raw = normalizeCell(
+        wb.getWorksheet('Capa')?.getCell('C19').value ?? null,
+      );
       if (raw instanceof Date) data['delivered'] = raw.getUTCFullYear();
-      else if (typeof raw === 'number' || typeof raw === 'string') data['delivered'] = raw;
+      else if (typeof raw === 'number' || typeof raw === 'string')
+        data['delivered'] = raw;
     }
   }
   const numberFormats: NumberFormatMap = {};
   for (const [name, def] of collectFields(spec, variant)) {
     const decimals = resolveDisplayDecimals(
-      name, def, row.extracted_number_formats ?? {},
-      row.operator_number_formats ?? {}, overrides,
+      name,
+      def,
+      row.type_slug === 'msc'
+        ? {
+            ...currentExtraction?.numberFormats,
+            ...row.extracted_number_formats,
+          }
+        : (row.extracted_number_formats ?? {}),
+      row.operator_number_formats ?? {},
+      overrides,
     );
     if (decimals !== undefined) numberFormats[name] = decimals;
   }
-  const tables: Record<string, FieldValue[][]> = wb
-    ? runExtraction(wb, spec, variant).tables
-    : {};
+  const tables: Record<string, FieldValue[][]> =
+    currentExtraction?.tables ?? {};
 
   const logo = await fetchLogo();
 
@@ -356,6 +388,13 @@ export async function buildWorkingDocx(
       ecr: [],
       hull: [],
     };
+    // New MSC specs have a dedicated cover. Legacy specs retain their first
+    // Vessel photo as cover; an empty explicit cover stays empty.
+    let coverPhoto: Buffer | null | undefined = spec.photo_slots?.some(
+      (slot) => slot.id === 'cover',
+    )
+      ? null
+      : undefined;
     for (const r of (photoRows ?? []) as {
       slot_id: string | null;
       processed_path: string | null;
@@ -363,13 +402,20 @@ export async function buildWorkingDocx(
     }[]) {
       if (!r.slot_id || !r.processed_path) continue;
       if (
-        !['vessel', 'engine_room', 'survey_attendance', 'ecr', 'hull'].includes(
-          r.slot_id,
-        )
+        ![
+          'cover',
+          'vessel',
+          'engine_room',
+          'survey_attendance',
+          'ecr',
+          'hull',
+        ].includes(r.slot_id)
       )
         continue;
       const buf = await download(svc, r.processed_path);
-      if (buf)
+      if (buf && r.slot_id === 'cover') {
+        coverPhoto ??= await applyCrop(buf, r.crop);
+      } else if (buf)
         (photos[r.slot_id as keyof typeof photos] ??= []).push(
           await applyCrop(buf, r.crop),
         );
@@ -381,6 +427,7 @@ export async function buildWorkingDocx(
       data,
       numberFormats,
       logo,
+      coverPhoto,
       photos,
       timeLogRows,
     };

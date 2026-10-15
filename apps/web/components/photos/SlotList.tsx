@@ -15,12 +15,18 @@ function AllocatedThumb({
   onCrop,
   onUnallocate,
   onRemove,
+  onReorder,
+  canMoveBefore,
+  canMoveAfter,
   busy,
 }: {
   photo: UIPhoto;
   onCrop: (photoId: string) => void;
   onUnallocate: (photoId: string) => void;
   onRemove: (photoId: string) => void;
+  onReorder: (photo: UIPhoto, direction: number) => void;
+  canMoveBefore: boolean;
+  canMoveAfter: boolean;
   busy: boolean;
 }) {
   return (
@@ -36,12 +42,25 @@ function AllocatedThumb({
       }}
     >
       <button
+        type="button"
+        disabled={busy}
         onClick={() => onCrop(photo.id)}
         title="Recortar"
-        style={{ width: '100%', height: '100%', border: 'none', padding: 0, cursor: 'pointer', background: 'transparent' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          background: 'transparent',
+        }}
       >
         {photo.thumbUrl && (
-          <PhotoImage src={photo.thumbUrl} label={photo.label} retryable={false} />
+          <PhotoImage
+            src={photo.thumbUrl}
+            label={photo.label}
+            retryable={false}
+          />
         )}
       </button>
       <span
@@ -67,7 +86,15 @@ function AllocatedThumb({
           }}
         />
       </span>
-      <div style={{ position: 'absolute', top: 5, left: 5, display: 'flex', gap: 4 }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 5,
+          left: 5,
+          display: 'flex',
+          gap: 4,
+        }}
+      >
         <button
           type="button"
           disabled={busy}
@@ -85,6 +112,34 @@ function AllocatedThumb({
           style={{ ...thumbActionStyle, background: '#a22b2b' }}
         >
           Remover
+        </button>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 5,
+          left: 5,
+          display: 'flex',
+          gap: 4,
+        }}
+      >
+        <button
+          type="button"
+          style={thumbActionStyle}
+          disabled={busy || !canMoveBefore}
+          onClick={() => onReorder(photo, -1)}
+          aria-label={`Mover ${photo.label} para antes`}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          style={thumbActionStyle}
+          disabled={busy || !canMoveAfter}
+          onClick={() => onReorder(photo, 1)}
+          aria-label={`Mover ${photo.label} para depois`}
+        >
+          ↓
         </button>
       </div>
     </div>
@@ -121,7 +176,10 @@ function AllocateDropzone({
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClickAllocate(slotId); }
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClickAllocate(slotId);
+        }
       }}
       style={{
         width: 120,
@@ -153,10 +211,20 @@ interface SlotRowProps {
   onClickAllocate: (slotId: string) => void;
   onUnallocate: (photoId: string) => void;
   onRemove: (photoId: string) => void;
+  onReorder: (photo: UIPhoto, direction: number) => void;
   busy: boolean;
 }
 
-function SlotRow({ slot, photos, onCrop, onClickAllocate, onUnallocate, onRemove, busy }: SlotRowProps) {
+function SlotRow({
+  slot,
+  photos,
+  onCrop,
+  onClickAllocate,
+  onUnallocate,
+  onRemove,
+  onReorder,
+  busy,
+}: SlotRowProps) {
   const have = photos.length;
   const max = slot.max ?? '∞';
   const color = counterColor(have);
@@ -164,20 +232,31 @@ function SlotRow({ slot, photos, onCrop, onClickAllocate, onUnallocate, onRemove
 
   return (
     <div
+      className="photo-slot-row"
+      data-slot-id={slot.id}
       style={{
         border: '1px solid #ece8e1',
         borderRadius: 12,
         background: '#fff',
         padding: 14,
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 14,
       }}
     >
-      <div
-        style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 'none' }}
-      >
-        {photos.map((p) => (
-          <AllocatedThumb key={p.id} photo={p} onCrop={onCrop} onUnallocate={onUnallocate} onRemove={onRemove} busy={busy} />
+      <div className="photo-slot-images" style={{ flex: '1 1 100%', order: 1 }}>
+        {photos.map((p, index) => (
+          <AllocatedThumb
+            key={p.id}
+            photo={p}
+            onCrop={onCrop}
+            onUnallocate={onUnallocate}
+            onRemove={onRemove}
+            onReorder={onReorder}
+            canMoveBefore={index > 0}
+            canMoveAfter={index < photos.length - 1}
+            busy={busy}
+          />
         ))}
         {!slotFull && (
           <AllocateDropzone
@@ -187,7 +266,7 @@ function SlotRow({ slot, photos, onCrop, onClickAllocate, onUnallocate, onRemove
         )}
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
             display: 'flex',
@@ -269,6 +348,7 @@ export interface SlotListProps {
   onClickAllocate: (slotId: string) => void;
   onUnallocate: (photoId: string) => void;
   onRemove: (photoId: string) => void;
+  onReorder: (photo: UIPhoto, direction: number) => void;
   busy: boolean;
 }
 
@@ -283,6 +363,7 @@ export function SlotList({
   onClickAllocate,
   onUnallocate,
   onRemove,
+  onReorder,
   busy,
 }: SlotListProps) {
   return (
@@ -315,6 +396,7 @@ export function SlotList({
           onClickAllocate={onClickAllocate}
           onUnallocate={onUnallocate}
           onRemove={onRemove}
+          onReorder={onReorder}
           busy={busy}
         />
       ))}

@@ -434,6 +434,7 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
       workbook?: ExcelJS.Workbook;
       overrides?: Record<string, FieldValue>;
       operatorNumberFormats?: NumberFormatMap;
+      missingExtractedFields?: string[];
     } = {},
   ) {
     const workbook = options.workbook ?? (await readMscWorkbook());
@@ -451,6 +452,10 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
     expect(extracted.issues.filter((issue) => issue.level === 'error')).toEqual(
       [],
     );
+    for (const key of options.missingExtractedFields ?? []) {
+      delete extracted.data[key];
+      delete extracted.numberFormats[key];
+    }
     const spreadsheet = Buffer.from(await workbook.xlsx.writeBuffer());
     const stored = {
       status: 'editing',
@@ -546,6 +551,24 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
       purifier_flow: '1 x 2,0 m³',
       purifier_bowl_freq: '60 minutes',
     });
+  });
+
+  it('recupera quantidades que não existiam no spec antigo sem perder overrides', async () => {
+    const { built, inputs, text } = await buildMscCase({
+      missingExtractedFields: [
+        'grade_1_surveyor',
+        'grade_1_vrs',
+        'sludge_surveyor',
+      ],
+      overrides: { grade_1_vrs: 0, sludge_surveyor: '' },
+    });
+    expect(built.data.grade_1_surveyor).toEqual(
+      inputs[0]!.data.grade_1_surveyor,
+    );
+    expect(typeof built.data.grade_1_surveyor).toBe('number');
+    expect(built.data.grade_1_vrs).toBe(0);
+    expect(built.data.sludge_surveyor).toBe('');
+    expect(text).toContain('0.000');
   });
 
   it('prioriza os overrides e a precisão salva pelo operador nas duas passagens', async () => {

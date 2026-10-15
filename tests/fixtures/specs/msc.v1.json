@@ -767,8 +767,15 @@
 
   "photo_slots": [
     {
+      "id": "cover",
+      "label": "Capa",
+      "aspect": "4:3",
+      "max": 1,
+      "required": false
+    },
+    {
       "id": "vessel",
-      "label": "Vessel (capa)",
+      "label": "Vessel",
       "aspect": "4:3",
       "required": false
     },

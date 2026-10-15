@@ -47,6 +47,7 @@ export function isValidTransition(
 
 export interface TransitionOptions {
   clearWopiLock?: boolean;
+  expectedPhotoRevision?: number;
 }
 
 /**
@@ -72,17 +73,26 @@ export async function transition(
     throw new Error(`Transição inválida: ${from} → ${to}.`);
   }
 
-  const { error, count } = await supabase
+  let update = supabase
     .from('reports')
-    .update({
-      status: to,
-      ...(options.clearWopiLock
-        ? { wopi_lock: null, wopi_lock_expires_at: null }
-        : {}),
-    } as never, { count: 'exact' })
+    .update(
+      {
+        status: to,
+        ...(options.clearWopiLock
+          ? { wopi_lock: null, wopi_lock_expires_at: null }
+          : {}),
+      } as never,
+      { count: 'exact' },
+    )
     .eq('id', reportId)
     .eq('status', from)
     .is('deleted_at', null);
+  if (options.expectedPhotoRevision !== undefined)
+    update = update.eq(
+      'photo_assignment_revision',
+      options.expectedPhotoRevision,
+    );
+  const { error, count } = await update;
   if (error) throw error;
   if (count === 0) {
     throw new Error(

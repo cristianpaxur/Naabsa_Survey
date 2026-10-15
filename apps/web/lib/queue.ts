@@ -18,7 +18,9 @@ export const AI_REVIEW_QUEUE = 'ai_review';
 // Persistir o singleton no globalThis evita VAZAMENTO de pools no HMR do Next dev:
 // sem isso, cada reload reavalia o módulo, recria o PgBoss e deixa o anterior com
 // conexões abertas — estourando o limite do pooler do Supabase (session mode ~15).
-const globalForBoss = globalThis as unknown as { __naabsaWebBoss?: Promise<PgBoss> };
+const globalForBoss = globalThis as unknown as {
+  __naabsaWebBoss?: Promise<PgBoss>;
+};
 
 async function getBoss(): Promise<PgBoss> {
   if (globalForBoss.__naabsaWebBoss) return globalForBoss.__naabsaWebBoss;
@@ -35,7 +37,14 @@ async function getBoss(): Promise<PgBoss> {
     try {
       await boss.start();
       // Idempotente: garante as filas caso o worker ainda não as tenha criado.
-      for (const q of [PROCESS_PHOTO_QUEUE, GENERATE_PDF_QUEUE, PREVIEW_PDF_QUEUE, BUILD_WORKING_DOCX_QUEUE, RENDER_SHEETS_QUEUE, AI_REVIEW_QUEUE]) {
+      for (const q of [
+        PROCESS_PHOTO_QUEUE,
+        GENERATE_PDF_QUEUE,
+        PREVIEW_PDF_QUEUE,
+        BUILD_WORKING_DOCX_QUEUE,
+        RENDER_SHEETS_QUEUE,
+        AI_REVIEW_QUEUE,
+      ]) {
         await boss.createQueue(q).catch(() => {
           /* já existe */
         });
@@ -51,7 +60,8 @@ async function getBoss(): Promise<PgBoss> {
   globalForBoss.__naabsaWebBoss = p;
   // Não cacheia falha: limpa o singleton para a próxima requisição tentar de novo.
   p.catch(() => {
-    if (globalForBoss.__naabsaWebBoss === p) globalForBoss.__naabsaWebBoss = undefined;
+    if (globalForBoss.__naabsaWebBoss === p)
+      globalForBoss.__naabsaWebBoss = undefined;
   });
   return p;
 }
@@ -94,7 +104,16 @@ export async function enqueuePreviewPdf(
  * `singletonKey` por relatório dedupe builds em recarregamentos rápidos da página;
  * `dedupe: false` (retentativa pós-falha, 014/T-005) força um job novo. */
 export async function enqueueBuildWorkingDocx(
-  payload: { reportId: string; generation: string },
+  payload: {
+    reportId: string;
+    generation: string;
+    refreshPhotos?: {
+      path: string;
+      revision: number;
+      assignmentKey: string;
+      photoRevision: number;
+    };
+  },
   opts: { dedupe?: boolean } = {},
 ): Promise<string | null> {
   const boss = await getBoss();
@@ -103,7 +122,10 @@ export async function enqueueBuildWorkingDocx(
     payload,
     opts.dedupe === false
       ? {}
-      : { singletonKey: `${payload.reportId}:${payload.generation}`, singletonSeconds: 120 },
+      : {
+          singletonKey: `${payload.reportId}:${payload.generation}${payload.refreshPhotos ? `:${payload.refreshPhotos.revision}:${payload.refreshPhotos.photoRevision}:${payload.refreshPhotos.assignmentKey}` : ''}`,
+          singletonSeconds: 120,
+        },
   );
 }
 

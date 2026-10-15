@@ -399,7 +399,12 @@ describe('MSC — fidelity to the revised Word template', () => {
     const outputXml = await documentXml({ timeLogRows });
     const actual = table(outputXml);
     expect(actual).toBeDefined();
-    expect(properties(actual, 'tblPr')).toBe(properties(source, 'tblPr'));
+    expect(
+      properties(actual, 'tblPr').replace(
+        /<w:tblBorders>[\s\S]*?<\/w:tblBorders>/,
+        '',
+      ),
+    ).toBe(properties(source, 'tblPr'));
     expect(properties(actual, 'tblGrid')).toBe(properties(source, 'tblGrid'));
     const rows = [...actual.matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)].map(
       ([row]) => row,

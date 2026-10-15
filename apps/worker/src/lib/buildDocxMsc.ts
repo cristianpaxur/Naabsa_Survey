@@ -1,5 +1,6 @@
 /** MSC filled in the client's Word package; layout belongs to the template. */
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { posix } from 'node:path';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
@@ -173,6 +174,10 @@ function templateData(input: DocxInputMsc): Record<string, string> {
   result['surveyors'] = value(input.data['surveyors'], 'Mr. Wagner de Abreu');
   result['contact_manager_company'] = value(
     input.data['contact_manager_company'] ?? input.data['manager'],
+  );
+  result['contact_manager_name'] = value(
+    input.data['contact_manager_name'],
+    'Capt. Robert Masse',
   );
   result['flowmeter_soundings'] ??= result['consumption_surveyor'] ?? '—';
   const actor = /^(\d+)(st|nd|rd|th)(.*)$/i.exec(
@@ -404,6 +409,29 @@ function fillTimeLog(doc: XmlDocument, input: DocxInputMsc): void {
     property(doc, clone, 'w:trPr', 'w:cantSplit');
     table.appendChild(clone);
   }
+  // The client wants the Time log as aligned text, with no printed grid.
+  // Direct cell borders must also override the template's Table Grid style.
+  for (const [node, properties, borderTag] of [
+    [table, 'w:tblPr', 'w:tblBorders'],
+    ...all(table, 'w:tc').map(
+      (cell) => [cell, 'w:tcPr', 'w:tcBorders'] as const,
+    ),
+  ] as const) {
+    property(doc, node, properties, borderTag);
+    const borders = all(node, borderTag)[0]!;
+    for (const side of [
+      'top',
+      'left',
+      'bottom',
+      'right',
+      'insideH',
+      'insideV',
+    ]) {
+      const border = doc.createElementNS(W, `w:${side}`);
+      border.setAttribute('w:val', 'nil');
+      borders.appendChild(border);
+    }
+  }
 }
 function optionalSections(doc: XmlDocument, input: DocxInputMsc): void {
   if (!affirmative(input.data['last_attendance'])) {
@@ -590,7 +618,10 @@ async function fillImages(
     return !!sourceBytes?.equals(normalized);
   }
   const cover = ancestor(bookmark(doc, 'msc_cover'), 'w:p'),
-    coverBuffer = input.coverPhoto ?? input.photos.vessel?.[0];
+    coverBuffer =
+      input.coverPhoto === undefined
+        ? input.photos.vessel?.[0]
+        : input.coverPhoto;
   for (const drawing of all(cover, 'w:drawing')) {
     if (coverBuffer) await replaceImage(drawing, coverBuffer, true);
     else remove(drawing);
@@ -955,4 +986,159 @@ export function repairMscCollaboraLayout(docx: Buffer): {
     docx: zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }),
     changed: true,
   };
+}
+
+/** Refresh allocated pictures while keeping the operator's other Word edits. */
+export function replaceMscPhotoSections(
+  original: Buffer,
+  rendered: Buffer,
+): Buffer {
+  const zip = new PizZip(original),
+    source = new PizZip(rendered);
+  const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+  const fresh = xmlTools.str2xml(source.file('word/document.xml')!.asText());
+  const oldStart = ancestor(bookmark(doc, 's5'), 'w:p');
+  const oldEnd = ancestor(bookmark(doc, 's6'), 'w:p');
+  const newStart = ancestor(bookmark(fresh, 's5'), 'w:p');
+  const newEnd = ancestor(bookmark(fresh, 's6'), 'w:p');
+  const section = (start: XmlNode, end: XmlNode) => {
+    const nodes: XmlNode[] = [];
+    for (
+      let node: XmlNode | null = start;
+      node && node !== end;
+      node = node.nextSibling
+    )
+      nodes.push(node);
+    return nodes;
+  };
+  const incoming = section(newStart, newEnd);
+  const knownText = new Set(
+    incoming.map((node) => (node.textContent ?? '').trim()),
+  );
+  const captions = section(oldStart, oldEnd).filter(
+    (node) =>
+      (node.textContent ?? '').trim() &&
+      !knownText.has((node.textContent ?? '').trim()) &&
+      !all(node, 'w:bookmarkStart').some((mark) =>
+        /^s5(?:_\d+)?$/.test(mark.getAttribute('w:name') ?? ''),
+      ) &&
+      !all(node, 'w:drawing').length,
+  );
+  const copied: XmlNode[] = [];
+  for (const node of [...incoming, ...captions]) {
+    const clone = node.cloneNode(true);
+    oldEnd.parentNode!.insertBefore(clone, oldEnd);
+    copied.push(clone);
+  }
+  for (const node of section(oldStart, copied[0]!)) remove(node);
+  const cover = ancestor(bookmark(doc, 'msc_cover'), 'w:p');
+  const newCover = ancestor(bookmark(fresh, 'msc_cover'), 'w:p').cloneNode(
+    true,
+  );
+  cover.parentNode!.insertBefore(newCover, cover);
+  remove(cover);
+  copied.push(newCover);
+
+  // Only the photo entries change; preserve other Contents labels and styles.
+  const tocEnd = all(doc, 'w:hyperlink').find(
+    (link) => link.getAttribute('w:anchor') === 's6',
+  );
+  if (!tocEnd) throw new Error('Sumário MSC sem entrada Attachment.');
+  for (const link of all(doc, 'w:hyperlink').filter((link) =>
+    /^s5(?:_\d+)?$/.test(link.getAttribute('w:anchor') ?? ''),
+  ))
+    remove(ancestor(link, 'w:p'));
+  for (const link of all(fresh, 'w:hyperlink').filter((link) =>
+    /^s5(?:_\d+)?$/.test(link.getAttribute('w:anchor') ?? ''),
+  )) {
+    const clone = ancestor(link, 'w:p').cloneNode(true),
+      end = ancestor(tocEnd, 'w:p');
+    end.parentNode!.insertBefore(clone, end);
+  }
+  const rels = xmlTools.str2xml(
+    zip.file('word/_rels/document.xml.rels')!.asText(),
+  );
+  const sourceRels = xmlTools.str2xml(
+    source.file('word/_rels/document.xml.rels')!.asText(),
+  );
+  const prefix = `PhotoSync${randomUUID().replaceAll('-', '')}`;
+  let imageIndex = 0;
+  for (const node of copied)
+    for (const blip of all(node, 'a:blip')) {
+      const relation = all(sourceRels, 'Relationship').find(
+        (rel) => rel.getAttribute('Id') === blip.getAttribute('r:embed'),
+      );
+      if (!relation) throw new Error('Foto MSC sem relacionamento de imagem.');
+      const target = relation.getAttribute('Target')!;
+      const name = `media/${prefix}-${++imageIndex}${posix.extname(target)}`;
+      const bytes = source.file(posix.normalize(`word/${target}`));
+      if (!bytes) throw new Error('Foto MSC ausente no documento atualizado.');
+      zip.file(`word/${name}`, bytes.asNodeBuffer());
+      const copy = relation.cloneNode(true),
+        id = `${prefix}_${imageIndex}`;
+      copy.setAttribute('Id', id);
+      copy.setAttribute('Target', name);
+      children(rels)[0]!.appendChild(copy);
+      blip.setAttribute('r:embed', id);
+    }
+  // Both documents originate from the same MSC template; retain all existing
+  // content types and add only image formats introduced by the new pictures.
+  const types = xmlTools.str2xml(zip.file('[Content_Types].xml')!.asText());
+  const sourceTypes = xmlTools.str2xml(
+    source.file('[Content_Types].xml')!.asText(),
+  );
+  for (const entry of all(sourceTypes, 'Default'))
+    if (
+      !all(types, 'Default').some(
+        (old) =>
+          old.getAttribute('Extension') === entry.getAttribute('Extension'),
+      )
+    )
+      children(types)[0]!.appendChild(entry.cloneNode(true));
+  let markId = 0;
+  const markIds = new Map<string, string[]>();
+  for (const node of all(doc, '*').filter(
+    (node) =>
+      node.nodeName === 'w:bookmarkStart' || node.nodeName === 'w:bookmarkEnd',
+  )) {
+    const key = node.getAttribute('w:id') ?? '',
+      ids = markIds.get(key) ?? [];
+    if (node.nodeName === 'w:bookmarkStart') {
+      const id = String(++markId);
+      ids.push(id);
+      markIds.set(key, ids);
+      node.setAttribute('w:id', id);
+    } else node.setAttribute('w:id', ids.shift() ?? String(++markId));
+  }
+  all(doc, 'wp:docPr').forEach((node, index) =>
+    node.setAttribute('id', String(index + 1)),
+  );
+  zip.file('word/document.xml', xmlTools.xml2str(doc));
+  zip.file('word/_rels/document.xml.rels', xmlTools.xml2str(rels));
+  zip.file('[Content_Types].xml', xmlTools.xml2str(types));
+  return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
+}
+
+export function updateMscTocPages(
+  docx: Buffer,
+  pages: Record<string, number>,
+): Buffer {
+  const zip = new PizZip(docx),
+    doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+  for (const link of all(doc, 'w:hyperlink')) {
+    const page = pages[link.getAttribute('w:anchor') ?? ''];
+    if (!page) continue;
+    const text = all(link, 'w:t')
+      .reverse()
+      .find((node) => /\d+\s*$/.test(node.textContent ?? ''));
+    if (!text)
+      throw new Error('Sumário MSC sem número de página para atualizar.');
+    setText(
+      doc,
+      text,
+      (text.textContent ?? '').replace(/\d+(\s*)$/, `${page}$1`),
+    );
+  }
+  zip.file('word/document.xml', xmlTools.xml2str(doc));
+  return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
 }

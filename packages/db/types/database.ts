@@ -322,6 +322,7 @@ export type Database = {
           wopi_lock_expires_at: string | null
           working_docx_generation: string
           working_docx_revision: number
+          photo_assignment_revision: number
           working_docx_saved_at: string | null
           approved_docx_path: string | null
           approved_docx_revision: number | null
@@ -353,6 +354,7 @@ export type Database = {
           wopi_lock_expires_at?: string | null
           working_docx_generation?: string
           working_docx_revision?: number
+          photo_assignment_revision?: number
           working_docx_saved_at?: string | null
           approved_docx_path?: string | null
           approved_docx_revision?: number | null
@@ -384,6 +386,7 @@ export type Database = {
           wopi_lock_expires_at?: string | null
           working_docx_generation?: string
           working_docx_revision?: number
+          photo_assignment_revision?: number
           working_docx_saved_at?: string | null
           approved_docx_path?: string | null
           approved_docx_revision?: number | null

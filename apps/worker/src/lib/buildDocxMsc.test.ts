@@ -6,6 +6,8 @@ import {
   buildReportDocxMsc,
   type DocxInputMsc,
   type TimeLogRow,
+  replaceMscPhotoSections,
+  updateMscTocPages,
 } from './buildDocxMsc';
 
 const base: DocxInputMsc = {
@@ -48,6 +50,141 @@ const photo = (width: number, height: number, background = '#456789') =>
     .toBuffer();
 
 describe('buildReportDocxMsc — template values and dynamic content', () => {
+  it('refreshes photo sections and Contents while preserving manual text and package parts', async () => {
+    const oldPhoto = await photo(800, 600, '#ff0000');
+    const newPhoto = await photo(800, 600, '#00ff00');
+    const before = await zipOf({
+      data: { vessel_name: 'ORIGINAL BODY' },
+      photos: { vessel: [oldPhoto] },
+      tocPages: { s1: 3, s5: 5, s5_1: 5, s6: 6 },
+    });
+    let xml = before
+      .file('word/document.xml')!
+      .asText()
+      .replace(
+        'Complying with Messrs.',
+        'MANUAL BODY TEXT. Complying with Messrs.',
+      );
+    const attachments = paragraphs(xml).find((p) => p.includes('w:name="s6"'))!;
+    xml = xml.replace(
+      attachments,
+      '<w:p><w:r><w:t>MANUAL PHOTO CAPTION</w:t></w:r></w:p>' + attachments,
+    );
+    before.file('word/document.xml', xml);
+    const original = before.generate({ type: 'nodebuffer' });
+    const fresh = await buildReportDocxMsc({
+      ...base,
+      data: { vessel_name: 'UNUSED FRESH BODY' },
+      coverPhoto: newPhoto,
+      photos: { vessel: Array(12).fill(newPhoto), hull: [newPhoto] },
+      tocPages: { s5: 7, s5_1: 7, s5_5: 9, s6: 10 },
+    });
+    const result = new PizZip(replaceMscPhotoSections(original, fresh));
+    const actual = result.file('word/document.xml')!.asText();
+    expect(textOf(actual)).toContain('MANUAL BODY TEXT');
+    expect(textOf(actual)).toContain('MANUAL PHOTO CAPTION');
+    expect(textOf(actual)).toContain('ORIGINAL BODY');
+    expect(textOf(actual)).not.toContain('UNUSED FRESH BODY');
+    expect(
+      actual
+        .slice(actual.indexOf('w:name="s5_1"'), actual.indexOf('w:name="s5_2"'))
+        .match(/<w:drawing>/g),
+    ).toHaveLength(12);
+    expect(actual.match(/w:name="s5_5"/g)).toHaveLength(1);
+    expect(actual.match(/w:anchor="s5_5"/g)).toHaveLength(1);
+    const ids = [
+      ...actual.matchAll(/<w:bookmarkStart[^>]*w:id="([^"]+)"/g),
+    ].map((m) => m[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const name of Object.keys(before.files).filter(
+      (name) =>
+        !before.files[name]!.dir &&
+        /^word\/(?:styles\.xml|numbering\.xml|fontTable\.xml|header\d+\.xml|footer\d+\.xml|media\/)/.test(
+          name,
+        ),
+    ))
+      expect(
+        result
+          .file(name)!
+          .asNodeBuffer()
+          .equals(before.file(name)!.asNodeBuffer()),
+        name,
+      ).toBe(true);
+    const numbered = new PizZip(
+      updateMscTocPages(result.generate({ type: 'nodebuffer' }), {
+        s1: 3,
+        s5: 7,
+        s5_1: 8,
+        s5_5: 9,
+        s6: 10,
+      }),
+    )
+      .file('word/document.xml')!
+      .asText();
+    expect(
+      paragraphs(numbered).find((p) => p.includes('w:anchor="s5_1"')),
+    ).toMatch(/8\s*<\/w:t>/);
+  });
+  it('fills the default manager contact and preserves an explicit contact', async () => {
+    expect(textOf(await xmlOf())).toContain('Capt. Robert Masse');
+    expect(
+      textOf(await xmlOf({ data: { contact_manager_name: 'Capt. Client' } })),
+    ).toContain('Capt. Client');
+  });
+
+  it('keeps a dedicated cover separate from Vessel and Hull', async () => {
+    const coverPhoto = await photo(800, 600, '#ff0000');
+    const vessel = await photo(800, 600, '#00ff00');
+    const hull = await photo(800, 600, '#0000ff');
+    const zip = await zipOf({
+      coverPhoto,
+      photos: { vessel: [vessel], hull: [hull] },
+    });
+    const xml = zip.file('word/document.xml')!.asText();
+    const relationships = zip.file('word/_rels/document.xml.rels')!.asText();
+    const bitmap = (paragraph: string) => {
+      const id = paragraph.match(/r:embed="([^"]+)"/)![1];
+      const relation = relationships.match(
+        new RegExp(`<Relationship[^>]*Id="${id}"[^>]*/>`),
+      )![0];
+      const target = relation.match(/Target="([^"]+)"/)![1];
+      return zip.file(`word/${target}`)!.asNodeBuffer();
+    };
+    const cover = paragraphs(xml).find((p) =>
+      p.includes('w:name="msc_cover"'),
+    )!;
+    const vesselGallery = paragraphs(xml).find((p) =>
+      p.includes('w:name="msc_photos_vessel"'),
+    )!;
+    const hullGallery = paragraphs(xml).find((p) =>
+      p.includes('w:name="msc_photos_hull"'),
+    )!;
+    expect(bitmap(cover)).toEqual(coverPhoto);
+    expect(bitmap(vesselGallery)).toEqual(vessel);
+    expect(bitmap(hullGallery)).toEqual(hull);
+    const noCover = await xmlOf({
+      coverPhoto: null,
+      photos: { vessel: [vessel] },
+    });
+    expect(
+      paragraphs(noCover).find((p) => p.includes('w:name="msc_cover"')),
+    ).not.toContain('<w:drawing');
+    expect(noCover.match(/<w:drawing>/g)).toHaveLength(1);
+  });
+
+  it('renders the Time log without table or cell grid borders', async () => {
+    const table = logTable(await xmlOf({ timeLogRows: logRows(12) }));
+    const borders = [
+      ...table.matchAll(
+        /<w:(?:tblBorders|tcBorders)>[\s\S]*?<\/w:(?:tblBorders|tcBorders)>/g,
+      ),
+    ];
+    expect(borders.length).toBeGreaterThan(12);
+    for (const [border] of borders)
+      expect(border).not.toMatch(/w:val="(?!nil)/);
+    expect(textOf(table)).toContain('Event 12');
+  });
+
   it('removes unused gallery paragraphs and keeps a partial gallery title with its first photo', async () => {
     const xml = await xmlOf({ photos: { vessel: [await photo(800, 600)] } });
     const group = paragraphs(xml).filter(
@@ -349,6 +486,29 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
         /^word\/media\/image\d+\.jpe?g$/.test(name),
       ),
     ).toEqual(['word/media/image2.jpg']); // institutional logo
+  });
+  it('keeps the client mixed gallery counts in their own sections', async () => {
+    const image = await photo(800, 600);
+    const xml = await xmlOf({
+      photos: {
+        vessel: Array(12).fill(image),
+        engine_room: Array(4).fill(image),
+        survey_attendance: Array(10).fill(image),
+        ecr: Array(4).fill(image),
+      },
+    });
+    for (const [section, next, count] of [
+      ['s5_1', 's5_2', 12],
+      ['s5_2', 's5_3', 4],
+      ['s5_3', 's5_4', 10],
+      ['s5_4', 's6', 4],
+    ] as const) {
+      const body = xml.slice(
+        xml.indexOf(`w:name="${section}"`),
+        xml.indexOf(`w:name="${next}"`),
+      );
+      expect(body.match(/<w:drawing>/g), section).toHaveLength(count);
+    }
   });
   it('applies the requested precision to Delivered', async () => {
     const text = textOf(
