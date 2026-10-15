@@ -12,7 +12,7 @@ Total: **737 testes aprovados**, mais seis casos de integração desativados. ES
 
 Evidências privadas em `tmp/client-feedback-20261015/`: transcrições, quadros dos vídeos, `original-client.docx`, `current-text.json`, teste local da UI e logs `*-final.log`/`worker-verified.log`.
 
-## Produção
+## Situação inicial de produção, antes da publicação
 
 O diagnóstico pelo terminal do Dokploy foi somente de leitura. Nenhuma migration deste lote, alteração de valores/fotos ou substituição de Word foi executada em produção. O Chrome perdeu a conexão de controle antes da ativação; mesmo após o aviso do usuário de que está online, a ferramenta retornou `Debugger unattached` e depois `Browser is not available: chrome`. O inventário voltou a listar o Chrome, mas a obtenção da aba e a reconexão do navegador continuaram terminando por timeout.
 
@@ -31,3 +31,15 @@ Não publicar a branch acompanhada pelo Autodeploy antes de aplicar a 0025: isso
 - **Aprovação e PDF pela interface ainda não concluídos.** Dependem da publicação da correção da sincronização. A 0026 é para novas extrações; o teste atual mantém seus overrides e seu spec congelado.
 - Verificação das correções do ensaio: core 218, banco 29 e worker 252 testes aprovados (499 no total; seis integrações ignoradas por dependências externas). Typecheck, ESLint dos arquivos alterados, Prettier e `pnpm check:specs` passaram. O teste de sincronização simula IDs de numeração e estilos trocados pelo editor, incluindo Hull acrescentado depois.
 - Build de produção das correções concluído com sucesso; log `build-e2e-fixed.log`. O CAROLINA original segue na revisão Word 7, revisão de dados 26 e revisão de fotos 0. O teste está em revisão, com Word salvo na revisão 2 e alocações atuais preservadas, aguardando a publicação da correção.
+
+## Conclusão do ensaio em produção — 15/10/2026
+
+- Usuário confirmou a aplicação da 0026 e o push de `8d487e1`. Web já estava nessa versão; o worker ainda executava a anterior. Acionada sua publicação no Dokploy e conferido o término com sucesso. SHA256 do builder em execução: `4c2c55a41ed6ca980d5540e8cf7e33a462230c99f821d9862587a452d1098086`, igual ao código local validado.
+- Spec ativo MSC v9 com 15 âncoras Sludge. Extração somente de leitura no worker, usando a planilha original, confirmou fluxo `1 x 2,0`, temperatura 98, frequência 60, última descarga 2026-08-27 e consumos 1741.0100000000002 e 1736.1340778983003. O teste existente preservou o spec v8 e os ajustes já revisados; o v9 não foi reimportado pela interface nesse relatório.
+- Retentativa de avanço das fotos pela interface concluiu a sincronização na revisão Word 3. A identificação manual de teste permaneceu no documento. Depois da conferência, essa identificação grande foi removida no editor e o Word foi salvo; a identificação do navio como `MSC CAROLINA - TESTE FLUXO` foi mantida.
+- Preview, aprovação e geração final concluídos pela interface. Relatório de teste `5db77f1c-c00b-44df-8268-22ec328fd5c3` em `generated`, Word atual e aprovado na revisão 6, PDF `5db77f1c-c00b-44df-8268-22ec328fd5c3/final-v1-r6.pdf`. O botão Baixar PDF abriu o arquivo final em outra aba, onde a abertura foi conferida.
+- PDF final com oito páginas, revisadas visualmente: 20 fotos (Capa 1, Vessel 2, Engine room 12, Survey attendance 2, ECR 2, Hull 1), quantidades `2,342.063`, `565.491` e `486.021`, contato `Capt. Robert Masse`, seção Hull e Time log sem a grade anterior. Não foram encontrados `undefined`, `Invalid Date` ou `NaN` no texto extraído.
+- Observação de diagramação: após as edições manuais desse ensaio, os dados de Vessel's Command ficaram na segunda página, com bastante espaço livre. O fluxo funcional passou, mas esse resultado não comprova uma capa restrita a uma página. O preenchimento manual da data da última descarga pela automação também continua fora dos casos aprovados; a extração automática corrigida dessa data foi validada separadamente.
+- Consulta final confirmou o CAROLINA original intacto: `editing`, Word revisão 7, dados revisão 26, fotos revisão 0 e nenhum PDF final gerado por esse teste.
+
+Artefato local: `output/pdf/msc-carolina-fluxo-5db77f1c.pdf`, SHA256 `b8742250178b9bd8c8a4c619b890de64224be6128329521c59b5c6452db1583e`. Evidências privadas em `tmp/client-feedback-20261015/`: `e2e-pdf-ready.jpg`, `e2e-word-refreshed.jpg`, `e2e-final-pdf-checks.json`, `e2e-final-contact.jpg` e oito páginas renderizadas em `e2e-final-pages/`.
