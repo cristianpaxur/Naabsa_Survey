@@ -96,6 +96,13 @@ after the last contact value. The source cover frame is retained when it fits;
 native pagination may reduce only the cover photograph to keep complete
 contacts on page 1. Text, table geometry and fonts remain unchanged.
 
+At the user's request, runtime section 3.7 aligns the Surveyors figures
+heading and labels at 4320 twips and its values at 5940 twips from the text
+margin. These explicit left tab stops replace only the source's mixed
+spaces/default tabs in the four comparison paragraphs. Source labels,
+leaders, numeric precision, run formatting and the Ch. Eng. Figures column
+are retained. This is a scoped exception to source paragraph layout.
+
 When a gallery has a different photo count from the reference, remove unused
 empty gallery paragraphs, fit its photos within 80 by 60 mm without inheriting
 the exemplar bitmap's crop, and keep its heading with the first photo. In a

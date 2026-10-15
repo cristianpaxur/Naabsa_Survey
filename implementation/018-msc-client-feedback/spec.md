@@ -21,6 +21,7 @@ O Word existente foi baixado antes de qualquer intervenção. Seus 215 parágraf
 - Quantidade descartada vem do balanço dos tanques (`Sludge`, TOTAL, coluna K), distinto da soma dos caminhões. A retenção do comandante vem de `Sludge retained aft actual disposal`, coluna D. Ambos seguem os rótulos quando linhas são deslocadas e respeitam valores e precisão revisados pelo operador.
 - A diferença do surveyor é flowmeter menos soundings; o percentual é essa diferença dividida pelo flowmeter × 100, calculados antes do arredondamento. Valores explícitos, inclusive zero e limpeza, prevalecem. Falta de dados ou denominador zero deixa o resultado correspondente indisponível.
 - `Summary!B16` aceita data ou Yes/No de último atendimento, sem inventar valores numéricos históricos.
+- O título, os rótulos e os valores de Surveyors figures na seção 3.7 ficam alinhados em posições fixas, mantendo o conteúdo e a precisão dos números.
 - Publicação e ativação somente depois de aplicar a alteração aditiva de schema; conferir o CAROLINA real no Collabora.
 
 ## Alcance operacional

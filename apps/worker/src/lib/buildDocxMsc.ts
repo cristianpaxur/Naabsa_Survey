@@ -348,6 +348,75 @@ function replaceTextSpan(
     offset = next;
   }
 }
+function alignSurveyorFigures(doc: XmlDocument): void {
+  const heading = ancestor(bookmark(doc, 's3_7'), 'w:p');
+  const paragraphs = children(heading.parentNode!, 'w:p');
+  const rows = paragraphs
+    .slice(paragraphs.indexOf(heading) + 1)
+    .filter((paragraph) => (paragraph.textContent ?? '').trim())
+    .slice(0, 4);
+  const columns = [
+    ['Surv', null],
+    ['Soundings', 'flowmeter_soundings'],
+    ['Flowmeters', 'flowmeter_total'],
+    ['Dif', 'consumption_flowmeter_difference'],
+  ] as const;
+  const insertTab = (paragraph: XmlNode, before: XmlNode) => {
+    const run = doc.createElementNS(W, 'w:r');
+    const formatting = children(before, 'w:rPr')[0];
+    if (formatting) run.appendChild(formatting.cloneNode(true));
+    run.appendChild(doc.createElementNS(W, 'w:tab'));
+    paragraph.insertBefore(run, before);
+  };
+  for (const [index, [label, field]] of columns.entries()) {
+    const paragraph = rows[index]!;
+    const runs = children(paragraph, 'w:r');
+    const right = [...runs]
+      .reverse()
+      .find((run) => (run.textContent ?? '').startsWith(label))!;
+    // Replace the source's mixed spaces/default tabs with fixed column stops.
+    for (const run of runs.slice(0, runs.indexOf(right)).reverse()) {
+      if (!(run.textContent ?? '').trim()) remove(run);
+      else {
+        const last = all(run, 'w:t').at(-1)!;
+        setText(doc, last, (last.textContent ?? '').trimEnd());
+        break;
+      }
+    }
+    insertTab(paragraph, right);
+    if (field) {
+      const texts = all(paragraph, 'w:t');
+      const first = texts.findIndex((node) => node.parentNode === right);
+      const number = texts.findIndex(
+        (node, i) =>
+          i > first && (node.textContent ?? '').includes(`{${field}`),
+      );
+      // Keep the source labels, leaders and run formatting; discard padding.
+      for (const node of texts.slice(first, number))
+        setText(doc, node, (node.textContent ?? '').trimEnd());
+      const numeric = texts[number]!;
+      setText(doc, numeric, (numeric.textContent ?? '').trimStart());
+      const colon = texts[number - 1]!;
+      setText(doc, colon, `${colon.textContent ?? ''} `);
+      insertTab(paragraph, ancestor(numeric, 'w:r'));
+    }
+    const properties = children(paragraph, 'w:pPr')[0]!;
+    for (const old of children(properties, 'w:tabs')) remove(old);
+    const tabs = doc.createElementNS(W, 'w:tabs');
+    for (const position of [4320, 5940]) {
+      const tab = doc.createElementNS(W, 'w:tab');
+      tab.setAttribute('w:val', 'left');
+      tab.setAttribute('w:pos', String(position));
+      tabs.appendChild(tab);
+    }
+    properties.insertBefore(
+      tabs,
+      children(properties).find((node) =>
+        ['w:spacing', 'w:ind', 'w:jc', 'w:rPr'].includes(node.nodeName),
+      ) ?? null,
+    );
+  }
+}
 function normalizeMissingDates(
   doc: XmlDocument,
   values: Record<string, string>,
@@ -910,6 +979,7 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
     all(ancestor(bookmark(doc, 'msc_time_log'), 'w:tbl'), 'w:t'),
   );
   normalizeMissingDates(doc, values);
+  alignSurveyorFigures(doc);
   fillTags(doc, doc, values, timeLogTexts);
   // Fill operator text after structural transforms, preserving substantive text.
   fillTimeLog(doc, input);

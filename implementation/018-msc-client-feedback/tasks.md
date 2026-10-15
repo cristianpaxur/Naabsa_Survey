@@ -14,3 +14,4 @@
 - [x] Auditar todos os campos do CAROLINA e identificar ausências reais e falhas de mapeamento.
 - [x] Mapear descarte e retenção do comandante, completar a comparação do flowmeter e preparar a migration 0027 preservando customizações.
 - [x] Validar novamente o PDF, as suítes afetadas e registrar o commit dos mapeamentos.
+- [x] Alinhar título, rótulos e valores de Surveyors figures na seção 3.7 e conferir o PDF nativo do CAROLINA.
