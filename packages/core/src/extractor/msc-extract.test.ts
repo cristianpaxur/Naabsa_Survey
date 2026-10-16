@@ -63,6 +63,19 @@ describe('MSC — contrato da planilha SABRINA', () => {
     }
   });
 
+  it('extrai Light ship textual em inglês com escala e precisão preservadas', async () => {
+    const carolina = await readFixtureWorkbook();
+    const cell = carolina.getWorksheet('Summary')!.getCell('B35');
+    cell.value = '24,158.9';
+    cell.numFmt = '#,##0.00';
+    const result = runExtraction(carolina, spec.spec);
+    expect(result.data.light_ship).toBe(24158.9);
+    expect(result.numberFormats.light_ship).toBe(2);
+    expect(
+      result.issues.filter((issue) => issue.field === 'light_ship'),
+    ).toEqual([]);
+  });
+
   it('aceita data de último atendimento e preserva o Yes/No das planilhas anteriores', async () => {
     const baseline = runExtraction(workbook, spec.spec).data.last_attendance;
     expect(typeof baseline).toBe('string');

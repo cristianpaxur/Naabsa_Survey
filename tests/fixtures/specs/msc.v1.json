@@ -12,7 +12,7 @@
       "Planilha SABRINA tem 8 abas; Summary/Time Log/Sludge/Qtt Sumary/LOG Audit estão no escopo da spec v1. LNG, VacuoAr, Vessel Ullage ficam em ignore_sheets (a tabela de Ullage é input do operador, não sai no relatório).",
       "Time Log: cabeçalho em linha 4 (Date/Time/x/Time2), dados 5–16. Colunas usadas: B (evento), F (data), G (hora), H (flag), I (hora fim). Range: Time Log!B4:I16.",
       "Qtt Sumary: células F11..F19 guardam totais por grade (R HS, R VLS, DISTILLATES). Para v1 o builder só lê os valores disponíveis; ausentes viram '—' no DOCX.",
-      "Foto slots: cover / vessel / engine_room / survey_attendance / ecr / hull. Capa tem slot dedicado, limitado a uma foto. Fotos são opcionais para o fluxo de revisão."
+      "Foto slots: cover / vessel / engine_room / survey_attendance / ecr. Capa tem slot dedicado, limitado a uma foto. Fotos de casco ficam em Vessel, inclusive alocações Hull legadas. Fotos são opcionais para o fluxo de revisão."
     ]
   },
 
@@ -123,13 +123,6 @@
           "cell": "B14",
           "type": "string",
           "label": "Porto",
-          "section": "Identificação"
-        },
-        "surveyors": {
-          "sheet": "Summary",
-          "cell": "B15",
-          "type": "string",
-          "label": "Surveyors",
           "section": "Identificação"
         },
         "last_attendance": {
@@ -856,12 +849,6 @@
     {
       "id": "ecr",
       "label": "ECR (Engine Control Room)",
-      "aspect": "4:3",
-      "required": false
-    },
-    {
-      "id": "hull",
-      "label": "Hull (casco)",
       "aspect": "4:3",
       "required": false
     }

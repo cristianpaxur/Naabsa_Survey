@@ -68,7 +68,6 @@ const sections: Record<string, { number: string; body: string; toc?: string }> =
     s5_2: { number: '5.2', body: 'Engine Room' },
     s5_3: { number: '5.3', body: 'Survey attendance' },
     s5_4: { number: '5.4', body: 'ECR' },
-    s5_5: { number: '5.5', body: 'Hull' },
     s6: { number: '6', body: 'Attachment' },
   };
 const nativeHeadingPattern = (id: string, label: string) =>
@@ -421,10 +420,10 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
       await writeFile(join(outputDir, 'refreshed-cover.docx'), docx);
       const inspected = await inspectPdf(pdfPath);
       expect(normalize(inspected.pages[0]!.text)).toContain(
-        'MUKESH MAHENDRA MIRANDA',
+        'Mukesh Mahendra Miranda',
       );
       expect(normalize(inspected.pages[0]!.text)).toContain(
-        'SIBI JESU ANTHONY',
+        'Sibi Jesu Anthony',
       );
       expect(inspected.pages[1]!.text).toContain('Contents');
       expect(inspected.pages.map((page) => page.text).join('\n')).toContain(
@@ -521,8 +520,10 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
         expect(pdfMeasured['msc_cover_contacts_end']).toBe(1);
         expect(normalize(inspected.pages[0]!.text)).toContain(
           name === 'long-contacts'
-            ? 'SIBI JESU ANTHONY'
-            : String(caseInput.data['chief_engineer']),
+            ? 'Sibi Jesu Anthony'
+            : String(caseInput.data['chief_engineer'])
+                .toLowerCase()
+                .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase()),
         );
         const headings = bookmarkHeadings(docx);
         const firstTocEntry = new RegExp(
@@ -729,13 +730,13 @@ describe.skipIf(process.env['RUN_LO_TESTS'] !== '1')(
             'landscape',
             'portrait',
             'wide',
+            'hull',
+            'hull',
             'engine',
             'engine',
             'engine',
             ...(name === 'long-contacts' ? ['survey', 'survey'] : []),
             'ecr',
-            'hull',
-            'hull',
           ]);
           const mmToPt = 72 / 25.4;
           if (name === 'long-contacts')

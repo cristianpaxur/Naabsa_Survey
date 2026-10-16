@@ -76,9 +76,11 @@ company and named representative are editable `contact_manager_company`
 and `contact_manager_name` slots. Mapping notes saying keep always are source
 annotation evidence and do not authorize fixed report values. The builder
 fills the company from explicit input or the existing manager contract, and
-uses an em dash for a named representative unless explicitly supplied.
-NAABSA institutional identity remains static. The surveyors slot keeps the
-previously approved application default and honors an explicit override.
+defaults the named representative to Capt. Robert Masse, as approved in the
+October 14 feedback. NAABSA institutional identity remains static. The
+October 16 client revision fixes the surveyors slot to Mr. Wagner de Abreu,
+independent of Summary B15. Flag, port, captain and chief engineer are displayed
+in normal name case; source data remains untouched.
 
 Editable tables carry bookmarks `msc_grade_rows`, `msc_last_attendances`,
 and `msc_time_log` in their first header-cell paragraphs. Photo paragraphs
@@ -95,6 +97,13 @@ Runtime pagination also adds the nonvisual `msc_cover_contacts_end` bookmark
 after the last contact value. The source cover frame is retained when it fits;
 native pagination may reduce only the cover photograph to keep complete
 contacts on page 1. Text, table geometry and fonts remain unchanged.
+
+Hull is a legacy photo input alias, appended after Vessel photos without a
+separate heading or Contents entry. New specs expose only cover, vessel,
+engine_room, survey_attendance and ecr. Migration 0028 copies open/active specs,
+removes the obsolete surveyors source, and appends existing Hull assignments to
+Vessel, retaining crops, files and photo state and auditing prior positions.
+Closed/deleted reports and saved Word/PDF versions retain their history.
 
 At the user's request, runtime section 3.7 aligns the Surveyors figures
 heading and labels at 4320 twips and its values at 5940 twips from the text

@@ -31,6 +31,7 @@ export interface DocxInputMsc {
     engine_room?: Buffer[];
     survey_attendance?: Buffer[];
     ecr?: Buffer[];
+    /** Legacy alias: appended to Vessel; no separate Hull section is printed. */
     hull?: Buffer[];
   };
   timeLogRows: TimeLogRow[];
@@ -155,6 +156,32 @@ const NUMERIC_DECIMALS: Record<string, number> = {
   flowmeter_accuracy: 2,
   consumption_flowmeter_percentage: 2,
 };
+function normalName(raw: FieldValue | undefined): string {
+  const particles = new Set([
+    'de',
+    'da',
+    'do',
+    'das',
+    'dos',
+    'e',
+    'and',
+    'of',
+    'the',
+  ]);
+  return value(raw).replace(
+    /(^|[\s'’-])(\p{L}[\p{L}\p{M}]*)/gu,
+    (_match, separator: string, word: string, offset: number) => {
+      const lower = word.toLowerCase();
+      const name = word === word.toUpperCase() ? lower : word;
+      return (
+        separator +
+        (offset > 0 && particles.has(lower)
+          ? lower
+          : name[0]!.toUpperCase() + name.slice(1))
+      );
+    },
+  );
+}
 function templateData(input: DocxInputMsc): Record<string, string> {
   const data = { ...input.data };
   const flowmeter = data['flowmeter_total'];
@@ -194,7 +221,10 @@ function templateData(input: DocxInputMsc): Record<string, string> {
         : '—';
     } else result[name] = value(raw);
   }
-  result['surveyors'] = value(input.data['surveyors'], 'Mr. Wagner de Abreu');
+  // Client's institutional surveyor is fixed, independent of Summary!B15.
+  result['surveyors'] = 'Mr. Wagner de Abreu';
+  for (const field of ['flag', 'port', 'captain', 'chief_engineer'])
+    result[field] = normalName(input.data[field]);
   result['contact_manager_company'] = value(
     input.data['contact_manager_company'] ?? input.data['manager'],
   );
@@ -569,46 +599,6 @@ function optionalSections(doc: XmlDocument, input: DocxInputMsc): void {
     }
   }
 }
-function addHull(doc: XmlDocument): void {
-  const heading = ancestor(bookmark(doc, 's5_4'), 'w:p').cloneNode(true);
-  all(heading, 'w:bookmarkStart')
-    .find((node) => node.getAttribute('w:name') === 's5_4')!
-    .setAttribute('w:name', 's5_5');
-  for (const node of all(heading, 'w:t'))
-    if (node.textContent === 'ECR') setText(doc, node, 'Hull');
-  const end = ancestor(bookmark(doc, 's6'), 'w:p');
-  const certificate =
-    children(end.parentNode!).find((node) =>
-      (node.textContent ?? '').includes(
-        'We certify that the content of these pictures',
-      ),
-    ) ?? end;
-  certificate.parentNode!.insertBefore(heading, certificate);
-  const proto = ancestor(bookmark(doc, 'msc_photos_ecr'), 'w:p').cloneNode(
-    true,
-  );
-  for (const mark of all(proto, 'w:bookmarkStart'))
-    mark.setAttribute('w:name', 'msc_photos_hull');
-  certificate.parentNode!.insertBefore(proto, certificate);
-  const toc = all(doc, 'w:hyperlink').find(
-    (link) => link.getAttribute('w:anchor') === 's5_4',
-  );
-  if (toc) {
-    const paragraph = ancestor(toc, 'w:p').cloneNode(true);
-    for (const link of all(paragraph, 'w:hyperlink'))
-      link.setAttribute('w:anchor', 's5_5');
-    for (const text of all(paragraph, 'w:t'))
-      setText(
-        doc,
-        text,
-        (text.textContent ?? '')
-          .replace(/ECR/g, 'Hull')
-          .replace(/toc_s5_4/g, 'toc_s5_5'),
-      );
-    const original = ancestor(toc, 'w:p');
-    original.parentNode!.insertBefore(paragraph, original.nextSibling);
-  }
-}
 async function fillImages(
   doc: XmlDocument,
   zip: PizZip,
@@ -722,9 +712,8 @@ async function fillImages(
     ['vessel', 's5_1', 's5_2'],
     ['engine_room', 's5_2', 's5_3'],
     ['survey_attendance', 's5_3', 's5_4'],
-    ['ecr', 's5_4', input.photos.hull?.length ? 's5_5' : 's6'],
+    ['ecr', 's5_4', 's6'],
   ];
-  if (input.photos.hull?.length) groups.push(['hull', 's5_5', 's6']);
   let partialGallery = false;
   for (const [slot, startId, endId] of groups) {
     const start = ancestor(bookmark(doc, startId), 'w:p'),
@@ -922,6 +911,14 @@ async function fillImages(
   }
 }
 export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
+  input = {
+    ...input,
+    photos: {
+      ...input.photos,
+      vessel: [...(input.photos.vessel ?? []), ...(input.photos.hull ?? [])],
+      hull: [],
+    },
+  };
   const zip = new PizZip(await readFile(TEMPLATE_URL)),
     doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
   linkContents(doc);
@@ -960,7 +957,6 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   // that exact line while anchoring the page independently of cover aspect.
   property(doc, beforeContents, 'w:pPr', 'w:pageBreakBefore');
   property(doc, beforeContents, 'w:pPr', 'w:keepNext');
-  if (input.photos.hull?.length) addHull(doc);
   await fillImages(doc, zip, input);
   const values = templateData(input);
   if (

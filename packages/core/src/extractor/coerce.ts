@@ -4,7 +4,8 @@
  * para o tipo do campo. Determinístico (RNF-01): sem `Date` local nem locale.
  *
  * Política de números-como-texto (pt-BR): `.` é separador de milhar e `,` é
- * decimal — "208.450" → 208450; "1.025,50" → 1025.50.
+ * decimal — "208.450" → 208450; "1.025,50" → 1025.50. Texto inequivocamente
+ * inglês, com grupos de milhar e ponto decimal ("24,158.9"), também é aceito.
  * Datas saem em ISO `YYYY-MM-DD` (o `format` do spec é só para exibição).
  */
 import type { FieldDef, FieldValue } from '../types';
@@ -65,11 +66,10 @@ function coerceNumber(raw: RawCellValue): CoerceResult {
   } else if (typeof raw === 'boolean' || raw instanceof Date) {
     return { value: null, error: `Valor não numérico: '${describe(raw)}'.` };
   } else {
-    const cleaned = String(raw)
-      .trim()
-      .replace(/\s/g, '')
-      .replace(/\./g, '')
-      .replace(',', '.');
+    const text = String(raw).trim().replace(/\s/g, '');
+    const cleaned = /^[+-]?\d{1,3}(?:,\d{3})+\.\d+$/.test(text)
+      ? text.replace(/,/g, '')
+      : text.replace(/\./g, '').replace(',', '.');
     n = Number(cleaned);
     if (!Number.isFinite(n)) {
       return {

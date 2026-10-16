@@ -56,6 +56,14 @@ describe('coerceField — number (pt-BR)', () => {
   it('decimal "12,5" → 12.5', () => {
     expect(coerceField('12,5', numField).value).toBe(12.5);
   });
+  it.each([
+    ['24,158.9', 24158.9],
+    ['1,234,567.89', 1234567.89],
+    ['-24,158.90', -24158.9],
+    ['24.158,90', 24158.9],
+  ])('aceita milhar e decimal sem perder a escala: %s', (raw, expected) => {
+    expect(coerceField(raw, numField)).toEqual({ value: expected });
+  });
   it('preserva o valor mesmo quando o spec define precisão de exibição', () => {
     expect(coerceField(81.2345, num2).value).toBe(81.2345);
   });

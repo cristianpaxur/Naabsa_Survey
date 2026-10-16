@@ -27,7 +27,7 @@
 | [015](./015-correcao-integrada/spec.md) | Correções integradas de IA, fotos, texto, acesso e editor | auditoria C01–C15 | 🟠 Código e validação local concluídos | HEIC na imagem e aceite com serviços pendentes |
 | [016](./016-msc-functional/spec.md) | MSC funcional de ponta a ponta | correção do modelo MSC aprovado | 🟠 Código e validação local concluídos | 8/8 (ativação em nuvem pendente) |
 | [017](./017-msc-feedback-video/spec.md) | Correções MSC a partir do vídeo de 02/10/2026 e do Word de exemplo | feedback do usuário | 🟡 ECR e Word publicados e validados | 13/14 (9/9 páginas idênticas no ensaio Word; geração real de seis páginas conferida no Collabora; ativação DAMLA pendente) |
-| [018](./018-msc-client-feedback/spec.md) | Correções dos vídeos MSC de 14/10/2026: quantidades, fotos e Word | feedback do cliente | 🟢 Mapeamentos e alinhamento validados no PDF nativo | 15/15; aplicar 0027 e publicar as correções para novas montagens |
+| [018](./018-msc-client-feedback/spec.md) | Correções dos vídeos MSC de 14/10/2026: quantidades, fotos e Word | feedback do cliente | 🟢 Capa, Light ship e Vessel validados no PDF nativo | 19/19; aplicar 0027/0028 e publicar as correções para novas montagens |
 
 ---
 

@@ -232,7 +232,7 @@ describe('MSC — fidelity to the revised Word template', () => {
     expect(xml).not.toContain('w:name="s5_5"');
   });
 
-  it('includes the conditional attendance and Hull entries only when their data exists', async () => {
+  it('includes conditional attendance while keeping legacy Hull images within Vessel', async () => {
     const photo = await sharp({
       create: { width: 800, height: 600, channels: 3, background: '#456789' },
     })
@@ -244,13 +244,14 @@ describe('MSC — fidelity to the revised Word template', () => {
     });
     const actual = headingParagraphs(xml);
     expect(actual['s3_8']).toBeDefined();
-    expect(actual['s5_5']).toBeDefined();
+    expect(actual['s5_5']).toBeUndefined();
     expect(textOf(actual['s3_8']!)).toMatch(/^Last attend(?:ances|ences)$/);
-    expect(textOf(actual['s5_5']!)).toBe('Hull');
     expect(xml.match(/w:name="s3_8"/g)).toHaveLength(1);
-    expect(xml.match(/w:name="s5_5"/g)).toHaveLength(1);
     expect(xml).toContain('w:anchor="s3_8"');
-    expect(xml).toContain('w:anchor="s5_5"');
+    expect(xml).not.toContain('w:anchor="s5_5"');
+    expect(
+      paragraphs(xml).find((p) => p.includes('w:name="msc_photos_vessel"')),
+    ).toContain('<w:drawing>');
     const empty = await documentXml({
       data: { last_attendance: 'No' },
       photos: { hull: [] },

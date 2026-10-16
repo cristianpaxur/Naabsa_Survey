@@ -91,7 +91,10 @@ describe('MSC — corrections from the October 14 client videos', () => {
         )
       ).rows[0]!;
       expect(validateSpec(active.spec).valid).toBe(true);
-      expect(active.spec.photo_slots).toEqual(canonical.photo_slots);
+      expect(active.spec.photo_slots).toEqual([
+        ...canonical.photo_slots,
+        { id: 'hull', label: 'Hull (casco)', aspect: '4:3', required: false },
+      ]);
       expect(Object.keys(active.spec.source.common.fields)).toEqual(
         expect.arrayContaining(
           Object.keys(canonical.source.common.fields).filter(

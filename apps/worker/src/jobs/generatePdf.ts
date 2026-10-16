@@ -311,6 +311,35 @@ export async function buildWorkingDocx(
       ? { ...currentExtraction?.data, ...extracted }
       : extracted;
   const data = effectiveData(spec, variant, assemblyExtracted, overrides);
+  // Older MSC extractions read English text like "24,158.9" as 24.1589.
+  // Repair only that provable parsing artifact from the same original cell;
+  // saved operator values/clears and unrelated persisted values stay authoritative.
+  if (
+    row.type_slug === 'msc' &&
+    wb &&
+    !Object.hasOwn(overrides, 'light_ship')
+  ) {
+    const field = collectFields(spec, variant).find(
+      ([name]) => name === 'light_ship',
+    )?.[1];
+    if (field?.type === 'number' && !field.row_anchor) {
+      const raw = normalizeCell(
+        wb
+          .getWorksheet(field.sheet ?? spec.source.sheet ?? '')
+          ?.getCell(field.cell).value ?? null,
+      );
+      const text = typeof raw === 'string' ? raw.trim().replace(/\s/g, '') : '';
+      const corrected = currentExtraction?.data['light_ship'];
+      if (
+        /^[+-]?\d{1,3}(?:,\d{3})+\.\d+$/.test(text) &&
+        extracted['light_ship'] ===
+          Number(text.replace(/\./g, '').replace(',', '.')) &&
+        typeof corrected === 'number' &&
+        Number.isFinite(corrected)
+      )
+        data['light_ship'] = corrected;
+    }
+  }
   if (row.type_slug === 'draft_survey' && wb) {
     // A planilha é a fonte atual dos horários. Relatórios antigos podem ter
     // valores persistidos incorretos; um override manual explícito continua

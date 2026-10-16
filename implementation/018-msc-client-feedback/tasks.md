@@ -15,3 +15,7 @@
 - [x] Mapear descarte e retenção do comandante, completar a comparação do flowmeter e preparar a migration 0027 preservando customizações.
 - [x] Validar novamente o PDF, as suítes afetadas e registrar o commit dos mapeamentos.
 - [x] Alinhar título, rótulos e valores de Surveyors figures na seção 3.7 e conferir o PDF nativo do CAROLINA.
+- [x] Aplicar a revisão de 16/10: capitalização normal da capa e nome institucional fixo de Wagner de Abreu.
+- [x] Corrigir a leitura do Light ship textual em inglês e proteger valores revisados pelo operador.
+- [x] Consolidar Hull em Vessel no builder e preparar migração auditável das alocações abertas.
+- [x] Validar os testes afetados e uma nova geração nativa completa do CAROLINA com as 20 fotos.

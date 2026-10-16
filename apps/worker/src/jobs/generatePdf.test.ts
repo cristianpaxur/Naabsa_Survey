@@ -435,6 +435,7 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
       overrides?: Record<string, FieldValue>;
       operatorNumberFormats?: NumberFormatMap;
       missingExtractedFields?: string[];
+      persistedData?: Record<string, FieldValue>;
     } = {},
   ) {
     const workbook = options.workbook ?? (await readMscWorkbook());
@@ -456,6 +457,7 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
       delete extracted.data[key];
       delete extracted.numberFormats[key];
     }
+    Object.assign(extracted.data, options.persistedData);
     const spreadsheet = Buffer.from(await workbook.xlsx.writeBuffer());
     const stored = {
       status: 'editing',
@@ -552,6 +554,26 @@ describe('MSC — dados efetivos entregues ao builder real (RF-007)', () => {
       purifier_bowl_freq: '60 minutes',
     });
   });
+
+  it.each([
+    [{}, 24.1589, 24158.9],
+    [{ light_ship: 0 }, 24.1589, 0],
+    [{ light_ship: '' }, 24.1589, ''],
+    [{}, 26000, 26000],
+  ] as const)(
+    'corrige somente a leitura antiga comprovada do Light ship: %j',
+    async (overrides, persisted, expected) => {
+      const workbook = await readMscWorkbook();
+      workbook.getWorksheet('Summary')!.getCell('B35').value = '24,158.9';
+      const { built, text } = await buildMscCase({
+        workbook,
+        overrides,
+        persistedData: { light_ship: persisted },
+      });
+      expect(built.data.light_ship).toBe(expected);
+      if (expected === 24158.9) expect(text).toMatch(/Light ship.*24,158\.90/);
+    },
+  );
 
   it('recupera quantidades que não existiam no spec antigo sem perder overrides', async () => {
     const { built, inputs, text } = await buildMscCase({

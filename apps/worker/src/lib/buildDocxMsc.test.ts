@@ -126,7 +126,9 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
     const attachments = paragraphs(xml).find((p) => p.includes('w:name="s6"'))!;
     xml = xml.replace(
       attachments,
-      '<w:p><w:r><w:t>MANUAL PHOTO CAPTION</w:t></w:r></w:p>' + attachments,
+      '<w:p><w:bookmarkStart w:id="99998" w:name="s5_5"/><w:r><w:t>Hull</w:t></w:r><w:bookmarkEnd w:id="99998"/></w:p>' +
+        '<w:p><w:r><w:t>MANUAL PHOTO CAPTION</w:t></w:r></w:p>' +
+        attachments,
     );
     before.file('word/document.xml', xml);
     const original = before.generate({ type: 'nodebuffer' });
@@ -147,11 +149,10 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
       actual
         .slice(actual.indexOf('w:name="s5_1"'), actual.indexOf('w:name="s5_2"'))
         .match(/<w:drawing>/g),
-    ).toHaveLength(12);
-    expect(actual.match(/w:name="s5_5"/g)).toHaveLength(1);
-    expect(actual.match(/w:anchor="s5_5"/g)).toHaveLength(1);
-    for (const id of ['s5', 's5_1', 's5_2', 's5_3', 's5_4', 's5_5']) {
-      const oldId = id === 's5_5' ? 's5_4' : id;
+    ).toHaveLength(13);
+    expect(actual).not.toMatch(/w:(?:name|anchor)="s5_5"/);
+    for (const id of ['s5', 's5_1', 's5_2', 's5_3', 's5_4']) {
+      const oldId = id;
       const properties = (text: string, mark: string) =>
         paragraphs(text)
           .find((p) => p.includes(`w:name="${mark}"`))
@@ -198,7 +199,7 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
     ).toContain('Capt. Client');
   });
 
-  it('keeps a dedicated cover separate from Vessel and Hull', async () => {
+  it('keeps a dedicated cover and appends legacy Hull photos to Vessel without losing their order', async () => {
     const coverPhoto = await photo(800, 600, '#ff0000');
     const vessel = await photo(800, 600, '#00ff00');
     const hull = await photo(800, 600, '#0000ff');
@@ -208,26 +209,23 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
     });
     const xml = zip.file('word/document.xml')!.asText();
     const relationships = zip.file('word/_rels/document.xml.rels')!.asText();
-    const bitmap = (paragraph: string) => {
-      const id = paragraph.match(/r:embed="([^"]+)"/)![1];
-      const relation = relationships.match(
-        new RegExp(`<Relationship[^>]*Id="${id}"[^>]*/>`),
-      )![0];
-      const target = relation.match(/Target="([^"]+)"/)![1];
-      return zip.file(`word/${target}`)!.asNodeBuffer();
-    };
+    const bitmaps = (paragraph: string) =>
+      [...paragraph.matchAll(/r:embed="([^"]+)"/g)].map(([, id]) => {
+        const relation = relationships.match(
+          new RegExp(`<Relationship[^>]*Id="${id}"[^>]*/>`),
+        )![0];
+        const target = relation.match(/Target="([^"]+)"/)![1];
+        return zip.file(`word/${target}`)!.asNodeBuffer();
+      });
     const cover = paragraphs(xml).find((p) =>
       p.includes('w:name="msc_cover"'),
     )!;
     const vesselGallery = paragraphs(xml).find((p) =>
       p.includes('w:name="msc_photos_vessel"'),
     )!;
-    const hullGallery = paragraphs(xml).find((p) =>
-      p.includes('w:name="msc_photos_hull"'),
-    )!;
-    expect(bitmap(cover)).toEqual(coverPhoto);
-    expect(bitmap(vesselGallery)).toEqual(vessel);
-    expect(bitmap(hullGallery)).toEqual(hull);
+    expect(bitmaps(cover)).toEqual([coverPhoto]);
+    expect(bitmaps(vesselGallery)).toEqual([vessel, hull]);
+    expect(xml).not.toMatch(/w:name="(?:msc_photos_hull|s5_5)"/);
     const noCover = await xmlOf({
       coverPhoto: null,
       photos: { vessel: [vessel] },
@@ -378,19 +376,24 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
     const xml = await xmlOf({
       data: {
         vessel_name: 'MSC CONTACT',
-        surveyors: 'Mr. Test Surveyor',
-        captain: 'Captain Long Name',
-        chief_engineer: 'Chief Engineer Long Name',
+        surveyors: 'ARMANDO JUNIOR',
+        flag: 'PANAMA',
+        port: 'PARANAGUA',
+        captain: 'DUDKO VIACHESLAV',
+        chief_engineer: 'ZARZECKI DARIUSZ ROBERT',
       },
     });
     const text = textOf(xml);
     for (const name of [
       'MSC CONTACT',
-      'Mr. Test Surveyor',
-      'Captain Long Name',
-      'Chief Engineer Long Name',
+      'Mr. Wagner de Abreu',
+      'Panama',
+      'Paranagua Port',
+      'Dudko Viacheslav',
+      'Zarzecki Dariusz Robert',
     ])
       expect(text).toContain(name);
+    expect(text).not.toContain('ARMANDO JUNIOR');
     expect(xml.includes('<w:gridCol w:w="2694"/><w:gridCol w:w="6281"/>')).toBe(
       true,
     );

@@ -11,7 +11,7 @@ O Word existente foi baixado antes de qualquer intervenção. Seus 215 parágraf
 ## Critérios
 
 - Robert Masse aparece como contato padrão; um contato explícito mantém precedência.
-- Capa e Vessel são escolhas separadas. Hull fica disponível junto com os demais grupos.
+- Capa e Vessel são escolhas separadas. Após a revisão do cliente em 16/10, fotos de casco ficam em Vessel, com compatibilidade para alocações Hull anteriores.
 - Uma foto alocada sai da galeria e reaparece ao ser desalocada; ordenação e recorte continuam disponíveis no grupo.
 - Muitas fotos não alargam a tela nem escondem títulos e controles.
 - Novos campos de quantidades são acrescentados sem substituir mapeamentos personalizados, valores existentes ou overrides. Campos ausentes de extrações antigas são lidos da planilha original durante a montagem.
@@ -22,6 +22,9 @@ O Word existente foi baixado antes de qualquer intervenção. Seus 215 parágraf
 - A diferença do surveyor é flowmeter menos soundings; o percentual é essa diferença dividida pelo flowmeter × 100, calculados antes do arredondamento. Valores explícitos, inclusive zero e limpeza, prevalecem. Falta de dados ou denominador zero deixa o resultado correspondente indisponível.
 - `Summary!B16` aceita data ou Yes/No de último atendimento, sem inventar valores numéricos históricos.
 - O título, os rótulos e os valores de Surveyors figures na seção 3.7 ficam alinhados em posições fixas, mantendo o conteúdo e a precisão dos números.
+- Bandeira, porto, capitão e chefe de máquinas usam capitalização normal no documento, preservando os valores originais da extração. O nome institucional é sempre Mr. Wagner de Abreu, independente de Summary!B15; o campo Surveyors deixa de ser oferecido na revisão.
+- Texto numérico inequivocamente inglês, como `Summary!B35 = "24,158.9"`, mantém a escala de 24.158,90 t. Números pt-BR e precisão de exibição continuam suportados. Montagens antigas só recuperam o Light ship da mesma célula quando o valor salvo coincide exatamente com a interpretação defeituosa anterior e não existe override explícito.
+- Hull não gera seção nem entrada no sumário. Suas fotos legadas são acrescentadas depois das fotos de Vessel. A migração 0028 consolida as alocações de relatórios abertos, preserva recortes, arquivos, estado de IA e versões Word/PDF, audita as posições anteriores e mantém relatórios finalizados/excluídos intactos.
 - Publicação e ativação somente depois de aplicar a alteração aditiva de schema; conferir o CAROLINA real no Collabora.
 
 ## Alcance operacional
