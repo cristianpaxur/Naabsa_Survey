@@ -236,16 +236,26 @@ describe('buildReportDocxMsc — template values and dynamic content', () => {
     expect(noCover.match(/<w:drawing>/g)).toHaveLength(1);
   });
 
-  it('renders the Time log without table or cell grid borders', async () => {
+  it('preserves the original Time log grid and Date/Time header borders', async () => {
     const table = logTable(await xmlOf({ timeLogRows: logRows(12) }));
-    const borders = [
-      ...table.matchAll(
-        /<w:(?:tblBorders|tcBorders)>[\s\S]*?<\/w:(?:tblBorders|tcBorders)>/g,
-      ),
-    ];
-    expect(borders.length).toBeGreaterThan(12);
-    for (const [border] of borders)
-      expect(border).not.toMatch(/w:val="(?!nil)/);
+    const source = logTable(
+      new PizZip(
+        await readFile(
+          new URL('../../../../templates/msc.clean.docx', import.meta.url),
+        ),
+      )
+        .file('word/document.xml')!
+        .asText(),
+    );
+    const borders = (xml: string) =>
+      [
+        ...xml.matchAll(
+          /<w:(?:tblBorders|tcBorders)>[\s\S]*?<\/w:(?:tblBorders|tcBorders)>/g,
+        ),
+      ].map(([border]) => border);
+    expect(borders(table)).toEqual(borders(source));
+    expect(table).toContain('<w:tblStyle w:val="Tabelacomgrade"/>');
+    expect(table).toMatch(/w:val="single" w:sz="4"/);
     expect(textOf(table)).toContain('Event 12');
   });
 

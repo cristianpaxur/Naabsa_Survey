@@ -20,3 +20,4 @@
 - [x] Consolidar Hull em Vessel no builder e preparar migração auditável das alocações abertas.
 - [x] Validar os testes afetados e uma nova geração nativa completa do CAROLINA com as 20 fotos.
 - [x] Reproduzir a falha da 0028 com os triggers reais e corrigir a consolidação sem alterar o estado dos relatórios ou deixar a proteção de fotos modificada.
+- [x] Restaurar as bordas originais do Time log conforme a revisão de 19/10 e conferir a tabela no PDF nativo.

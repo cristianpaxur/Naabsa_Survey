@@ -531,29 +531,6 @@ function fillTimeLog(doc: XmlDocument, input: DocxInputMsc): void {
     property(doc, clone, 'w:trPr', 'w:cantSplit');
     table.appendChild(clone);
   }
-  // The client wants the Time log as aligned text, with no printed grid.
-  // Direct cell borders must also override the template's Table Grid style.
-  for (const [node, properties, borderTag] of [
-    [table, 'w:tblPr', 'w:tblBorders'],
-    ...all(table, 'w:tc').map(
-      (cell) => [cell, 'w:tcPr', 'w:tcBorders'] as const,
-    ),
-  ] as const) {
-    property(doc, node, properties, borderTag);
-    const borders = all(node, borderTag)[0]!;
-    for (const side of [
-      'top',
-      'left',
-      'bottom',
-      'right',
-      'insideH',
-      'insideV',
-    ]) {
-      const border = doc.createElementNS(W, `w:${side}`);
-      border.setAttribute('w:val', 'nil');
-      borders.appendChild(border);
-    }
-  }
 }
 function optionalSections(doc: XmlDocument, input: DocxInputMsc): void {
   if (!affirmative(input.data['last_attendance'])) {

@@ -400,12 +400,7 @@ describe('MSC — fidelity to the revised Word template', () => {
     const outputXml = await documentXml({ timeLogRows });
     const actual = table(outputXml);
     expect(actual).toBeDefined();
-    expect(
-      properties(actual, 'tblPr').replace(
-        /<w:tblBorders>[\s\S]*?<\/w:tblBorders>/,
-        '',
-      ),
-    ).toBe(properties(source, 'tblPr'));
+    expect(properties(actual, 'tblPr')).toBe(properties(source, 'tblPr'));
     expect(properties(actual, 'tblGrid')).toBe(properties(source, 'tblGrid'));
     const rows = [...actual.matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)].map(
       ([row]) => row,
@@ -418,6 +413,18 @@ describe('MSC — fidelity to the revised Word template', () => {
     expect(cells[2]).toContain('<w:gridSpan w:val="3"/>');
     expect(rows[0]).toContain('<w:tblHeader/>');
     expect(rows.every((row) => row.includes('<w:cantSplit/>'))).toBe(true);
+    const sourceRows = [...source.matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)].map(
+      ([row]) => row,
+    );
+    const cellBorders = (row: string) =>
+      [...row.matchAll(/<w:tc\b[\s\S]*?<\/w:tc>/g)].map(([cell]) =>
+        properties(cell, 'tcBorders'),
+      );
+    for (const [index, row] of rows.entries())
+      expect(
+        cellBorders(row),
+        `original borders of Time log row ${index}`,
+      ).toEqual(cellBorders(sourceRows[index] ?? sourceRows[1]!));
     expect(rows.slice(1).map(textOf)).toEqual(
       timeLogRows.map((row) => `${row.event}30/09/202612:34X13:45`),
     );

@@ -123,3 +123,11 @@ where rt.slug = 'msc' and r.deleted_at is null
   and r.status in ('draft','extracted','in_review','editing')
   and p.slot_id = 'hull' and p.removed_at is null;
 ```
+
+## Restauração das linhas do Time log — 19/10/2026
+
+- O usuário confirmou que o Time log deve imprimir a grade do modelo original. A implementação anterior acrescentava bordas `nil` à tabela e a cada célula. Removida essa supressão: novas montagens preservam o estilo `Tabelacomgrade` e as bordas individuais da fonte, incluindo o espaço aberto sobre os eventos e o cabeçalho Time mesclado. Não foram reconstruídas colunas nem alterados textos, datas ou horários.
+- Dois testes reproduziram a remoção indevida antes da correção. A regressão de 12 eventos agora compara todas as definições de borda com a fonte; o teste de fidelidade com 45 eventos verifica a geometria original, as bordas de cada linha clonada e a integridade dos eventos. Os **75 testes** dos dois arquivos afetados passaram (92,31 s, exit 0). Typecheck do worker aprovado; lint e verificações finais registrados junto ao commit.
+- PDF completo remontado localmente com os dados do CAROLINA e as 20 fotos do último ensaio. Duas medições nativas pelo LibreOffice coincidiram: contatos na capa, Contents na página 2, Time log na 4 e Attachment na 8. Inspeção visual das oito páginas e da tabela aprovada.
+- A leitura dos elementos vetoriais confirmou **13 linhas horizontais para 12 eventos** e quatro limites verticais, com largura total de 411,9 pt. Todo o texto normalizado do PDF coincide com o artefato anterior; os bytes e a ordem das 20 imagens também coincidem. Evidências: `tmp/client-feedback-20261019/timelog-before.log`, `timelog-unit.log`, `timelog-native.log`, `timelog-types.log`, `timelog-lint.log` e `timelog-pdf/{assembly.json,final-checks.json,time-log-com-linhas.png,contact.jpg,page-*.png}`.
+- Artefato local: `output/pdf/msc-carolina-timelog-com-linhas.pdf`, SHA256 `fc102b02e1da77f911bed5c921a77d3d09a3a8ce971fe313dd0529bf309d5c81`. Aplicação no sistema: publicar o worker e montar um novo Word com os dados revisados, depois aprovar/gerar o PDF. Um Word já salvo conserva a formatação anterior; a atualização de fotos preserva a tabela existente. Esta alteração não exige migration adicional. Nenhuma publicação ou alteração do relatório de produção foi executada neste ajuste.

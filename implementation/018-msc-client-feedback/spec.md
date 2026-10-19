@@ -15,7 +15,7 @@ O Word existente foi baixado antes de qualquer intervenção. Seus 215 parágraf
 - Uma foto alocada sai da galeria e reaparece ao ser desalocada; ordenação e recorte continuam disponíveis no grupo.
 - Muitas fotos não alargam a tela nem escondem títulos e controles.
 - Novos campos de quantidades são acrescentados sem substituir mapeamentos personalizados, valores existentes ou overrides. Campos ausentes de extrações antigas são lidos da planilha original durante a montagem.
-- O Time log não imprime bordas de grade.
+- O Time log imprime as bordas da tabela original, conforme a revisão de 19/10: linhas entre eventos, separação de data/horários e cabeçalho Time mesclado.
 - Voltar das fotos atualiza as seções fotográficas e o sumário do Word, preserva textos e a versão anterior e recusa publicação concorrente.
 - A atualização das fotos preserva o estilo e a altura já ajustada da capa. Se os contatos transbordarem, reduz somente a foto proporcionalmente e mede novamente o sumário. Não publica um Word atualizado com os contatos do comando fora da primeira página.
 - Quantidade descartada vem do balanço dos tanques (`Sludge`, TOTAL, coluna K), distinto da soma dos caminhões. A retenção do comandante vem de `Sludge retained aft actual disposal`, coluna D. Ambos seguem os rótulos quando linhas são deslocadas e respeitam valores e precisão revisados pelo operador.

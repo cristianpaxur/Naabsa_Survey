@@ -42,6 +42,10 @@ three cells and its Time cell spans three grid columns. All widths, borders,
 cell margins, alignments, fills, row rules and paragraph/run properties are
 authoritative source geometry.
 
+The October 19 revision restores the printed Time Log grid: keep its source
+Table Grid style and individual cell borders, including the open upper-left
+header and the merged Time heading. Do not suppress these borders in output.
+
 The cover is source block 13, rId12, inline 5760000 by 4317179 EMU.
 Vessel gallery blocks 181/183 have eight prototype photos (rId16–23): six
 at 2688000 by 2016000 EMU, two at 2880000 by 2160000 EMU. Engine Room
