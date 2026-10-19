@@ -194,7 +194,12 @@ afterAll(async () => {
 
 describe('0028 com todos os triggers reais do PostgreSQL', () => {
   it('consolida só MSC aberto, preserva documentos/estado e restaura a proteção; é idempotente', async () => {
-    await db.exec(sql);
+    const deliveredSql = await readFile(
+      new URL('../../../EXECUTAR_MSC_0028_CORRIGIDA.sql', import.meta.url),
+      'utf8',
+    );
+    expect(deliveredSql.slice(deliveredSql.indexOf('-- October 16'))).toBe(sql);
+    await db.exec(deliveredSql);
     const active = (
       await db.query<{ id: string; spec: typeof canonical }>(
         'select s.* from report_specs s join report_types t on t.active_spec_id=s.id where t.id=$1',
