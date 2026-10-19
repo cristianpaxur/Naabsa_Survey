@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export async function createTestDatabase() {
+export async function createTestDatabase(throughMigration?: string) {
   const db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
@@ -15,8 +15,16 @@ export async function createTestDatabase() {
   `);
   const directory = fileURLToPath(new URL('../migrations/', import.meta.url));
   try {
-    for (const file of readdirSync(directory).filter(f => f.endsWith('.sql')).sort()) {
-      const sql = readFileSync(`${directory}/${file}`, 'utf8').replace('create extension if not exists pgcrypto;', '-- gen_random_uuid nativo no PostgreSQL WASM');
+    for (const file of readdirSync(directory)
+      .filter(
+        (f) =>
+          f.endsWith('.sql') && (!throughMigration || f <= throughMigration),
+      )
+      .sort()) {
+      const sql = readFileSync(`${directory}/${file}`, 'utf8').replace(
+        'create extension if not exists pgcrypto;',
+        '-- gen_random_uuid nativo no PostgreSQL WASM',
+      );
       await db.exec(sql);
     }
     return db;

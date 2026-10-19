@@ -88,3 +88,36 @@ Artefato local: `output/pdf/msc-carolina-fluxo-5db77f1c.pdf`, SHA256 `b874225017
 - CAROLINA remontado localmente com os 82 campos, nenhuma issue e as 20 fotos do ensaio anterior. Agora são oito páginas: contatos na capa, Contents na 2, Vessel na 5, Engine Room na 6, Survey attendance na 7, ECR/Attachment na 8. As duas medições finais coincidem. Inspeção visual das oito páginas aprovada; as três fotos de casco aparecem em Vessel. Comparação sequencial dos bitmaps considera a mudança solicitada `[capa, vessel×2, hull, demais fotos]` e confirmou conteúdo/ordem preservados. Os valores de Sludge, data de última descarga e alinhamento de Surveyors figures continuam conferidos; não há placeholders, traços de ausência, NaN ou datas inválidas.
 - Verificação: core **225** testes, banco **31** e os três arquivos afetados do worker **99** aprovados; os casos de contatos/sincronização e a 0028 com o trigger de revisões foram repetidos após os ajustes finais e passaram. O cenário nativo `compact` também passou, validando ordem dos grupos, sumário, valores e Time log. Typecheck do monorepo, nova conferência do worker, ESLint completo, Prettier, `pnpm check:specs` e `git diff --check` aprovados. Evidências privadas em `tmp/client-feedback-20261016/`: logs, `pdf/assembly.json`, `pdf/final-checks.json`, `pdf/contact.jpg`, `pdf/pages/` e `native-fixture/`.
 - Artefato: `output/pdf/msc-carolina-ajustes-cliente.pdf`, SHA256 `3f3f2f330426680493e498d54e0f0f8b07698ec9393ad763e422fe89aee93af8`. A validação é local. Para aplicar aos documentos do sistema é necessário publicar as alterações, aplicar a 0028 e montar um novo Word a partir dos dados revisados; um Word salvo conserva seu texto anterior.
+
+## Correção da falha da 0028 no guard de fotos — 19/10/2026
+
+- A captura enviada pelo usuário mostra a 0028 abortando em `guard_photo_edits()`, porque a consolidação também alcança relatórios em draft, extracted e editing. A função da 0012 só aceita organização interativa em in_review. O teste anterior da 0028 instalava a revisão de alocações da 0025, mas omitia esse guard; portanto sua aprovação não comprovava compatibilidade com todos os triggers de produção.
+- O teste agora prepara o banco com **todas as migrations até a 0027**, incluindo schema, RLS, imutabilidade, guard, revisões de dados/fotos e proteção dos documentos. A versão anterior da 0028 reproduziu a mesma mensagem da captura. O helper permite selecionar a última migration da preparação, sem alterar o padrão usado pelos outros testes.
+- A 0028 foi corrigida antes de uma aplicação bem-sucedida conhecida. Em uma única instrução DO, preserva a definição original de `guard_photo_edits`, instala uma validação temporária que aceita somente a troca Hull → Vessel e a posição exata de uma foto previamente bloqueada e registrada em uma tabela temporária privada da sessão, e restaura a definição original antes de concluir. A comparação da linha completa impede mudar recorte, processamento, confirmação ou qualquer outro atributo. A validação também exige MSC aberto, não excluído e spec já sem Hull. Não há troca de status nem desativação de triggers; os incrementos de revisões e a auditoria continuam ativos. A operação preserva inclusive o processamento pendente de uma foto legada já alocada.
+- A definição temporária fica dentro da mesma transação; outras sessões mantêm a definição confirmada. Se houver erro, alterações de specs, alocações, auditoria, revisões e função são revertidas juntas. O lock_timeout fica em 5 s durante a instrução e é restaurado ao terminar. Não sobra tabela temporária nem exceção permanente no guard.
+- Quatro cenários cobrem os quatro estados abertos, relatórios aprovados/gerados/purgados/excluídos e outro tipo de relatório; ordem e conteúdo das fotos; revisão de alocações; preservação de status, gerações, Word aprovado/editável, PDF e lock WOPI; fontes personalizadas; idempotência; erro após a primeira foto e retentativa; recusa de alteração incidental no recorte; e bloqueios normais de etapa, processamento, slot inválido e capacidade após a migração. A definição da função é comparada antes/depois, inclusive nos testes de falha.
+- Verificação local: `pnpm --filter @naabsa/db test -- --maxWorkers=1 --minWorkers=1` aprovou **34 testes em 11 arquivos**, incluindo integridade de fotos, editor, revisões e runner (109,64 s, exit 0). Os quatro cenários novos também passaram isoladamente. `pnpm --filter @naabsa/db typecheck`, `pnpm lint`, Prettier dos arquivos afetados e `git diff --check` passaram. Evidências em `tmp/client-feedback-20261019/`: `db-before-fix.log` registra a reprodução; `db-fixed.log`, `db-final.log`, `db-all.log` e `lint.log` registram a validação. Nenhuma consulta, migration ou publicação foi executada no servidor neste pedido. O PDF não foi regenerado neste ajuste, que trata somente da migração e dos testes de banco.
+
+### Reaplicação no ambiente que apresentou o erro
+
+1. Substituir **todo** o conteúdo do SQL Editor pelo arquivo corrigido `packages/db/migrations/0028_msc_vessel_photos_and_surveyor.sql` e executar a instrução inteira com o proprietário das migrations (o papel postgres mostrado na captura). O DO que falhou foi revertido; não é necessário desfazer dados nem repetir 0023–0027. A alteração do arquivo 0028 vale para essa aplicação ainda não concluída; um ambiente que já o tenha registrado com sucesso no runner e checksum exige uma correção posterior, sem editar o registro.
+2. Conferir a spec ativa e a ausência de Hull ativo nos MSC abertos com as consultas de leitura abaixo. A primeira deve mostrar `has_vessel=true`, `has_hull=false`, `has_surveyors_field=false`; a segunda deve retornar zero linhas.
+3. Conferir os eventos `msc_vessel_policy_*` e `msc_hull_photos_consolidated` no audit, os vínculos de documentos e as alocações do relatório de teste. A recuperação de uma execução concluída usa os IDs/posições auditados e o snapshot anterior, preservando alterações posteriores. O aceite da migration no servidor permanece pendente do resultado dessa reaplicação pelo usuário.
+
+```sql
+select rt.slug, rs.version,
+       rs.spec->'photo_slots' @> '[{"id":"vessel"}]'::jsonb as has_vessel,
+       rs.spec->'photo_slots' @> '[{"id":"hull"}]'::jsonb as has_hull,
+       (rs.spec #> '{source,common,fields}') ? 'surveyors' as has_surveyors_field
+from public.report_types rt
+join public.report_specs rs on rs.id = rt.active_spec_id
+where rt.slug = 'msc';
+
+select r.id, r.status, p.id as photo_id
+from public.reports r
+join public.report_types rt on rt.id = r.report_type_id
+join public.report_photos p on p.report_id = r.id
+where rt.slug = 'msc' and r.deleted_at is null
+  and r.status in ('draft','extracted','in_review','editing')
+  and p.slot_id = 'hull' and p.removed_at is null;
+```
