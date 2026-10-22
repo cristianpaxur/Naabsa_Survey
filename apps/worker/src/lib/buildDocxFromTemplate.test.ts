@@ -102,7 +102,7 @@ describe('buildReportDocxFromTemplate', () => {
     expect(text).toContain('August 18th, 2026, from 06:30 up to 08:00 h');
   });
 
-  it('define bordas visíveis nas três tabelas Draft readings', async () => {
+  it('mantém ocultas as bordas das três tabelas Draft readings', async () => {
     const docx = await buildReportDocxFromTemplate({
       data: { intermediate_date: '2026-08-15' },
       variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
@@ -111,9 +111,9 @@ describe('buildReportDocxFromTemplate', () => {
     for (const bookmark of ['s3_1', 's4_1', 's5_1']) {
       const table = xml.match(new RegExp(`w:name="${bookmark}"(?:(?!<\\/w:p>).)*<\\/w:p>(<w:tbl\\b.*?<\\/w:tbl>)`, 's'))?.[1] ?? '';
       const borders = table.match(/<w:tblBorders>.*?<\/w:tblBorders>/s)?.[0] ?? '';
-      expect(borders, bookmark).toContain('<w:top w:val="single"');
-      expect(borders, bookmark).toContain('<w:insideH w:val="single"');
-      expect(borders, bookmark).toContain('<w:insideV w:val="single"');
+      for (const side of ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) {
+        expect(borders, `${bookmark} ${side}`).toContain(`<w:${side} w:val="nil"`);
+      }
     }
   });
 

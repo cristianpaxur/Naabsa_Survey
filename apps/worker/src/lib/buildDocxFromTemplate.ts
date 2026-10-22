@@ -245,16 +245,16 @@ function prepareTemplateLayout(zip: PizZip): void {
       : paragraph.replace(/(<w:p\b[^>]*>)/, '$1<w:pPr><w:keepNext/></w:pPr>');
   };
   const keepReadingTableTogether = (table: string): string => {
-    const border = (side: string) => `<w:${side} w:val="single" w:sz="6" w:color="666666"/>`;
+    const border = (side: string) => `<w:${side} w:val="nil"/>`;
     const borders = `<w:tblBorders>${['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(border).join('')}</w:tblBorders>`;
-    const bordered = table.replace(/<w:tblPr\b[^>]*>.*?<\/w:tblPr>/s, (properties) =>
+    const borderless = table.replace(/<w:tblPr\b[^>]*>.*?<\/w:tblPr>/s, (properties) =>
       /<w:tblBorders>.*?<\/w:tblBorders>/s.test(properties)
         ? properties.replace(/<w:tblBorders>.*?<\/w:tblBorders>/s, borders)
         : properties.replace('</w:tblPr>', `${borders}</w:tblPr>`),
     );
     const rows = table.match(/<w:tr\b[^>]*>.*?<\/w:tr>/gs) ?? [];
     let rowIndex = 0;
-    return bordered.replace(/<w:tr\b[^>]*>.*?<\/w:tr>/gs, (row) => {
+    return borderless.replace(/<w:tr\b[^>]*>.*?<\/w:tr>/gs, (row) => {
       let prepared = /<w:cantSplit\b/.test(row)
         ? row
         : /<w:trPr\b[^>]*>/.test(row)
