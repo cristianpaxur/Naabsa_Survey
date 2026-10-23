@@ -346,7 +346,7 @@ export async function advance(
     };
   }
 
-  if (spec.report_type === 'msc' && report.working_docx_path) {
+  if (['msc', 'bqs'].includes(spec.report_type) && report.working_docx_path) {
     const assignmentKey = createHash('sha256')
       .update(serializePhotoAssignments((rows ?? []) as PhotoAssignment[]))
       .digest('hex');

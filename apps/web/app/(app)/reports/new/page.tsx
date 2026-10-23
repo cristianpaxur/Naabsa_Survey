@@ -4,6 +4,7 @@ import { supportsReport } from '@/lib/supported-reports';
 
 const TYPE_ORDER = [
   'draft_survey',
+  'bqs',
   'bunker_surveyor',
   'msc',
   'on_off_hire',

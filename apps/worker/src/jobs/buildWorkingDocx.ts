@@ -7,6 +7,7 @@ import {
   updateMscTocPages,
 } from '../lib/buildDocxMsc';
 import { fitMscCoverContacts, measureMscPages } from '../lib/mscPagination';
+import { paginateBqsDocx, replaceBqsPhotoSections } from '../lib/bqsDocument';
 import { getServiceClient } from '../lib/supabase';
 import { loadReport, buildWorkingDocx as assembleDocx } from './generatePdf';
 
@@ -106,7 +107,7 @@ async function refreshWorkingPhotos(
     } as never);
   try {
     if (
-      row.type_slug !== 'msc' ||
+      !['msc', 'bqs'].includes(row.type_slug ?? '') ||
       row.status !== 'in_review' ||
       generation !== row.working_docx_generation ||
       row.working_docx_path !== source.path ||
@@ -135,27 +136,36 @@ async function refreshWorkingPhotos(
       throw new Error('Não foi possível recuperar o Word atual.');
     const original = Buffer.from(await blob.arrayBuffer());
     const fresh = await assembleDocx(svc, reportId, row);
-    const fitted = await fitMscCoverContacts(
-      replaceMscPhotoSections(original, fresh.docx),
-    );
-    let docx = fitted.docx;
-    let pages = fitted.pages,
-      stable = false;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      docx = updateMscTocPages(docx, pages);
-      const measured = await measureMscPages(docx);
-      if (Object.entries(pages).every(([id, page]) => measured[id] === page)) {
-        stable = true;
-        break;
-      }
-      pages = measured;
-    }
-    if (!stable)
-      throw new Error(
-        'A paginação das fotos não estabilizou. Tente novamente.',
+    let docx: Buffer;
+    if (row.type_slug === 'bqs') {
+      docx = await paginateBqsDocx(
+        replaceBqsPhotoSections(original, fresh.docx),
       );
-    if (pages['msc_cover_contacts_end'] !== 1)
-      throw new Error('Os contatos do comando precisam permanecer na capa.');
+    } else {
+      const fitted = await fitMscCoverContacts(
+        replaceMscPhotoSections(original, fresh.docx),
+      );
+      docx = fitted.docx;
+      let pages = fitted.pages,
+        stable = false;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        docx = updateMscTocPages(docx, pages);
+        const measured = await measureMscPages(docx);
+        if (
+          Object.entries(pages).every(([id, page]) => measured[id] === page)
+        ) {
+          stable = true;
+          break;
+        }
+        pages = measured;
+      }
+      if (!stable)
+        throw new Error(
+          'A paginação das fotos não estabilizou. Tente novamente.',
+        );
+      if (pages['msc_cover_contacts_end'] !== 1)
+        throw new Error('Os contatos do comando precisam permanecer na capa.');
+    }
     if ((await signature()) !== source.assignmentKey)
       throw new Error('As fotos mudaram. Tente avançar novamente.');
     const path = `${reportId}/working/${randomUUID()}.docx`;

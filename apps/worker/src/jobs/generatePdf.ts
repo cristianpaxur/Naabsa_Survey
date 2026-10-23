@@ -22,6 +22,7 @@ import {
   resolveVariant,
   normalizeCell,
   coerceField,
+  validate,
   type ReportSpec,
   type FieldValue,
   type NumberFormatMap,
@@ -32,6 +33,13 @@ import { readFile } from 'node:fs/promises';
 import { getServiceClient } from '../lib/supabase';
 import { buildReportDocx, type DocxInput } from '../lib/buildDocx';
 import type { DocxInputMsc, TimeLogRow } from '../lib/buildDocxMsc';
+import {
+  BQS_PHOTO_SLOTS,
+  auditBqsCalculations,
+  readBqsTimeLog,
+  type DocxInputBqs,
+  type BqsPhotoSlot,
+} from '../lib/buildDocxBqs';
 import { convertDocxToPdf, measureBookmarkPages } from '../lib/soffice';
 import { renderSheetPng } from '../lib/sheetImage';
 import { validateDocumentLayout } from '../lib/documentLayoutQa';
@@ -398,6 +406,68 @@ export async function buildWorkingDocx(
 
   const logo = await fetchLogo();
 
+  if (row.type_slug === 'bqs') {
+    if (spec.report_type !== 'bqs')
+      throw new Error('BQS: spec incompatível com o tipo.');
+    if (!wb || !currentExtraction)
+      throw new Error('BQS: planilha original indisponível.');
+    const issues = [
+      ...currentExtraction.issues.filter(
+        (issue) => !Object.hasOwn(overrides, issue.field),
+      ),
+      ...validate(data, spec, null),
+    ].filter((issue) => issue.level === 'error');
+    if (issues.length)
+      throw new Error(
+        `BQS: revise os campos: ${issues.map((issue) => issue.field).join(', ')}.`,
+      );
+    const { data: photoRows, error: photoError } = await svc
+      .from('report_photos')
+      .select('slot_id,processed_path,position,crop,status,ai_suggested')
+      .eq('report_id', reportId)
+      .is('removed_at', null)
+      .not('slot_id', 'is', null)
+      .order('position', { ascending: true });
+    if (photoError) throw new Error('BQS: não foi possível conferir as fotos.');
+    const photos: DocxInputBqs['photos'] = {};
+    for (const photo of (photoRows ?? []) as {
+      slot_id: string;
+      processed_path: string | null;
+      status: string;
+      ai_suggested: boolean;
+      crop: Crop | null;
+    }[]) {
+      if (
+        !(BQS_PHOTO_SLOTS as readonly string[]).includes(photo.slot_id) ||
+        photo.status !== 'done' ||
+        photo.ai_suggested ||
+        !photo.processed_path
+      )
+        throw new Error(
+          `BQS: foto alocada inválida ou pendente em ${photo.slot_id}.`,
+        );
+      const buffer = await download(svc, photo.processed_path);
+      if (!buffer)
+        throw new Error(
+          `BQS: falha ao baixar foto de ${photo.slot_id}. Tente novamente.`,
+        );
+      (photos[photo.slot_id as BqsPhotoSlot] ??= []).push(
+        await applyCrop(buffer, photo.crop),
+      );
+    }
+    const base: DocxInputBqs = {
+      data,
+      tables,
+      numberFormats,
+      photos,
+      timeLogRows: readBqsTimeLog(wb, data),
+    };
+    const audit = auditBqsCalculations(base);
+    if (audit.length) throw new Error(`BQS: ${audit.join('; ')}`);
+    const { buildPaginatedDocxBqs } = await import('../lib/bqsDocument');
+    return { docx: await buildPaginatedDocxBqs(base), data, variant: null };
+  }
+
   // ── MSC: builder dedicado (sem variantes, sem sheetImages, sem phases). ──
   if (row.type_slug === 'msc') {
     const { buildPaginatedDocxMsc } = await import('../lib/mscPagination');
@@ -647,6 +717,11 @@ export async function convertWorkingDocxToPdf(
     );
   }
   const docHash = createHash('sha256').update(docx).digest('hex');
+  if (row.type_slug === 'bqs') {
+    const { assertBqsPdfPagination } = await import('../lib/bqsDocument');
+    const { extractPdfText } = await import('../lib/pdfText');
+    assertBqsPdfPagination(docx, await extractPdfText(pdf));
+  }
   return { pdf, docx, docHash };
 }
 

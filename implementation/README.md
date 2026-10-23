@@ -28,6 +28,7 @@
 | [016](./016-msc-functional/spec.md) | MSC funcional de ponta a ponta | correção do modelo MSC aprovado | 🟠 Código e validação local concluídos | 8/8 (ativação em nuvem pendente) |
 | [017](./017-msc-feedback-video/spec.md) | Correções MSC a partir do vídeo de 02/10/2026 e do Word de exemplo | feedback do usuário | 🟡 ECR e Word publicados e validados | 13/14 (9/9 páginas idênticas no ensaio Word; geração real de seis páginas conferida no Collabora; ativação DAMLA pendente) |
 | [018](./018-msc-client-feedback/spec.md) | Correções dos vídeos MSC de 14/10/2026: quantidades, fotos e Word | feedback do cliente | 🟢 Time log com bordas validado no PDF e 0028 corrigida | 21/21; aplicar 0028 corrigida e publicar o worker para novas montagens |
+| [019](./019-bqs/spec.md) | BQS: planilha e modelo PDF | onboarding autorizado | 🟠 Implementação e relatório local concluídos | 9/11; homologação Collabora e publicação pendentes |
 
 ---
 
@@ -75,7 +76,7 @@ Paralelização possível: após 001, **002 e 003** podem andar em paralelo; ap�
 | Tipo de relatório prioritário | Cliente | 003 (spec real do 1º tipo — PRD T-07) | ✅ Recebido 2026-06-23 — **`draft_survey`** |
 | Modelo Word + exemplo preenchido (1º tipo) | Cliente | 004 (conteúdo real — PRD T-08) | ✅ Recebido 2026-06-23 (`MV-PERSEUS-I.model.docx`) |
 | Planilha pré-moldada real (1º tipo) | Cliente | 003/T-011..T-016 (PRD T-07) | ✅ Recebido 2026-06-23 (`draft_survey.real.v1.xlsx`) |
-| Modelos Word + planilhas dos **demais** tipos | Cliente | 009 (PRD T-19..T-22) | 🔴 Pendente |
+| Modelos Word + planilhas dos **demais** tipos | Cliente | 009 (PRD T-19..T-22) | 🟠 BQS recebido em 23/10/2026: XLSX + PDF substituindo Word; ver 019. Outros tipos pendentes |
 | Chave PIX/recebimento e acesso ao VPS | Interno | 001 (deploy no VPS — dev local livre; PRD T-03) e 010 (PRD T-28) | 🔴 Pendente |
 | **App Registration no tenant Microsoft Entra ID** | Cliente (TI) | 013 (SSO — T-001; dev contra tenant de teste) | 🔴 Pendente |
 

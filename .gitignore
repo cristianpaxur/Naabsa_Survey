@@ -53,5 +53,15 @@ templates/
 templates/*
 !templates/draft_survey.clean.docx
 !templates/msc.clean.docx
+!templates/bqs.clean.docx
+!templates/bqs.artifact.md
 !templates/msc.artifact.md
 !templates/README.md
+
+# Insumos privados e evidências locais de homologação
+/output/
+/tmp/
+/tests/fixtures/planilhas/bqs/elite-star.xlsx
+/tests/fixtures/reports/bqs/
+/docs/project/2026-10-23-bqs-validation.md
+/docs/project/bqs-intake.md

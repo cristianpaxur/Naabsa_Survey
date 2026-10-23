@@ -1,5 +1,17 @@
 # DOCX templates
 
+## BQS
+
+`bqs.clean.docx` is reconstructed from the client PDF because no Word source
+was available. The user explicitly authorized this route. It contains native
+Word tables, manual content controls, photo areas and a measured table of
+contents. See [bqs.artifact.md](bqs.artifact.md) for the complete contract,
+synthetic fixture, reproduction commands and destination acceptance limits.
+
+Rebuild with Python: `scripts/build_bqs_template.py`. Recreate the public test
+workbook using `node scripts/build_bqs_synthetic_fixture.mjs`. Malformed times
+require explicit overrides, never silent edits to the XLSX.
+
 `msc.clean.docx` is derived from the approved MSC Word reference, with its
 styles, native numbering, table geometry, headers, footer and photograph
 prototypes retained. `msc.artifact.md` is the tracked execution contract,

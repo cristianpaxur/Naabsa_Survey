@@ -111,7 +111,7 @@ export function extract(
       continue;
     }
     const cell = ws.getCell(resolved.address);
-    const raw = normalizeCell(cell.value);
+    const raw = normalizeWorksheetCell(cell);
     const res = coerceField(raw, field, { date1904 });
     data[name] = res.value;
     if (field.type === 'number' && typeof res.value === 'number') {
@@ -319,7 +319,7 @@ function extractTables(
     for (let r = startRow; r <= endRow; r++) {
       const row: FieldValue[] = [];
       for (let c = startCol; c <= endCol; c++) {
-        const raw = normalizeCell(ws.getCell(r, c).value);
+        const raw = normalizeWorksheetCell(ws.getCell(r, c));
         row.push(rawToFieldValue(raw));
       }
       matrix.push(row);
@@ -381,6 +381,19 @@ function parseRange(range: string): {
     endCol: end.col,
     endRow: end.row,
   };
+}
+
+/** ExcelJS omite resultados falsy em cell.value, mas preserva o cache em cell.result. */
+export function normalizeWorksheetCell(cell: ExcelJS.Cell): RawCellValue {
+  const value = cell.value;
+  if (
+    value &&
+    typeof value === 'object' &&
+    ('formula' in value || 'sharedFormula' in value)
+  ) {
+    return normalizeCell((cell.result ?? null) as ExcelJS.CellValue);
+  }
+  return normalizeCell(value);
 }
 
 /** Resolve o valor de uma célula do ExcelJS a um primitivo. */

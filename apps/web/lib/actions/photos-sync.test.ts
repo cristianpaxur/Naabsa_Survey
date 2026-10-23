@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
+  type: 'msc',
   report: {
     id: 'r1',
     status: 'in_review',
@@ -51,7 +52,7 @@ vi.mock('@/lib/supabase/server', () => ({
               ? state.report
               : {
                   spec: {
-                    report_type: 'msc',
+                    report_type: state.type,
                     photo_slots: [{ id: 'vessel', label: 'Vessel' }],
                   },
                 },
@@ -82,12 +83,19 @@ vi.mock('@/lib/supabase/server', () => ({
 import { advance } from './photos';
 beforeEach(() => {
   vi.clearAllMocks();
+  state.type = 'msc';
   state.events = [];
   state.report.status = 'in_review';
   state.report.working_docx_path = 'original.docx';
   state.report.working_docx_revision = 4;
 });
 describe('returning from photo allocation to an existing MSC Word', () => {
+  it('também sincroniza o BQS antes de reabrir o Word existente', async () => {
+    state.type = 'bqs';
+    expect(await advance('r1', true)).toEqual({ pending: true });
+    expect(enqueue).toHaveBeenCalledOnce();
+    expect(transition).not.toHaveBeenCalled();
+  });
   it('waits for photo synchronization and deduplicates polling', async () => {
     expect(await advance('r1', true)).toEqual({ pending: true });
     expect(await advance('r1')).toEqual({ pending: true });
