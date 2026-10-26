@@ -138,3 +138,42 @@ it('blocks conflicting identities, dates and editorial temperature placeholders 
     ),
   ).toBe(true);
 });
+it('reconciles every full tank range against AIR/VAC totals and includes a zero-time unknown event', async () => {
+  const checked = validateSpec(
+    JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../tests/fixtures/specs/bqs.v2.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ),
+  );
+  if (!checked.valid) throw new Error(checked.errors.join('; '));
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(
+    readFileSync(
+      new URL(
+        '../../../../tests/fixtures/planilhas/bqs/synthetic-v2.xlsx',
+        import.meta.url,
+      ),
+    ) as never,
+  );
+  const r = runExtraction(wb, checked.spec);
+  for (const key of [
+    'vessel_open',
+    'vessel_close',
+    'barge_open',
+    'barge_close',
+  ]) {
+    expect(r.tables[key]!.reduce((sum, row) => sum + Number(row[12]), 0)).toBe(
+      r.data[`${key}_air`],
+    );
+    expect(r.tables[key]!.reduce((sum, row) => sum + Number(row[11]), 0)).toBe(
+      r.data[`${key}_vac`],
+    );
+  }
+  expect(wb.getWorksheet('Time Log')!.getCell('A15').value).toBe('Operation');
+  expect(wb.getWorksheet('Time Log')!.getCell('E16').value).toBe(0);
+});

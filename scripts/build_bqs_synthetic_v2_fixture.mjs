@@ -49,7 +49,7 @@ for (const table of spec.source.tables) {
           ? `TEST TANK ${row}`
           : c === 1
             ? 'TEST FUEL'
-            : c === 12
+            : c >= 11
               ? { formula: '0', result: 0 }
               : c + 0.125;
       cell.numFmt = '0.000';
@@ -89,6 +89,30 @@ for (const [id, value] of Object.entries(values)) {
       ? { formula: String(value), result: value }
       : value;
 }
+// Reconcile the entire mapped range with each independent scalar total.
+// Row one remains a cached zero; row two carries a discriminant nonzero mass.
+for (const table of spec.source.tables) {
+  const start = Number(table.range.match(/\d+/)[0]);
+  const ws = wb.getWorksheet(table.sheet);
+  const col = table.sheet === 'Vessel' ? 1 : 2;
+  for (const [offset, suffix] of [
+    [11, 'vac'],
+    [12, 'air'],
+  ]) {
+    const value = values[`${table.id}_${suffix}`];
+    ws.getCell(start + 1, col + offset).value = {
+      formula: String(value),
+      result: value,
+    };
+  }
+}
+const timeLog = wb.getWorksheet('Time Log');
+timeLog.getCell('A15').value = 'Operation';
+timeLog.getCell('A16').value = 'Test preparation';
+timeLog.getCell('D16').value = '10/05/2026';
+timeLog.getCell('E16').value = 0;
+timeLog.getCell('F16').value = null;
+timeLog.getCell('A35').value = 'Stoppages / Delays :';
 await wb.xlsx.writeFile(
   fileURLToPath(
     new URL(
