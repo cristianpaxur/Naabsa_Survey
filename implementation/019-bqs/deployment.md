@@ -260,3 +260,38 @@ Evidências privadas em tmp/bqs-intake-20261026/server-*.mjs e, no bucket privad
 <QA>/diagnostics/. Nenhuma spec ou vínculo legado foi alterado nesta etapa.
 
 Correção concluída em 4205a34/a614dcc, revisão independente sem achados pendentes. Duas rodadas reais de troca de fotos → convert-to/docx passaram com todos os cinco ranges válidos e texto nativo preservado. Evidências privadas no QA/diagnostics/native-photo-cycles.{log,docx}. Suíte completa do worker em execução serial: 301 aprovados e7 skips; a primeira execução paralela excedeu5s em14 testes, sem falhas de asserção, e foi repetida com concorrência1 e20s. Tipos, lint e check:specs passaram. Ciclo final publicado/PDF/ativação ainda pendente.
+
+## Aceite final e ativação — 26/10/2026
+
+Web e worker Done no commit728f32768f9445e123b6d6a1952090aab953df0a;
+worker8645cc15a1e8. A recuperação restrita ao QA gerou revisão3 imutável,
+por igualdade exata das fotos e CAS da revisão2/hash/etapa/lock/photoRevision.
+Texto e demais partes do pacote preservados; fonte anterior mantida.
+`bqs_qa_native_photo_markers_recovered` registra a operação.
+
+Atualização de fotos pelo botão real publicou revisão4, preservando a marca
+BQS QA V2 20261026 EDITION SAVED. Página real reaberta no Collabora em7páginas;
+snapshot aprovado tem o mesmo caminho/revisão4 do Word de trabalho. O ensaio
+iniciado durante o deploy web recebeu Server Action antiga; foi repetido em
+sessão nova após ambos os serviços Done, sem alterar configuração do produto.
+`bqs_server_acceptance_passed` em19:38:03.955Z registra o aceite completo,
+campos discriminantes e baseline legado preservado; zero pageerrors no ensaio.
+
+- DOCX SHA256: `f3d6cc7249f50a7a00959d48c8a1b01adf2ef3597393e7b80dbae9cbe88ecd9f`.
+- PDF SHA256: `092454a0a9d3650ee6f30c912ab42607ab2ba5dfd6d8d16f33fe8499361906e1`.
+- Todas as7páginas renderizadas e inspecionadas antes da ativação; capa/contatos,
+  21destinos de sumário, quatro tabelas, cabeçalhos repetidos, fotos/legendas,
+  numeração e marca manual íntegros. `bqs_pdf_visual_review_passed` registrado.
+- `bqs_v2_activated` alterou somente report_types.bqs.active_spec_id para
+  `1540c475-26d2-490f-9fd4-36ecf47a60cc`, após conferir hashes/spec imutável,
+  revisão atual e aceites. Todos os ponteiros legados conferidos iguais.
+- `bqs_activation_ui_verified` em19:42:37.708Z: BQS habilitado e selecionado,
+  botão Continuar para planilha habilitado; não criou relatório vazio.
+  Mesmo estado conferido no Chrome do usuário, tela deixada aberta.
+- Web236testes aprovados; worker301aprovados/7skips; tipos/lint/specs aprovados.
+
+Artefatos identificados como teste em output/bqs-v2/BQS_HOMOLOGADO.{docx,pdf},
+BQS_HOMOLOGACAO_EVIDENCIAS.json e BQS_ATIVO.png. Originais não modificados.
+T-010/T-011 concluídos. Para testar novo fluxo, abrir /reports/new e selecionar
+BQS. Revisar os conflitos do exemplo recebido antes de emitir um relatório
+real para cliente; a homologação usa somente dados sintéticos coerentes.

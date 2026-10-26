@@ -11,8 +11,8 @@ Estado em 23/10/2026: implementação e artefatos locais concluídos; aceite no 
 - [x] T-007 Registrar migration sem ativação e testar idempotência local.
 - [x] T-008 Gerar Word/PDF do caso fornecido, revisar sete páginas e emitir mapa de campos.
 - [x] T-009 Executar testes, revisão independente e corrigir os achados.
-- [ ] T-010 Homologar upload → revisão → fotos → edição/salvamento/reabertura → PDF no Collabora/WOPI de destino.
-- [ ] T-011 Após aceite e autorização correspondente, publicar código e ativar o spec; preencher dados/fotos reais antes de envio ao cliente.
+- [x] T-010 Homologar upload → revisão → fotos → edição/salvamento/reabertura → PDF no Collabora/WOPI de destino.
+- [x] T-011 Após aceite e autorização correspondente, publicar código e ativar o spec. Dados/fotos reais continuam obrigatórios antes de enviar um relatório ao cliente.
 
 Atualização: o usuário autorizou homologação e ativação em 23/10/2026. Build
 de produção aprovado; aplicação autenticada. Usuário autenticou o Dokploy; worker confirmado com autodeploy na branch de produção. Plano e estado em [deployment.md](deployment.md).
@@ -45,3 +45,12 @@ fotos após essa gravação revelou perda dos SDTs no Collabora. Correção em
 focados passaram e a revisão independente não deixou achados pendentes.
 T-010 continua aberto até repetir a atualização de fotos no código publicado,
 aprovar o snapshot e revisar todas as páginas do PDF final. BQS ainda inativo.
+
+Encerramento em 26/10/2026: web/worker728f327, QA recuperado com preservação
+integral do texto em r3, troca real de fotos publicada em r4, editor reaberto,
+snapshot aprovado igual ao Word de trabalho r4, PDF7páginas com21 destinos do
+sumário válidos e fotos corretas, todas as páginas inspecionadas. Aceites nativo
+e visual registrados antes de ativar spec1540c475-26d2-490f-9fd4-36ecf47a60cc.
+BQS selecionável em Novo relatório no Chrome do usuário; botão de continuidade
+habilitado. Tipos legados e relatórios anteriores preservados. T-010/T-011
+concluídos; artefatos de teste identificados em output/bqs-v2/LEIA-ME.md.
