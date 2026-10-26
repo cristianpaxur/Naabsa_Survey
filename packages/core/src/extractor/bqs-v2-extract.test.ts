@@ -27,6 +27,10 @@ it('extracts BQS v2 discriminant source quantities, cover identity and 13-column
   );
   const r = runExtraction(wb, checked.spec);
   expect(r.data.vessel_name).toBe('TEST OPERATIONS VESSEL');
+  expect(r.data.vessel_loa).toBe('229.00');
+  expect(checked.spec.source.common.fields.vessel_loa!).not.toHaveProperty(
+    'decimals',
+  );
   expect(r.data.cover_vessel_name).toBe('TEST COVER VESSEL');
   expect(r.data.vessel_open_air).toBe(111.125);
   expect(r.data.vessel_close_air).toBe(444.875);
@@ -111,7 +115,7 @@ it('blocks conflicting identities, dates and editorial temperature placeholders 
     ['cover_vessel_name', 'vessel_name'],
     ['cover_port', 'survey_location'],
     ['cover_chief_engineer', 'chief_engineer'],
-  ]) {
+  ] as const) {
     const l = checked.spec.source.common.fields[left]!,
       rr = checked.spec.source.common.fields[right]!;
     wb.getWorksheet(l.sheet!)!.getCell(l.cell).value = wb

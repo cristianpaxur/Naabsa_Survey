@@ -56,6 +56,7 @@ for (const table of spec.source.tables) {
     }
 }
 const values = {
+  vessel_loa: '229.00',
   vessel_name: 'TEST OPERATIONS VESSEL',
   cover_vessel_name: 'TEST COVER VESSEL',
   vessel_open_air: 111.125,
@@ -76,11 +77,24 @@ const values = {
   vessel_logbook: 100,
   cover_logbook_difference: -11.125,
   sample_barge_chief: '0001234',
+  arrival_start: '16:30',
+  arrival_end: '16:35',
+  meeting_start: '16:40',
+  meeting_end: '17:00',
+  barge_arrival_start: '16:20',
+  barge_arrival_end: '16:25',
   vessel_open_start: '17:11',
   vessel_open_end: '17:37',
   barge_open_start: '18:03',
+  barge_open_end: '18:27',
+  bunkering_start: '18:45',
+  bunkering_end: '21:50',
   barge_close_start: '22:04',
+  barge_close_end: '22:19',
   vessel_close_start: '22:23',
+  vessel_close_end: '22:47',
+  departure_start: '23:10',
+  departure_end: '23:15',
 };
 for (const [id, value] of Object.entries(values)) {
   const f = spec.source.common.fields[id];

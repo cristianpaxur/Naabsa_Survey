@@ -1065,10 +1065,9 @@ select id,2,$bqs_spec${
         "vessel_loa": {
           "sheet": "Capa",
           "cell": "C21",
-          "type": "number",
+          "type": "string",
           "label": "Comprimento LOA (m)",
-          "section": "Capa",
-          "decimals": 3
+          "section": "Capa"
         },
         "engine_room_temperature": {
           "sheet": "Capa",
