@@ -6,6 +6,12 @@ import ImageModule from 'docxtemplater-image-module-free';
 import PizZip from 'pizzip';
 import sharp from 'sharp';
 import {
+  addBqsPhotoBookmarks,
+  BQS_PHOTO_SLOTS,
+  type BqsPhotoSlot,
+} from './bqsPhotoRegions';
+export { BQS_PHOTO_SLOTS, type BqsPhotoSlot } from './bqsPhotoRegions';
+import {
   coerceField,
   normalizeWorksheetCell,
   validate,
@@ -15,14 +21,6 @@ import {
   type NumberFormatMap,
 } from '@naabsa/core';
 
-export const BQS_PHOTO_SLOTS = [
-  'cover',
-  'sounding_tables',
-  'vessel_tanks',
-  'barge_tanks',
-  'sampling',
-] as const;
-export type BqsPhotoSlot = (typeof BQS_PHOTO_SLOTS)[number];
 export interface BqsTimeLogRow {
   event: string;
   date: string;
@@ -414,6 +412,7 @@ export async function buildReportDocxBqs(input: DocxInputBqs): Promise<Buffer> {
     nullGetter: () => DASH,
   });
   rendered.render(values);
+  addBqsPhotoBookmarks(rendered.getZip());
   return rendered
     .getZip()
     .generate({ type: 'nodebuffer', compression: 'DEFLATE' });

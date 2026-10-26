@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { posix } from 'node:path';
-import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import {
   BQS_PHOTO_SLOTS,
@@ -9,26 +8,13 @@ import {
 } from './buildDocxBqs';
 import { convertDocxToPdf } from './soffice';
 import { extractPdfText } from './pdfText';
+import {
+  bqsXmlTools as xmlTools,
+  xmlAll as all,
+  resolveBqsPhotoRegions,
+  type XmlNode,
+} from './bqsPhotoRegions';
 
-interface XmlNode {
-  nodeName: string;
-  textContent: string | null;
-  parentNode: XmlNode | null;
-  getAttribute(name: string): string | null;
-  setAttribute(name: string, value: string): void;
-  getElementsByTagName(name: string): ArrayLike<XmlNode>;
-  cloneNode(deep: boolean): XmlNode;
-  appendChild(node: XmlNode): XmlNode;
-  replaceChild(newNode: XmlNode, oldNode: XmlNode): XmlNode;
-  removeChild(node: XmlNode): XmlNode;
-}
-const xmlTools = (
-  Docxtemplater as unknown as {
-    DocUtils: { str2xml(xml: string): XmlNode; xml2str(node: XmlNode): string };
-  }
-).DocUtils;
-const all = (node: XmlNode, tag: string) =>
-  Array.from(node.getElementsByTagName(tag));
 const read = (zip: PizZip, part: string) =>
   xmlTools.str2xml(zip.file(part)!.asText());
 const norm = (text: string) =>
@@ -170,7 +156,7 @@ export async function buildPaginatedDocxBqs(
   return paginateBqsDocx(await buildReportDocxBqs(input));
 }
 
-/** Replace only the five explicit photo controls; preserve all other operator edits. */
+/** Replace explicit photo ranges, including controls flattened by native editors. */
 export function replaceBqsPhotoSections(
   original: Buffer,
   fresh: Buffer,
@@ -182,58 +168,125 @@ export function replaceBqsPhotoSections(
   const relPart = 'word/_rels/document.xml.rels';
   const rels = read(zip, relPart),
     freshRels = read(source, relPart);
-  const find = (root: XmlNode, slot: string) => {
-    const matches = all(root, 'w:sdt').filter((sdt) =>
-      all(sdt, 'w:tag').some(
-        (tag) => tag.getAttribute('w:val') === `bqs_photos_${slot}`,
-      ),
-    );
-    if (matches.length !== 1)
-      throw new Error(
-        `BQS: área de foto ${slot} ausente ou duplicada no Word. Preserve o documento e restaure essa área.`,
-      );
-    return matches[0]!;
-  };
+  const oldRegions = resolveBqsPhotoRegions(doc);
+  const freshRegions = resolveBqsPhotoRegions(other);
   const copies: XmlNode[] = [];
+  const replacementsBySlot = BQS_PHOTO_SLOTS.map((slot) =>
+    freshRegions[slot].blocks.map((block) => block.cloneNode(true)),
+  );
+  copies.push(...replacementsBySlot.flat());
+  const importedBlips = copies.flatMap((copy) => all(copy, 'a:blip'));
+  let bookmarkId =
+    Math.max(
+      0,
+      ...all(doc, 'w:bookmarkStart').map(
+        (mark) => Number(mark.getAttribute('w:id')) || 0,
+      ),
+    ) + 1;
+  const bookmarkIds = new Map<string, string>();
+  for (const mark of copies.flatMap((copy) => all(copy, 'w:bookmarkStart'))) {
+    const oldId = mark.getAttribute('w:id')!;
+    const newId = String(bookmarkId++);
+    bookmarkIds.set(oldId, newId);
+    mark.setAttribute('w:id', newId);
+  }
+  for (const mark of copies.flatMap((copy) => all(copy, 'w:bookmarkEnd'))) {
+    const newId = bookmarkIds.get(mark.getAttribute('w:id')!);
+    if (newId) mark.setAttribute('w:id', newId);
+  }
+  let drawingId =
+    Math.max(
+      0,
+      ...all(doc, 'wp:docPr').map(
+        (node) => Number(node.getAttribute('id')) || 0,
+      ),
+    ) + 1;
+  for (const node of copies.flatMap((copy) => all(copy, 'wp:docPr')))
+    node.setAttribute('id', String(drawingId++));
   const oldImageIds = new Set<string>();
-  for (const slot of BQS_PHOTO_SLOTS) {
-    const old = find(doc, slot),
-      replacement = find(other, slot).cloneNode(true);
-    for (const node of all(old, '*')) {
+  for (const [index, slot] of BQS_PHOTO_SLOTS.entries()) {
+    const old = oldRegions[slot];
+    const replacements = replacementsBySlot[index]!;
+    for (const node of old.blocks.flatMap((block) => all(block, '*'))) {
       for (const attr of ['r:embed', 'r:link', 'r:id']) {
         const id = node.getAttribute(attr);
         if (id) oldImageIds.add(id);
       }
     }
-    old.parentNode!.replaceChild(replacement, old);
-    copies.push(replacement);
+    if (old.start && old.end) {
+      const newStart = replacements
+        .flatMap((block) => all(block, 'w:bookmarkStart'))
+        .find((mark) => mark.getAttribute('w:name') === `bqs_photos_${slot}`);
+      const newEnd = replacements
+        .flatMap((block) => all(block, 'w:bookmarkEnd'))
+        .find(
+          (mark) =>
+            mark.getAttribute('w:id') === newStart?.getAttribute('w:id'),
+        );
+      if (!newStart || !newEnd)
+        throw new Error(`BQS: limites novos de foto ${slot} ausentes.`);
+      const startParagraph = old.start.parentNode!;
+      const endParagraph = old.end.parentNode!;
+      const prefix = Array.from(startParagraph.childNodes)
+        .slice(0, Array.from(startParagraph.childNodes).indexOf(old.start))
+        .filter((node) => node.nodeName !== 'w:pPr');
+      const suffix = Array.from(endParagraph.childNodes)
+        .slice(Array.from(endParagraph.childNodes).indexOf(old.end) + 1)
+        .filter((node) => node.nodeName !== 'w:pPr');
+      for (const node of prefix)
+        newStart.parentNode!.insertBefore(node.cloneNode(true), newStart);
+      for (const node of suffix)
+        newEnd.parentNode!.appendChild(node.cloneNode(true));
+      // Paragraph formatting also belongs to text outside the photo range.
+      for (const [previous, next, outside] of [
+        [startParagraph, newStart.parentNode!, prefix],
+        [endParagraph, newEnd.parentNode!, suffix],
+      ] as const) {
+        if (!outside.length) continue;
+        for (const prop of Array.from(next.childNodes).filter(
+          (node) => node.nodeName === 'w:pPr',
+        ))
+          next.removeChild(prop);
+        const prop = Array.from(previous.childNodes).find(
+          (node) => node.nodeName === 'w:pPr',
+        );
+        if (prop)
+          next.insertBefore(
+            prop.cloneNode(true),
+            Array.from(next.childNodes)[0] ?? null,
+          );
+      }
+    }
+    const parent = old.blocks[0]!.parentNode!;
+    for (const replacement of replacements)
+      parent.insertBefore(replacement, old.blocks[0]!);
+    for (const block of old.blocks) parent.removeChild(block);
   }
   const imported = new Map<string, string>();
-  for (const copy of copies)
-    for (const blip of all(copy, 'a:blip')) {
-      const id = blip.getAttribute('r:embed');
-      if (!id) throw new Error('BQS: imagem sem referência embutida.');
-      if (!imported.has(id)) {
-        const relation = all(freshRels, 'Relationship').find(
-          (r) => r.getAttribute('Id') === id,
-        );
-        const target = relation?.getAttribute('Target') ?? '';
-        if (!relation || !/^media\/[\w.-]+\.png$/.test(target))
-          throw new Error('BQS: referência de foto inválida.');
-        const payload = source.file(`word/${target}`);
-        if (!payload) throw new Error('BQS: arquivo de foto ausente.');
-        const token = randomUUID().replace(/-/g, ''),
-          newId = `bqs_${token}`,
-          newTarget = `media/bqs_${token}.png`;
-        zip.file(`word/${newTarget}`, payload.asUint8Array());
-        const rel = relation.cloneNode(true);
-        rel.setAttribute('Id', newId);
-        rel.setAttribute('Target', newTarget);
-        all(rels, 'Relationships')[0]!.appendChild(rel);
-        imported.set(id, newId);
-      }
-      blip.setAttribute('r:embed', imported.get(id)!);
+  for (const blip of importedBlips) {
+    const id = blip.getAttribute('r:embed');
+    if (!id) throw new Error('BQS: imagem sem referência embutida.');
+    if (!imported.has(id)) {
+      const relation = all(freshRels, 'Relationship').find(
+        (r) => r.getAttribute('Id') === id,
+      );
+      const target = relation?.getAttribute('Target') ?? '';
+      if (!relation || !/^media\/[\w.-]+\.png$/.test(target))
+        throw new Error('BQS: referência de foto inválida.');
+      const payload = source.file(`word/${target}`);
+      if (!payload) throw new Error('BQS: arquivo de foto ausente.');
+      const token = randomUUID().replace(/-/g, ''),
+        newId = `bqs_${token}`,
+        newTarget = `media/bqs_${token}.png`;
+      zip.file(`word/${newTarget}`, payload.asUint8Array());
+      const rel = relation.cloneNode(true);
+      rel.setAttribute('Id', newId);
+      rel.setAttribute('Target', newTarget);
+      all(rels, 'Relationships')[0]!.appendChild(rel);
+      imported.set(id, newId);
     }
+    blip.setAttribute('r:embed', imported.get(id)!);
+  }
   const types = read(zip, '[Content_Types].xml');
   if (
     !all(types, 'Default').some((t) => t.getAttribute('Extension') === 'png')
@@ -245,9 +298,6 @@ export function replaceBqsPhotoSections(
       throw new Error('BQS: tipo PNG ausente no pacote.');
     if (png) all(types, 'Types')[0]!.appendChild(png.cloneNode(true));
   }
-  all(doc, 'wp:docPr').forEach((node, i) =>
-    node.setAttribute('id', String(10000 + i)),
-  );
   zip.file(docPart, xmlTools.xml2str(doc));
   // A removed photograph must also disappear from the downloadable ZIP. Keep
   // shared images if any remaining relationship (including headers) uses them.
