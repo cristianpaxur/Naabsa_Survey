@@ -87,6 +87,29 @@ export interface BqsPhotoRegion {
 export function resolveBqsPhotoRegions(
   doc: XmlNode,
 ): Record<BqsPhotoSlot, BqsPhotoRegion> {
+  // Collabora keeps empty photo controls inline and moves their native range
+  // into sdtContent. Unwrap only explicitly tagged photo controls, preserving
+  // every child and the surrounding paragraph before resolving the range.
+  for (const slot of BQS_PHOTO_SLOTS) {
+    for (const sdt of controls(doc, slot)) {
+      const paragraph = sdt.parentNode;
+      if (paragraph?.nodeName !== 'w:p') continue;
+      const contents = Array.from(sdt.childNodes).filter(
+        (node) => node.nodeName === 'w:sdtContent',
+      );
+      if (contents.length !== 1 || xmlAll(contents[0]!, 'w:p').length)
+        invalid(slot);
+      if (
+        !xmlAll(contents[0]!, 'w:bookmarkStart').some(
+          (mark) => mark.getAttribute('w:name') === nameFor(slot),
+        )
+      )
+        continue;
+      for (const child of Array.from(contents[0]!.childNodes))
+        paragraph.insertBefore(child, sdt);
+      paragraph.removeChild(sdt);
+    }
+  }
   const bodies = xmlAll(doc, 'w:body');
   if (bodies.length !== 1) invalid('cover');
   const body = bodies[0]!;
@@ -169,9 +192,23 @@ export function resolveBqsPhotoRegions(
     for (const block of region.blocks) {
       if (owned.has(block)) invalid(slot);
       owned.add(block);
+      if (region.start && region.end) {
+        const firstParagraph = elements.indexOf(region.start.parentNode!);
+        const lastParagraph = elements.indexOf(region.end.parentNode!);
+        // Boundary runs are preserved by the replacer. Additional paragraphs
+        // outside those boundaries cannot be safely owned as photo content.
+        if (
+          xmlAll(block, 'w:p').some((paragraph) => {
+            const position = elements.indexOf(paragraph);
+            return position < firstParagraph || position > lastParagraph;
+          })
+        )
+          invalid(slot);
+      }
       // Whole block replacement must never consume an unrelated manual field,
       // section anchor, or another photo control, even outside the range.
       if (
+        xmlAll(block, 'w:sectPr').length ||
         xmlAll(block, 'w:bookmarkStart').some((mark) =>
           /^bqs_s\d/.test(mark.getAttribute('w:name') ?? ''),
         ) ||

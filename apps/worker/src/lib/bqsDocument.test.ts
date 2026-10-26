@@ -219,12 +219,13 @@ describe('BQS — atualização preserva edição e exige paginação verificáv
       const sdt = nodes(wrapper, 'w:sdt')[0]!;
       const content = nodes(wrapper, 'w:sdtContent')[0]!;
       const siblings = Array.from(start.parentNode!.childNodes);
+      const paragraph = start.parentNode!;
+      paragraph.insertBefore(sdt, start);
       for (const child of siblings.slice(
-        siblings.indexOf(start) + 1,
-        siblings.indexOf(galleryEnd),
+        siblings.indexOf(start),
+        siblings.indexOf(galleryEnd) + 1,
       ))
         content.appendChild(child);
-      start.parentNode!.insertBefore(sdt, galleryEnd);
     }
     // A pre-existing native bookmark must retain its ID while imported IDs change.
     const section = nodes(doc, 'w:bookmarkStart').find(
@@ -325,6 +326,94 @@ describe('BQS — atualização preserva edição e exige paginação verificáv
       expect(new PizZip(corrupted).file('word/document.xml')!.asText()).toBe(
         xmlTools.xml2str(doc),
       );
+    }
+  });
+  it('recusa conteúdo fora do range em outro parágrafo do mesmo bloco de fotos', async () => {
+    const photo = await sharp({
+      create: { width: 30, height: 50, channels: 3, background: 'red' },
+    })
+      .png()
+      .toBuffer();
+    const original = await buildReportDocxBqs({
+      ...input,
+      photos: { sounding_tables: [photo] },
+    });
+    for (const slot of ['cover', 'sounding_tables']) {
+      const zip = new PizZip(original);
+      if (slot === 'sounding_tables') flattenPhotoControls(zip);
+      const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+      const start = nodes(doc, 'w:bookmarkStart').find(
+        (mark) => mark.getAttribute('w:name') === `bqs_photos_${slot}`,
+      )!;
+      const extra = xmlTools.str2xml(
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t>UNRELATED_OUTSIDE_PHOTO</w:t></w:r></w:p>',
+      );
+      const paragraph = start.parentNode!;
+      paragraph.parentNode!.insertBefore(nodes(extra, 'w:p')[0]!, paragraph);
+      zip.file('word/document.xml', xmlTools.xml2str(doc));
+      expect(
+        () =>
+          replaceBqsPhotoSections(
+            zip.generate({ type: 'nodebuffer' }),
+            original,
+          ),
+        slot,
+      ).toThrow(new RegExp(slot));
+    }
+  });
+  it('recusa fundir texto fora do range em parágrafos com formatação independente', async () => {
+    const original = await buildReportDocxBqs(input);
+    const zip = new PizZip(original);
+    const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+    const start = nodes(doc, 'w:bookmarkStart').find(
+      (mark) => mark.getAttribute('w:name') === 'bqs_photos_cover',
+    )!;
+    const end = nodes(doc, 'w:bookmarkEnd').find(
+      (mark) => mark.getAttribute('w:id') === start.getAttribute('w:id'),
+    )!;
+    const first = start.parentNode!;
+    const fragment = xmlTools.str2xml(
+      '<w:body xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:t>RIGHT_PREFIX</w:t></w:r></w:p><w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:t>LEFT_SUFFIX</w:t></w:r></w:p></w:body>',
+    );
+    nodes(first, 'w:jc')[0]!.setAttribute('w:val', 'right');
+    first.insertBefore(nodes(fragment, 'w:r')[0]!, start);
+    const last = nodes(fragment, 'w:p')[1]!;
+    first.parentNode!.appendChild(last);
+    last.insertBefore(end, nodes(last, 'w:r')[0]!);
+    zip.file('word/document.xml', xmlTools.xml2str(doc));
+    expect(() =>
+      replaceBqsPhotoSections(zip.generate({ type: 'nodebuffer' }), original),
+    ).toThrow(/cover/);
+  });
+  it('recusa mover texto externo entre corpo e célula ao preencher ou esvaziar galeria', async () => {
+    const photo = await sharp({
+      create: { width: 30, height: 50, channels: 3, background: 'red' },
+    })
+      .png()
+      .toBuffer();
+    const empty = await buildReportDocxBqs(input);
+    const filled = await buildReportDocxBqs({
+      ...input,
+      photos: { sounding_tables: [photo, photo] },
+    });
+    for (const [original, fresh] of [
+      [empty, filled],
+      [filled, empty],
+    ]) {
+      const zip = new PizZip(original!);
+      flattenPhotoControls(zip);
+      const doc = xmlTools.str2xml(zip.file('word/document.xml')!.asText());
+      const start = nodes(doc, 'w:bookmarkStart').find(
+        (mark) => mark.getAttribute('w:name') === 'bqs_photos_sounding_tables',
+      )!;
+      const fragment = xmlTools.str2xml(
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t>OUTSIDE_GALLERY_KEEP_CONTAINER</w:t></w:r></w:p>',
+      );
+      start.parentNode!.insertBefore(nodes(fragment, 'w:r')[0]!, start);
+      zip.file('word/document.xml', xmlTools.xml2str(doc));
+      expect(() =>
+        replaceBqsPhotoSections(zip.generate({ type: 'nodebuffer' }), fresh!),
+      ).toThrow(/sounding_tables/);
     }
   });
   it('barra PDF final com sumário desatualizado após edição sem alterar o Word aprovado', () => {

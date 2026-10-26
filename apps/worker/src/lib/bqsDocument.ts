@@ -233,6 +233,48 @@ export function replaceBqsPhotoSections(
       const suffix = Array.from(endParagraph.childNodes)
         .slice(Array.from(endParagraph.childNodes).indexOf(old.end) + 1)
         .filter((node) => node.nodeName !== 'w:pPr');
+      const hasContent = (fragment: XmlNode[]) =>
+        fragment.some(
+          (node) =>
+            Boolean(node.textContent?.trim()) ||
+            [
+              'w:drawing',
+              'w:pict',
+              'w:br',
+              'w:tab',
+              'w:bookmarkStart',
+              'w:bookmarkEnd',
+            ].some((tag) => node.nodeName === tag || all(node, tag).length),
+        );
+      const paragraphContainer = (paragraph: XmlNode) => {
+        let container = paragraph.parentNode;
+        while (
+          container &&
+          ['w:sdt', 'w:sdtContent'].includes(container.nodeName)
+        )
+          container = container.parentNode;
+        // Imported SDT roots are detached until insertion into this body.
+        return container?.nodeName ?? old.blocks[0]!.parentNode!.nodeName;
+      };
+      if (
+        (hasContent(prefix) &&
+          paragraphContainer(startParagraph) !==
+            paragraphContainer(newStart.parentNode!)) ||
+        (hasContent(suffix) &&
+          paragraphContainer(endParagraph) !==
+            paragraphContainer(newEnd.parentNode!))
+      )
+        throw new Error(
+          `BQS: área de foto ${slot} possui texto externo em contêiner distinto. Preserve o documento e restaure essa área.`,
+        );
+      if (
+        startParagraph !== endParagraph &&
+        newStart.parentNode === newEnd.parentNode &&
+        (hasContent(prefix) || hasContent(suffix))
+      )
+        throw new Error(
+          `BQS: área de foto ${slot} possui texto externo em parágrafos distintos. Preserve o documento e restaure essa área.`,
+        );
       for (const node of prefix)
         newStart.parentNode!.insertBefore(node.cloneNode(true), newStart);
       for (const node of suffix)
