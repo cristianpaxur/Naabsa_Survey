@@ -68,7 +68,7 @@ def build(source, output, evidence=None):
     for i, value in replacements.items(): write_text(nodes[i],value)
     for i,name in [(84,'operation'),(141,'barge_inspector_open'),(143,'barge_open_difference'),(152,'thermometer_number'),(176,'barge_inspector_close'),(178,'barge_close_difference'),(228,'attachments')]: manual(nodes[i],name)
     # Native contact and density tables retain original grids, row and cell properties.
-    values = [['Client','{client}\n{company_contact}'],['Undersigned surveyor','NAABSA Marine Surveyors\n{surveyor}'],['Vessel’s command','Master: {captain}\nChief Engineer: {cover_chief_engineer}'],['Suppliers','{supplier}\n{barge_inspector}']]
+    values = [['Client','{client}\n{operator}'],['Undersigned surveyor','NAABSA Marine Surveyors\n{surveyor}'],['Vessel’s command','Master: {captain}\nChief Engineer: {cover_chief_engineer}'],['Suppliers','{supplier}\n{barge_inspector}']]
     for tr, row in zip(nodes[19].findall('w:tr',NS),values):
         for tc,value in zip(tr.findall('w:tc',NS),row):
             ps=tc.findall('w:p',NS); write_text(ps[0],value)

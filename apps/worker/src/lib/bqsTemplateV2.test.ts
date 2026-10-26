@@ -28,6 +28,8 @@ describe('BQS v2 source-derived template package', () => {
     expect(xml).toContain('{cover_logbook_difference}');
     expect(xml).toContain('{barge_declared_delivered}');
     expect(xml).toContain('bqs_manual_final_remarks');
+    expect(xml).toContain('{client}\n{operator}');
+    expect(xml).not.toContain('{client}\n{company_contact}');
     expect(xml).not.toMatch(/Capa|Time [Ll]og\s*[–-]|\(Barge\s*[–-]|\(Vessel\s*[–-]/);
     expect(Object.keys(zip.files).filter(n => /customXml|embeddings|comments|thumbnail/.test(n))).toEqual([]);
     expect(Object.keys(zip.files).filter(n => n.startsWith('word/media/') && !zip.files[n]!.dir)).toEqual(['word/media/image3.jpg']);
