@@ -79,3 +79,62 @@ it('keeps invalid dates and absent formula caches explicit and resolves moved ev
   ).toBe(true);
   expect(r.data.vessel_open_start).toBe('17:11');
 });
+it('blocks conflicting identities, dates and editorial temperature placeholders until reviewed', async () => {
+  const checked = validateSpec(
+    JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../tests/fixtures/specs/bqs.v2.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ),
+  );
+  if (!checked.valid) throw new Error(checked.errors.join('; '));
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(
+    readFileSync(
+      new URL(
+        '../../../../tests/fixtures/planilhas/bqs/synthetic-v2.xlsx',
+        import.meta.url,
+      ),
+    ) as never,
+  );
+  let r = runExtraction(wb, checked.spec);
+  expect(
+    r.issues.some(
+      (i) => i.field === 'cover_vessel_name' && i.level === 'error',
+    ),
+  ).toBe(true);
+  for (const [left, right] of [
+    ['cover_vessel_name', 'vessel_name'],
+    ['cover_port', 'survey_location'],
+    ['cover_chief_engineer', 'chief_engineer'],
+  ]) {
+    const l = checked.spec.source.common.fields[left]!,
+      rr = checked.spec.source.common.fields[right]!;
+    wb.getWorksheet(l.sheet!)!.getCell(l.cell).value = wb
+      .getWorksheet(rr.sheet!)!
+      .getCell(rr.cell).value;
+  }
+  r = runExtraction(wb, checked.spec);
+  expect(r.issues).toEqual([]);
+  wb.getWorksheet('Capa')!.getCell('C23').value = '11/05/2026';
+  wb.getWorksheet('Capa')!.getCell('C40').value = 'Incluir opções';
+  r = runExtraction(wb, checked.spec);
+  expect(
+    r.issues.some((i) => i.field === 'report_date' && i.level === 'error'),
+  ).toBe(true);
+  expect(
+    r.issues.some(
+      (i) => i.field === 'temperature_fo_storage' && i.level === 'error',
+    ),
+  ).toBe(true);
+  wb.getWorksheet('Capa')!.getCell('C14').value = null;
+  expect(
+    runExtraction(wb, checked.spec).issues.some(
+      (i) => i.field === 'cover_vessel_name' && i.level === 'error',
+    ),
+  ).toBe(true);
+});

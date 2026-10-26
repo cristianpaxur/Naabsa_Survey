@@ -67,7 +67,8 @@ select id,2,$bqs_spec${
           "cell": "D93",
           "type": "string",
           "label": "Chefe de máquinas",
-          "section": "Identificação"
+          "section": "Identificação",
+          "required": true
         },
         "surveyor": {
           "sheet": "Vessel",
@@ -877,7 +878,8 @@ select id,2,$bqs_spec${
           "cell": "C11",
           "type": "string",
           "label": "Porto da capa",
-          "section": "Capa"
+          "section": "Capa",
+          "required": true
         },
         "terminal": {
           "sheet": "Capa",
@@ -891,7 +893,8 @@ select id,2,$bqs_spec${
           "cell": "C14",
           "type": "string",
           "label": "Navio da capa",
-          "section": "Capa"
+          "section": "Capa",
+          "required": true
         },
         "vessel_flag": {
           "sheet": "Capa",
@@ -947,7 +950,8 @@ select id,2,$bqs_spec${
           "cell": "C26",
           "type": "string",
           "label": "Chefe de máquinas da capa",
-          "section": "Capa"
+          "section": "Capa",
+          "required": true
         },
         "sounding_person": {
           "sheet": "Capa",
@@ -1003,28 +1007,32 @@ select id,2,$bqs_spec${
           "cell": "C40",
           "type": "string",
           "label": "Temperatura FO armazenagem",
-          "section": "Capa"
+          "section": "Capa",
+          "pattern": "^(?!Incluir opções$).*$"
         },
         "temperature_do_storage": {
           "sheet": "Capa",
           "cell": "C41",
           "type": "string",
           "label": "Temperatura DO armazenagem",
-          "section": "Capa"
+          "section": "Capa",
+          "pattern": "^(?!Incluir opções$).*$"
         },
         "temperature_fo_service_settling": {
           "sheet": "Capa",
           "cell": "C42",
           "type": "string",
           "label": "Temperatura FO serviço e decantação",
-          "section": "Capa"
+          "section": "Capa",
+          "pattern": "^(?!Incluir opções$).*$"
         },
         "temperature_do_service_settling": {
           "sheet": "Capa",
           "cell": "C43",
           "type": "string",
           "label": "Temperatura DO serviço e decantação",
-          "section": "Capa"
+          "section": "Capa",
+          "pattern": "^(?!Incluir opções$).*$"
         },
         "cover_thermometer": {
           "sheet": "Capa",
@@ -1092,7 +1100,8 @@ select id,2,$bqs_spec${
           "type": "date",
           "label": "Data de término",
           "section": "Capa",
-          "format": "DD/MM/YYYY"
+          "format": "DD/MM/YYYY",
+          "required": true
         },
         "barge_declared_delivered": {
           "sheet": "Barge",
@@ -1185,7 +1194,49 @@ select id,2,$bqs_spec${
       "Presence of Letter of Protest does not establish issuance or signature.",
       "Blank source cells stay blank; overrides take precedence. Formula caches are not recalculated."
     ]
-  }
+  },
+  "validations": [
+    {
+      "rule": "compare",
+      "left": "cover_vessel_name",
+      "op": "==",
+      "right": "vessel_name",
+      "level": "error",
+      "message": "Navio da capa diverge do relatório operacional; confira e informe nomes consistentes na revisão."
+    },
+    {
+      "rule": "compare",
+      "left": "cover_port",
+      "op": "==",
+      "right": "survey_location",
+      "level": "error",
+      "message": "Porto da capa diverge do local operacional; confira e informe local consistente na revisão."
+    },
+    {
+      "rule": "compare",
+      "left": "cover_chief_engineer",
+      "op": "==",
+      "right": "chief_engineer",
+      "level": "error",
+      "message": "Chefe de máquinas da capa diverge do relatório operacional; confira e informe nome consistente na revisão."
+    },
+    {
+      "rule": "compare",
+      "left": "report_date",
+      "op": ">=",
+      "right": "arrival_date",
+      "level": "error",
+      "message": "Data de término da capa antecede o embarque do surveyor; confira as datas na revisão."
+    },
+    {
+      "rule": "compare",
+      "left": "report_date",
+      "op": "<=",
+      "right": "departure_date",
+      "level": "error",
+      "message": "Data de término da capa sucede o desembarque do surveyor; confira as datas na revisão."
+    }
+  ]
 }
 $bqs_spec$::jsonb
 from public.report_types where slug='bqs'
