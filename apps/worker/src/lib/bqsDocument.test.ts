@@ -219,3 +219,17 @@ describe('BQS — atualização preserva edição e exige paginação verificáv
     );
   });
 });
+
+it('mede títulos com numeração nativa sem confundir subtítulos repetidos', () => {
+  const zip = new PizZip();
+  zip.file(
+    'word/document.xml',
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:bookmarkStart w:name="bqs_s1"/><w:pPr><w:numPr/></w:pPr><w:r><w:t>Background</w:t></w:r></w:p><w:p><w:bookmarkStart w:name="bqs_s5_1"/><w:pPr><w:numPr/></w:pPr><w:r><w:t>Vessel’s tanks</w:t></w:r></w:p><w:p><w:bookmarkStart w:name="bqs_s7_1"/><w:pPr><w:numPr/></w:pPr><w:r><w:t>Vessel’s tanks</w:t></w:r></w:p></w:body></w:document>',
+  );
+  expect(
+    bqsPagesFromPdfText(
+      zip.generate({ type: 'nodebuffer' }),
+      'Cover\fContents\f1. Background\n5.1. Vessel’s tanks\f7.1. Vessel’s tanks',
+    ),
+  ).toEqual({ bqs_cover_end: 1, bqs_s1: 3, bqs_s5_1: 3, bqs_s7_1: 4 });
+});

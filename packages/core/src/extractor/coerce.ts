@@ -38,6 +38,13 @@ export function coerceField(
   opts: CoerceOptions = {},
 ): CoerceResult {
   if (isEmptyCell(raw)) return { value: null };
+  if (
+    !field.required &&
+    (field.type === 'date' || field.type === 'time') &&
+    typeof raw === 'string' &&
+    /^(?:-|n\/a)$/i.test(raw.trim())
+  )
+    return { value: null };
   switch (field.type) {
     case 'string':
       return coerceString(raw);
@@ -151,6 +158,31 @@ export function excelSerialToISO(serial: number, date1904 = false): string {
 }
 
 function parseDateString(s: string): string | null {
+  const english =
+    /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})$/i.exec(
+      s,
+    );
+  if (english) {
+    const months = [
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december',
+    ];
+    const month = months.indexOf(english[1]!.toLowerCase()) + 1;
+    const day = Number(english[2]),
+      year = Number(english[3]);
+    if (!isValidYMD(year, month, day)) return null;
+    return `${english[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (iso) {
     const [, y, m, d] = iso;

@@ -53,6 +53,7 @@ COPY apps/worker ./apps/worker
 COPY templates/draft_survey.clean.docx ./templates/draft_survey.clean.docx
 COPY templates/msc.clean.docx ./templates/msc.clean.docx
 COPY templates/bqs.clean.docx ./templates/bqs.clean.docx
+COPY templates/bqs.v2.clean.docx ./templates/bqs.v2.clean.docx
 ENV NODE_ENV=production
 # node:22-slim já inclui o usuário não-root `node`.
 USER node

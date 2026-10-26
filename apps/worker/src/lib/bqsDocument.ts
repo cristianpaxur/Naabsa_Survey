@@ -59,9 +59,15 @@ export function bqsPagesFromPdfText(
     let p = mark.parentNode;
     while (p && p.nodeName !== 'w:p') p = p.parentNode;
     if (!p) throw new Error(`BQS: seção ${name} sem parágrafo.`);
-    const label = all(p, 'w:t')
+    const rawLabel = all(p, 'w:t')
       .map((n) => n.textContent ?? '')
       .join('');
+    // Native Word numbering is rendered in PDF, but is not a w:t in OOXML.
+    // Bookmark IDs bind the expected section number, including repeated titles.
+    const label =
+      all(p, 'w:numPr').length && !/^\s*\d/.test(rawLabel)
+        ? `${name.replace('bqs_s', '').replace(/_/g, '.')}. ${rawLabel}`
+        : rawLabel;
     const matches = pages.flatMap((page, i) =>
       i + 1 > contents[0]! &&
       page.split(/\r?\n/).some((line) => norm(line) === norm(label))

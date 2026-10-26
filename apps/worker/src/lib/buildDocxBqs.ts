@@ -8,6 +8,9 @@ import sharp from 'sharp';
 import {
   coerceField,
   normalizeWorksheetCell,
+  validate,
+  type ReportSpec,
+  type Issue,
   type FieldValue,
   type NumberFormatMap,
 } from '@naabsa/core';
@@ -27,6 +30,7 @@ export interface BqsTimeLogRow {
   end: string;
 }
 export interface DocxInputBqs {
+  templateVersion?: 1 | 2;
   data: Record<string, FieldValue>;
   tables: Record<string, FieldValue[][]>;
   numberFormats?: NumberFormatMap;
@@ -53,6 +57,21 @@ const date = (value: FieldValue | undefined) => {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : string(value);
 };
 
+/** Extraction errors require an explicit correction; comparisons use current values. */
+export function getBqsBlockingIssues(
+  extractedIssues: Issue[],
+  data: Record<string, FieldValue>,
+  spec: ReportSpec,
+  overrides: Record<string, FieldValue>,
+): Issue[] {
+  return [
+    ...extractedIssues.filter(
+      (i) => i.origin === 'extraction' && !Object.hasOwn(overrides, i.field),
+    ),
+    ...validate(data, spec, null),
+  ].filter((i) => i.level === 'error');
+}
+
 /** Preserve the table's event order. Apply the same reviewed values used by prose. */
 export function readBqsTimeLog(
   wb: ExcelJS.Workbook,
@@ -70,6 +89,13 @@ export function readBqsTimeLog(
     'Final Soundings/Ullage - Barge': 'barge_close',
     'Final Soundings/Ullage - Vessel': 'vessel_close',
     'Surveyor off board': 'departure',
+    'Surveyor embarked': 'arrival',
+    'Meeting between Chief Engineer and Surveyor': 'meeting',
+    'Initial soundings / Ullage - Vessel': 'vessel_open',
+    'Initial soundings / Ullage - Barge': 'barge_open',
+    'Final soundings / Ullage - Barge': 'barge_close',
+    'Final soundings / Ullage - Vessel': 'vessel_close',
+    'Surveyor disembarked': 'departure',
   };
   const rows: BqsTimeLogRow[] = [];
   let reading = false;
@@ -79,7 +105,7 @@ export function readBqsTimeLog(
       reading = true;
       continue;
     }
-    if (event === 'Stoppages/Delays') break;
+    if (/^Stoppages\s*\/\s*Delays\s*:?$/i.test(event)) break;
     if (!reading || event === DASH) continue;
     const read = (col: number, kind: 'date' | 'time', suffix: string) => {
       const key = mapped[event] && `${mapped[event]}_${suffix}`;
@@ -118,8 +144,9 @@ export function readBqsTimeLog(
 
 /** Independent reconciliation of cached results; no workbook recalculation or rounding early. */
 export function auditBqsCalculations(
-  input: Pick<DocxInputBqs, 'data' | 'tables'>,
+  input: Pick<DocxInputBqs, 'data' | 'tables' | 'templateVersion'>,
 ): string[] {
+  const v2 = input.templateVersion === 2;
   const issues: string[] = [];
   const number = (name: string) => {
     const value = input.data[name];
@@ -158,7 +185,13 @@ export function auditBqsCalculations(
       'delivery_difference',
       'delivery_difference_pct',
       'vessel_logbook',
-      'vessel_logbook_difference',
+      ...(v2
+        ? [
+            'cover_logbook_difference',
+            'barge_declared_delivered',
+            'barge_delivery_difference',
+          ]
+        : ['vessel_logbook_difference']),
     ].map((name) => [name, number(name)]),
   );
   const difference = (a: string, b: string) =>
@@ -179,19 +212,28 @@ export function auditBqsCalculations(
     difference('vessel_received', 'bdn_quantity'),
   );
   eq(
-    'vessel_logbook_difference',
-    values.vessel_logbook_difference!,
-    difference('vessel_open_air', 'vessel_logbook'),
+    v2 ? 'cover_logbook_difference' : 'vessel_logbook_difference',
+    values[v2 ? 'cover_logbook_difference' : 'vessel_logbook_difference']!,
+    v2
+      ? difference('vessel_logbook', 'vessel_open_air')
+      : difference('vessel_open_air', 'vessel_logbook'),
   );
+  if (v2)
+    eq(
+      'barge_delivery_difference',
+      values.barge_delivery_difference!,
+      difference('barge_delivered', 'barge_declared_delivered'),
+    );
+  const percentBase = v2 ? values.vessel_received : values.bdn_quantity;
   if (
-    values.bdn_quantity != null &&
-    values.bdn_quantity !== 0 &&
+    percentBase != null &&
+    percentBase !== 0 &&
     values.delivery_difference != null
   )
     eq(
       'delivery_difference_pct',
       values.delivery_difference_pct!,
-      (values.delivery_difference / values.bdn_quantity) * 100,
+      (values.delivery_difference / percentBase) * 100,
     );
   for (const key of [
     'vessel_open',
@@ -207,6 +249,7 @@ export function auditBqsCalculations(
     let total = 0;
     let totalVac = 0;
     for (const [i, row] of rows.entries()) {
+      if (row.every((v) => v == null || v === '')) continue;
       for (const c of [3, 4, 6, 7, 8, 9, 10, 11, 12])
         if (typeof row[c] !== 'number' || !Number.isFinite(row[c]))
           issues.push(
@@ -253,7 +296,9 @@ export async function buildReportDocxBqs(input: DocxInputBqs): Promise<Buffer> {
     'barge_open',
     'barge_close',
   ]) {
-    const rows = input.tables[key]!;
+    const rows = input.tables[key]!.filter((row) =>
+      row.some((v) => v != null && v !== ''),
+    );
     values[`${key}_rows`] = rows.map((row) =>
       Object.fromEntries(
         row.map((v, i) => [
@@ -322,8 +367,10 @@ export async function buildReportDocxBqs(input: DocxInputBqs): Promise<Buffer> {
         if (!meta.width || !meta.height)
           throw new Error(`BQS: foto inválida em ${slot}.`);
         const scale = Math.min(
-          (slot === 'cover' ? 640 : 325) / meta.width,
-          (slot === 'cover' ? 385 : 245) / meta.height,
+          (slot === 'cover' ? (input.templateVersion === 2 ? 540 : 640) : 325) /
+            meta.width,
+          (slot === 'cover' ? (input.templateVersion === 2 ? 330 : 385) : 245) /
+            meta.height,
         );
         const key = `${slot}_${i}`;
         images.set(key, {
@@ -356,7 +403,11 @@ export async function buildReportDocxBqs(input: DocxInputBqs): Promise<Buffer> {
     },
     getSize: (_buffer, key) => images.get(String(key))!.size,
   });
-  const rendered = new Docxtemplater(new PizZip(await readFile(TEMPLATE)), {
+  const template =
+    input.templateVersion === 2
+      ? new URL('../../../../templates/bqs.v2.clean.docx', import.meta.url)
+      : TEMPLATE;
+  const rendered = new Docxtemplater(new PizZip(await readFile(template)), {
     modules: [imageModule],
     paragraphLoop: true,
     linebreaks: true,

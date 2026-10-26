@@ -22,7 +22,6 @@ import {
   resolveVariant,
   normalizeCell,
   coerceField,
-  validate,
   type ReportSpec,
   type FieldValue,
   type NumberFormatMap,
@@ -36,6 +35,7 @@ import type { DocxInputMsc, TimeLogRow } from '../lib/buildDocxMsc';
 import {
   BQS_PHOTO_SLOTS,
   auditBqsCalculations,
+  getBqsBlockingIssues,
   readBqsTimeLog,
   type DocxInputBqs,
   type BqsPhotoSlot,
@@ -411,12 +411,12 @@ export async function buildWorkingDocx(
       throw new Error('BQS: spec incompatível com o tipo.');
     if (!wb || !currentExtraction)
       throw new Error('BQS: planilha original indisponível.');
-    const issues = [
-      ...currentExtraction.issues.filter(
-        (issue) => !Object.hasOwn(overrides, issue.field),
-      ),
-      ...validate(data, spec, null),
-    ].filter((issue) => issue.level === 'error');
+    const issues = getBqsBlockingIssues(
+      currentExtraction.issues,
+      data,
+      spec,
+      overrides,
+    );
     if (issues.length)
       throw new Error(
         `BQS: revise os campos: ${issues.map((issue) => issue.field).join(', ')}.`,
@@ -456,6 +456,11 @@ export async function buildWorkingDocx(
       );
     }
     const base: DocxInputBqs = {
+      templateVersion: (() => {
+        if (spec.version !== 1 && spec.version !== 2)
+          throw new Error('BQS: versão de modelo não suportada.');
+        return spec.version;
+      })(),
       data,
       tables,
       numberFormats,

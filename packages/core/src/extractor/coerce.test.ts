@@ -181,3 +181,32 @@ describe('coerceField — time (RF-011)', () => {
     expect(coerceField(null, timeField).value).toBeNull();
   });
 });
+
+describe('coerceField — datas textuais e ausências explícitas', () => {
+  it.each([
+    ['May 10, 2026', '2026-05-10'],
+    ['February 29, 2024', '2024-02-29'],
+    ['december 1, 2026', '2026-12-01'],
+  ])('interpreta mês inglês sem locale: %s', (raw, iso) => {
+    expect(coerceField(raw, dateField)).toEqual({ value: iso });
+  });
+  it.each(['February 29, 2026', 'April 31, 2026', 'Unknown 1, 2026'])(
+    'rejeita data textual impossível: %s',
+    (raw) => {
+      expect(coerceField(raw, dateField).error).toBeDefined();
+    },
+  );
+  it.each(['-', 'N/A', 'n/a'])(
+    'ausência em data/hora opcional preserva null: %s',
+    (raw) => {
+      expect(coerceField(raw, dateField)).toEqual({ value: null });
+      expect(coerceField(raw, { ...base, type: 'time' })).toEqual({
+        value: null,
+      });
+      expect(
+        coerceField(raw, { ...dateField, required: true }).error,
+      ).toBeDefined();
+      expect(coerceField(raw, strField)).toEqual({ value: raw });
+    },
+  );
+});
