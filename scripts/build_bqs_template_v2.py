@@ -108,6 +108,12 @@ def build(source, output, evidence=None):
         pr=nodes[i].find('w:pPr',NS)
         if pr is None:pr=el('pPr');nodes[i].insert(0,pr)
         if pr.find('w:keepNext',NS) is None:pr.append(el('keepNext'))
+    # Keep the vessel receipt caption with its three figures across renderers.
+    # The tank measurement table remains free to paginate independently.
+    for i in [167,169,170]:
+        pr=nodes[i].find('w:pPr',NS)
+        if pr is None:pr=el('pPr');nodes[i].insert(0,pr)
+        if pr.find('w:keepNext',NS) is None:pr.append(el('keepNext'))
     # Reuse four native editable table components, keeping 13-column runtime tags.
     for i,prefix in [(106,'vessel_open'),(139,'barge_open'),(164,'vessel_close'),(190,'barge_close')]:
         start=next(j for j,p in enumerate(vbody) if '{'+prefix+'_fore}' in ''.join(p.xpath('.//w:t/text()',namespaces=NS)))

@@ -30,6 +30,15 @@ describe('BQS v2 source-derived template package', () => {
     expect(xml).toContain('bqs_manual_final_remarks');
     expect(xml).toContain('{client}\n{operator}');
     expect(xml).not.toContain('{client}\n{company_contact}');
+    const paragraphs = xml.match(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g)!;
+    for (const label of [
+      'Total quantity supplied as per the vessel’s tanks',
+      'Initial quantity (IN AIR): {vessel_open_air}',
+      'Final quantity (IN AIR): {vessel_close_air}',
+    ]) {
+      expect(paragraphs.find(p => p.includes(label))).toContain('<w:keepNext');
+    }
+    expect(paragraphs.find(p => p.includes('Quantity received: {vessel_received}'))).not.toContain('<w:keepNext');
     expect(xml).not.toMatch(/Capa|Time [Ll]og\s*[–-]|\(Barge\s*[–-]|\(Vessel\s*[–-]/);
     expect(Object.keys(zip.files).filter(n => /customXml|embeddings|comments|thumbnail/.test(n))).toEqual([]);
     expect(Object.keys(zip.files).filter(n => n.startsWith('word/media/') && !zip.files[n]!.dir)).toEqual(['word/media/image3.jpg']);
