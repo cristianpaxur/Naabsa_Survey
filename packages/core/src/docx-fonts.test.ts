@@ -73,6 +73,23 @@ describe('BQS preserves embedded fonts after native save', () => {
     const saved = nativeSave();
     expect(preserveBqsFonts(saved, saved)).toBe(saved);
   });
+  it('ignores orphan font relationships left by Collabora on a later save', () => {
+    const previous = new PizZip(template);
+    previous.file(
+      'word/_rels/fontTable.xml.rels',
+      previous
+        .file('word/_rels/fontTable.xml.rels')!
+        .asText()
+        .replace(
+          '</Relationships>',
+          '<Relationship Id="nativeOrphan" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/font1.odttf"/></Relationships>',
+        ),
+    );
+    previous.file('word/fonts/font1.odttf', Buffer.alloc(64));
+    expect(() =>
+      preserveBqsFonts(nativeSave(), previous.generate({ type: 'nodebuffer' })),
+    ).not.toThrow();
+  });
   it('does not alter other report types', () => {
     const previous = new PizZip(template);
     previous.file(

@@ -42,13 +42,24 @@ export function embedMscFonts(
       /<w:embed(?:Regular|Bold|Italic|BoldItalic)\b/.test(entry),
     );
   if (!entries.length) throw new Error('MSC source has no embedded fonts.');
+  const usedFontIds = new Set(
+    entries.flatMap((entry) =>
+      [...entry.matchAll(/<w:embed\w+\b[^>]*r:id="([^"]+)"/g)].map(
+        (match) => match[1],
+      ),
+    ),
+  );
   const links = [...sourceRels.matchAll(/<Relationship\b[^>]*\/>/g)]
     .map(([xml]) => ({
       id: attribute(xml, 'Id')!,
       target: attribute(xml, 'Target')!,
       type: attribute(xml, 'Type'),
     }))
-    .filter((link) => link.type === fontRelationship);
+    // CODE can leave unused font1.odttf links after the original font entries
+    // are restored. Only relationships used by those entries are sources.
+    .filter(
+      (link) => link.type === fontRelationship && usedFontIds.has(link.id),
+    );
   for (const link of links) {
     if (
       !link.target?.startsWith('fonts/msc-') ||
