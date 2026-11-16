@@ -21,7 +21,8 @@ permanecem preservados. O novo layout é aplicado na montagem de documentos.
   993 nas seguintes; distâncias de cabeçalho/rodapé 709 twips.
 - Tabelas de sondagens: dados e 13 colunas preservados, Calibri 7 pt, largura
   máxima 9923 twips. Demais tabelas Calibri 10 pt. Seções usam uma coluna.
-- Tahoma, Calibri, Times New Roman e Cambria incorporadas a partir das fontes
+- Tahoma, Calibri, Times New Roman, Cambria e a fonte original do cabeçalho
+  (GeoSlab703/Sitka Small) incorporadas a partir das fontes
   já presentes no template MSC, evitando substituição no Collabora.
 - 21 âncoras de navegação, cinco áreas de fotografia e controles manuais BQS
   preservados. Troca de fotos não aplica retrospectivamente novos estilos.

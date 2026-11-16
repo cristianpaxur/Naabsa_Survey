@@ -295,3 +295,13 @@ BQS_HOMOLOGACAO_EVIDENCIAS.json e BQS_ATIVO.png. Originais não modificados.
 T-010/T-011 concluídos. Para testar novo fluxo, abrir /reports/new e selecionar
 BQS. Revisar os conflitos do exemplo recebido antes de emitir um relatório
 real para cliente; a homologação usa somente dados sintéticos coerentes.
+## Padronização visual — 16/11/2026
+
+Candidata em branch isolada codex/bqs-document-layout: capa/contatos, estilos,
+cabeçalhos/rodapé e margens reutilizados do MSC. Campos BQS, quatro tabelas,
+âncoras de fotos e edições preservados. O primeiro ciclo nativo passou em
+conteúdo/paginação, mas a inspeção dos PDFs identificou remoção das fontes no
+salvamento do CODE e substituição por Carlito/Noto. Esse resultado não aprova
+fidelidade visual. Acrescentada preservação das fontes da revisão anterior
+no PutFile BQS, mantendo todas as partes de conteúdo salvas, revisão imutável
+e CAS. Fonte original do cabeçalho incluída. Novo aceite nativo/visual em curso.

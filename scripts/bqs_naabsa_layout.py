@@ -261,7 +261,7 @@ def apply_naabsa_layout(parts, reference_path: Path):
     font_links = E.Element('{' + REL + '}Relationships', nsmap={None: REL})
     donor_fonts = E.fromstring(reference['word/fontTable.xml'])
     donor_font_links = E.fromstring(reference['word/_rels/fontTable.xml.rels'])
-    for family in ['Tahoma', 'Calibri', 'Times New Roman', 'Cambria']:
+    for family in ['Tahoma', 'Calibri', 'Times New Roman', 'Cambria', 'GeoSlab703 Md BT']:
         entries = donor_fonts.xpath('w:font[@w:name=$family]', namespaces=NS, family=family)
         if len(entries) != 1:
             raise ValueError('Shared layout font missing: ' + family)

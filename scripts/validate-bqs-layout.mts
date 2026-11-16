@@ -4,9 +4,12 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import ExcelJS from 'exceljs';
 import sharp from 'sharp';
 import { runExtraction, validateSpec } from '../packages/core/src/index.ts';
+import { preserveBqsFonts } from '../packages/core/src/docx-fonts.ts';
 import {
   buildReportDocxBqs,
   type DocxInputBqs,
@@ -37,6 +40,18 @@ assert.ok(
 const out = resolve(process.argv[arg + 1]!);
 await mkdir(out, { recursive: true });
 const hash = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+const checkFonts = async (path: string) => {
+  const { stdout } = await promisify(execFile)('pdffonts', [path]);
+  for (const family of ['Calibri', 'Tahoma', 'SitkaSmall'])
+    assert.ok(
+      stdout.includes(family),
+      `Expected original font ${family}: ${stdout}`,
+    );
+  assert.ok(
+    !/Carlito|NotoSans|NotoSerif/.test(stdout),
+    'Unexpected font substitution',
+  );
+};
 const workbook = new ExcelJS.Workbook();
 await workbook.xlsx.load(
   (await readFile(
@@ -109,6 +124,7 @@ const nativeSave = async (file: Buffer) => {
 };
 const outputs: Record<string, unknown> = {};
 for (const name of ['with-photos', 'without-photos']) {
+  console.log('START ' + name);
   const source = await paginateBqsDocx(
     await buildReportDocxBqs(
       name === 'with-photos' ? input : { ...input, photos: {} },
@@ -126,6 +142,7 @@ for (const name of ['with-photos', 'without-photos']) {
   );
   await writeFile(join(out, name + '.docx'), source);
   await writeFile(join(out, name + '.pdf'), pdf);
+  await checkFonts(join(out, name + '.pdf'));
   outputs[name] = {
     pages: pages.length,
     docxSha256: hash(source),
@@ -133,7 +150,9 @@ for (const name of ['with-photos', 'without-photos']) {
   };
 }
 for (let cycle = 0; cycle < 2; cycle++) {
-  document = await nativeSave(document);
+  console.log('NATIVE SAVE ' + (cycle + 1));
+  const previous = document;
+  document = preserveBqsFonts(await nativeSave(document), previous);
   const saved = new PizZip(document);
   const xml = saved.file('word/document.xml')!.asText();
   assert.ok(xml.includes(marker), 'Manual edit survived native save');
@@ -155,6 +174,7 @@ assert.ok(finalText.includes(marker));
 assertBqsPdfPagination(document, finalText);
 await writeFile(join(out, 'native-roundtrip.docx'), document);
 await writeFile(join(out, 'native-roundtrip.pdf'), finalPdf);
+await checkFonts(join(out, 'native-roundtrip.pdf'));
 outputs.native = {
   cycles: 2,
   manualEditPreserved: true,

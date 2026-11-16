@@ -48,10 +48,11 @@ class BqsLayoutTest(unittest.TestCase):
 
     def test_real_reference_fonts_are_embedded(self):
         fonts = E.fromstring(self.bqs.read('word/fontTable.xml'))
-        for name in ['Tahoma', 'Calibri', 'Times New Roman', 'Cambria']:
+        for name in ['Tahoma', 'Calibri', 'Times New Roman', 'Cambria', 'GeoSlab703 Md BT']:
             entry = fonts.xpath('w:font[@w:name=$name]', namespaces=NS, name=name)[0]
             self.assertIsNotNone(entry.find('w:embedRegular', NS))
-            self.assertIsNotNone(entry.find('w:embedBold', NS))
+            if name != 'GeoSlab703 Md BT':
+                self.assertIsNotNone(entry.find('w:embedBold', NS))
         for name in self.bqs.namelist():
             if name.startswith('word/fonts/'):
                 self.assertEqual(self.bqs.read(name), self.msc.read(name))
