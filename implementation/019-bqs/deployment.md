@@ -304,4 +304,56 @@ conteúdo/paginação, mas a inspeção dos PDFs identificou remoção das fonte
 salvamento do CODE e substituição por Carlito/Noto. Esse resultado não aprova
 fidelidade visual. Acrescentada preservação das fontes da revisão anterior
 no PutFile BQS, mantendo todas as partes de conteúdo salvas, revisão imutável
-e CAS. Fonte original do cabeçalho incluída. Novo aceite nativo/visual em curso.
+e CAS. Fonte original do cabeçalho incluída.
+
+Aceite nativo/visual concluído no commit
+`845f2df7b8ef1aa1794664173e46dde8e8409c1c`. O CODE também renomeia estilos;
+os blocos novos de fotos agora resolvem nomes/tipos únicos contra os estilos
+salvos, preservando a centralização da capa sem reescrever `styles.xml`.
+As tabelas compactas de densidade mantêm introdução, cabeçalho e linhas juntas.
+
+- Três PDFs de seis páginas: com fotos, sem fotos e após duas gravações nativas
+  com troca de fotos e edição manual. Todas as 18 páginas revisadas visualmente.
+- 21 destinos de navegação e cinco regiões de fotos preservados. Fontes Calibri,
+  Tahoma e Sitka Small confirmadas no PDF final, sem substituição por Carlito/Noto.
+- Template SHA256: `169b88a603d2c54dc6e78649914ebb30c70d242c5809dd65fba5fa4994ef5e96`.
+- DOCX final: `d2f7c0e7c9658f8facdf387d744f629c7f21daf7111c59c1587b598833c3c112`.
+- PDF final: `e3b0f2b6edab220b8c9d2c0051580e435d24aa5ae27ac39b753580cbb4a08ac5`.
+- CI completa aprovada no mesmo commit:
+  https://github.com/cristianpaxur/Naabsa_Survey/actions/runs/43872819730.
+- Exemplares sintéticos identificados em `output/bqs-layout-20261116/LEIA-ME.md`.
+
+Publicação autorizada: fast-forward da branch `codex/msc-video-feedback` para
+845f2df. Web e worker Done no mesmo commit. O build web levou 26m03s; a
+execução manual já enfileirada reutilizou o cache e terminou em 50s. Worker
+levou 22m16s, seguido pelo pedido enfileirado de 38s. Ambos concluídos antes
+do aceite final; container definitivo do worker `f2a6ef2f3c41`. O hash do
+template instalado foi conferido igual ao homologado. A aplicação manteve
+o health check respondendo durante a publicação.
+
+O primeiro processo de teste foi interrompido na troca do container. Uma
+consulta ao banco confirmou que ele não havia criado relatório. O teste
+definitivo criou somente o QA `a41bf814-5cc3-4126-8402-4867a653e1fd`, com o
+nome explícito `HOMOLOGACAO BQS LAYOUT 20261116`.
+
+Aceite WOPI em produção concluído em `2026-11-16T14:11:36.220Z`:
+
+- PutFile HTTP real publicou revisão2; GetFile reabriu o documento salvo.
+- `document.xml` recebido do editor permaneceu idêntico. Fontes incorporadas
+  restauradas; revisão1 e seu arquivo preservados. Lock de teste liberado.
+- PDF de seis páginas com a marca manual `BQS LAYOUT WOPI SAVE VERIFIED`,
+  paginação BQS válida e fontes Calibri, Tahoma e Sitka Small confirmadas.
+- DOCX salvo: `c5b57281d17d8840590de81e92f08ab33b1e82f15e845880dbe5951147d05741`.
+- PDF do ciclo: `5d899fe085857d44f9ca9cb40fc64395e5bdbdd84f3c25ea95417a5810a44687`.
+- Evento `bqs_layout_wopi_acceptance_passed` e evidências privadas sob
+  `<QA>/diagnostics/layout-wopi.{pdf,json}`.
+- Ponteiro BQS conferido igual à spec ativa
+  `1540c475-26d2-490f-9fd4-36ecf47a60cc`; nenhum ponteiro legado alterado.
+- Chrome autenticado: BQS habilitado e selecionado em `/reports/new`, botão
+  Continuar para planilha disponível. Tela deixada aberta sem criar outro QA.
+
+Evidências locais: `output/bqs-layout-20261116/BQS_WOPI_PRODUCAO.json`,
+`BQS_LAYOUT_EVIDENCIAS_NATIVAS.json` e `BQS_ATIVO.jpg`. O aceite integral de
+upload/revisão/fotos/aprovação está registrado acima em 26/10/2026; esta
+rodada validou a padronização visual, os ciclos nativos e a nova rotina de
+preservação de fontes na gravação WOPI. T-012/T-013/T-014 concluídos.

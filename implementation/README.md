@@ -28,7 +28,7 @@
 | [016](./016-msc-functional/spec.md) | MSC funcional de ponta a ponta | correção do modelo MSC aprovado | 🟠 Código e validação local concluídos | 8/8 (ativação em nuvem pendente) |
 | [017](./017-msc-feedback-video/spec.md) | Correções MSC a partir do vídeo de 02/10/2026 e do Word de exemplo | feedback do usuário | 🟡 ECR e Word publicados e validados | 13/14 (9/9 páginas idênticas no ensaio Word; geração real de seis páginas conferida no Collabora; ativação DAMLA pendente) |
 | [018](./018-msc-client-feedback/spec.md) | Correções dos vídeos MSC de 14/10/2026: quantidades, fotos e Word | feedback do cliente | 🟢 Time log com bordas validado no PDF e 0028 corrigida | 21/21; aplicar 0028 corrigida e publicar o worker para novas montagens |
-| [019](./019-bqs/spec.md) | BQS: planilha e modelo Word | onboarding autorizado | 🟠 BQS v2 ativo; padronização visual em validação | 12/14; layout compartilhado com MSC em homologação |
+| [019](./019-bqs/spec.md) | BQS: planilha e modelo Word | onboarding autorizado | 🟢 BQS v2 ativo; padrão MSC publicado e homologado | 14/14; ciclo nativo, WOPI real e PDF validados |
 
 ---
 

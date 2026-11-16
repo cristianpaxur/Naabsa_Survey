@@ -20,12 +20,21 @@ permanecem preservados. O novo layout é aplicado na montagem de documentos.
   A4; top 1418/right 849/bottom 567 twips; left 1134 na primeira seção e
   993 nas seguintes; distâncias de cabeçalho/rodapé 709 twips.
 - Tabelas de sondagens: dados e 13 colunas preservados, Calibri 7 pt, largura
-  máxima 9923 twips. Demais tabelas Calibri 10 pt. Seções usam uma coluna.
+  máxima 9923 twips. Demais tabelas Calibri 10 pt. As duas tabelas compactas
+  de densidade permanecem com sua introdução e cabeçalho na mesma página.
+  Seções usam uma coluna.
 - Tahoma, Calibri, Times New Roman, Cambria e a fonte original do cabeçalho
   (GeoSlab703/Sitka Small) incorporadas a partir das fontes
   já presentes no template MSC, evitando substituição no Collabora.
+- PutFile conserva essas fontes da revisão BQS anterior quando o CODE as
+  omite ao salvar. Conteúdo e formatação recebidos do editor permanecem
+  intactos; publicação continua imutável e protegida por CAS. BQS anteriores
+  sem fontes incorporadas e outros tipos mantêm o comportamento existente.
 - 21 âncoras de navegação, cinco áreas de fotografia e controles manuais BQS
   preservados. Troca de fotos não aplica retrospectivamente novos estilos.
+  Estilos renomeados pelo CODE são associados pelo nome e tipo aos estilos
+  já salvos, apenas nos blocos de fotos importados, preservando a centralização
+  da capa e as definições editadas do documento.
 
 Regressão do padrão: `tests/templates/test_bqs_layout.py`, testes BQS do worker
 e `scripts/validate-bqs-layout.mts` no conversor de destino. O último usa

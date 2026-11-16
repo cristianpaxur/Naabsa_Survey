@@ -1,9 +1,11 @@
-# 019 — BQS por planilha e PDF de referência
+# 019 — BQS por planilha e modelo Word
 
 Data: 23/10/2026. Escopo autorizado: mapear campos, reconstruir Word editável,
 gerar relatório da planilha fornecida e preparar integração reutilizável no Naabsa.
 
-O usuário não possui Word de exemplo; o PDF fornecido é a referência de estrutura.
+No início, o PDF fornecido foi a referência de estrutura, pois o Word ainda
+não estava disponível. Em 26/10/2026, o usuário forneceu os originais Word/XLSX;
+o contrato v2 substituiu a reconstrução inicial e preservou a v1 no histórico.
 Os dados da vistoria vêm exclusivamente da planilha fornecida e dos overrides
 confirmados. A publicação foi autorizada após homologação no destino. Não pressupõe equivalência
 com o slug legado `bunker_surveyor`.
@@ -20,3 +22,9 @@ Critérios:
 
 Contrato detalhado: [bqs.artifact.md](../../templates/bqs.artifact.md).
 Mapa com dados reais mantido nas evidências privadas locais.
+
+Extensão autorizada em 16/11/2026: aplicar ao BQS o padrão visual dos relatórios
+MSC/Draft (fontes, capa/contatos, cabeçalhos, rodapé e margens), mantendo o
+conteúdo e o mapeamento BQS. Homologar a geração, os salvamentos nativos e o
+PDF no Collabora antes de publicar para novas montagens. Documentos já salvos
+mantêm seu histórico e suas edições.

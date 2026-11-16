@@ -59,6 +59,13 @@ concluídos; artefatos de teste identificados em output/bqs-v2/LEIA-ME.md.
 
 - [x] T-012 Comparar MSC/Draft/BQS, reutilizar componentes do MSC e incorporar
   as mesmas fontes no BQS, preservando dados e âncoras do editor.
-- [ ] T-013 Validar capa, tabelas, todas as páginas e ciclo nativo no Collabora.
-- [ ] T-014 Publicar o template validado para novas montagens BQS e conferir
+- [x] T-013 Validar capa, tabelas, todas as páginas e ciclo nativo no Collabora.
+- [x] T-014 Publicar o template validado para novas montagens BQS e conferir
   versão instalada. Documentos já salvos mantêm seu histórico.
+
+Encerramento em 16/11/2026: web e worker publicados em 845f2df, template
+instalado conferido por SHA256. Teste na rota WOPI real salvou e reabriu r2,
+preservando conteúdo, fontes e revisão anterior; PDF final de seis páginas
+validado. BQS habilitado e selecionado na tela Novo relatório, com continuidade
+para a planilha disponível. Evidências em deployment.md e
+output/bqs-layout-20261116/. T-012 a T-014 concluídos.
