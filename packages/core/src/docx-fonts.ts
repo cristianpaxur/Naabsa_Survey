@@ -165,7 +165,7 @@ export function embedMscFonts(
     settings = settings.replace(new RegExp(`<w:${name}\\b[^>]*\\/>`, 'g'), '');
     settings = settings.replace(
       '</w:settings>',
-      `<w:${name} w:val="${value}"/>`,
+      `<w:${name} w:val="${value}"/></w:settings>`,
     );
   }
   target.file('word/settings.xml', settings);

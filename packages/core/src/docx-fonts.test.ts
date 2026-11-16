@@ -48,6 +48,9 @@ describe('BQS preserves embedded fonts after native save', () => {
     expect(after.file('word/fontTable.xml')!.asText()).toContain(
       'w:embedRegular',
     );
+    expect(
+      after.file('word/settings.xml')!.asText().endsWith('</w:settings>'),
+    ).toBe(true);
     expect(after.file('word/document.xml')!.asText()).toContain(
       'MANUAL EDIT PRESERVED',
     );

@@ -154,6 +154,10 @@ for (let cycle = 0; cycle < 2; cycle++) {
   const previous = document;
   document = preserveBqsFonts(await nativeSave(document), previous);
   const saved = new PizZip(document);
+  for (const name of Object.keys(saved.files).filter(
+    (name) => name.endsWith('.xml') || name.endsWith('.rels'),
+  ))
+    bqsXmlTools.str2xml(saved.file(name)!.asText());
   const xml = saved.file('word/document.xml')!.asText();
   assert.ok(xml.includes(marker), 'Manual edit survived native save');
   const regions = resolveBqsPhotoRegions(bqsXmlTools.str2xml(xml));
