@@ -175,6 +175,41 @@ export function replaceBqsPhotoSections(
     freshRegions[slot].blocks.map((block) => block.cloneNode(true)),
   );
   copies.push(...replacementsBySlot.flat());
+  // CODE renames localised Word style IDs (SemEspaamento -> NoSpacing).
+  // Rebind imported photo content to the saved document's equivalent style;
+  // otherwise its direct alignment can be discarded by the next native load.
+  // Never replace the saved styles or restyle content outside the photo ranges.
+  const sourceStyles = all(read(source, 'word/styles.xml'), 'w:style');
+  const savedStyles = all(read(zip, 'word/styles.xml'), 'w:style');
+  for (const copy of copies) {
+    for (const [tag, type] of [
+      ['w:pStyle', 'paragraph'],
+      ['w:rStyle', 'character'],
+      ['w:tblStyle', 'table'],
+    ] as const) {
+      for (const reference of all(copy, tag)) {
+        const id = reference.getAttribute('w:val');
+        if (savedStyles.some((s) => s.getAttribute('w:styleId') === id))
+          continue;
+        const definition = sourceStyles.find(
+          (s) => s.getAttribute('w:styleId') === id,
+        );
+        const name =
+          definition && all(definition, 'w:name')[0]?.getAttribute('w:val');
+        const matches = savedStyles.filter(
+          (s) =>
+            name &&
+            s.getAttribute('w:type') === type &&
+            all(s, 'w:name')[0]?.getAttribute('w:val') === name,
+        );
+        if (matches.length !== 1)
+          throw new Error(
+            'BQS: estilo da área de foto ausente ou ambíguo no Word salvo.',
+          );
+        reference.setAttribute('w:val', matches[0]!.getAttribute('w:styleId')!);
+      }
+    }
+  }
   const importedBlips = copies.flatMap((copy) => all(copy, 'a:blip'));
   let bookmarkId =
     Math.max(

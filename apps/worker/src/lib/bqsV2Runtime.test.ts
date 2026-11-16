@@ -132,6 +132,21 @@ it('seleciona Word v2 e mantém edição manual após troca de fotos', async () 
       .asText()
       .replace('Surveyor’s final remarks:', 'BQS QA 20261026 saved edit:'),
   );
+  // CODE canonicalises this localised style ID on native save.
+  zip.file(
+    doc,
+    zip
+      .file(doc)!
+      .asText()
+      .replaceAll('w:val="SemEspaamento"', 'w:val="NoSpacing"'),
+  );
+  zip.file(
+    'word/styles.xml',
+    zip
+      .file('word/styles.xml')!
+      .asText()
+      .replace('w:styleId="SemEspaamento"', 'w:styleId="NoSpacing"'),
+  );
   const fresh = await buildReportDocxBqs({
     ...input,
     photos: { cover: [b], vessel_tanks: [b] },
@@ -140,6 +155,10 @@ it('seleciona Word v2 e mantém edição manual após troca de fotos', async () 
     replaceBqsPhotoSections(zip.generate({ type: 'nodebuffer' }), fresh),
   );
   expect(updated.file(doc)!.asText()).toContain('BQS QA 20261026 saved edit:');
+  expect(updated.file(doc)!.asText().includes('w:val="SemEspaamento"')).toBe(
+    false,
+  );
+  expect(updated.file(doc)!.asText().includes('w:val="NoSpacing"')).toBe(true);
   expect(
     updated
       .file(doc)!
@@ -149,4 +168,14 @@ it('seleciona Word v2 e mantém edição manual após troca de fotos', async () 
   expect(updated.file('word/styles.xml')!.asText()).toBe(
     zip.file('word/styles.xml')!.asText(),
   );
+  zip.file(
+    'word/styles.xml',
+    zip
+      .file('word/styles.xml')!
+      .asText()
+      .replace('w:val="No Spacing"', 'w:val="Unrelated style"'),
+  );
+  expect(() =>
+    replaceBqsPhotoSections(zip.generate({ type: 'nodebuffer' }), fresh),
+  ).toThrow(/estilo.*foto/i);
 });
