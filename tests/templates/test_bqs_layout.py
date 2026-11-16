@@ -71,6 +71,21 @@ class BqsLayoutTest(unittest.TestCase):
         for table in self.doc.findall('w:body/w:tbl', NS)[2:]:
             self.assertLessEqual(sum(int(v) for v in table.xpath('w:tblGrid/w:gridCol/@w:w', namespaces=NS)), 9923)
 
+    def test_compact_density_tables_stay_with_their_introduction(self):
+        tables = [t for t in self.doc.findall('w:body/w:tbl', NS)[2:]
+                  if len(t.findall('w:tblGrid/w:gridCol', NS)) == 2]
+        self.assertEqual(len(tables), 2)
+        for table in tables:
+            self.assertIsNotNone(table.getprevious().find('w:pPr/w:keepNext', NS))
+            rows = table.findall('w:tr', NS)
+            for row in rows:
+                self.assertIsNotNone(row.find('w:trPr/w:cantSplit', NS))
+            for row in rows[:-1]:
+                for paragraph in row.findall('.//w:p', NS):
+                    self.assertIsNotNone(paragraph.find('w:pPr/w:keepNext', NS))
+            for paragraph in rows[-1].findall('.//w:p', NS):
+                self.assertIsNone(paragraph.find('w:pPr/w:keepNext', NS))
+
 
 if __name__ == '__main__':
     unittest.main()

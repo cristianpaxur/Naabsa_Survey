@@ -52,6 +52,16 @@ const checkFonts = async (path: string) => {
     'Unexpected font substitution',
   );
 };
+const checkDensityTable = (text: string) => {
+  const page = text
+    .split('\f')
+    .find((p) => p.includes('According to BDN issued by suppliers.'));
+  assert.ok(page, 'Barge density introduction exists');
+  assert.ok(
+    /Specific Gravity[\s\S]*15[\s\S]*20/.test(page),
+    'Compact density table stays with its introduction and header',
+  );
+};
 const workbook = new ExcelJS.Workbook();
 await workbook.xlsx.load(
   (await readFile(
@@ -133,6 +143,7 @@ for (const name of ['with-photos', 'without-photos']) {
   const pdf = await convertDocxToPdf(source);
   const text = await extractPdfText(pdf);
   assertBqsPdfPagination(source, text);
+  checkDensityTable(text);
   assert.ok(text.includes('TEST MASTER'));
   assert.ok(text.includes('TEST CHIEF ENGINEER'));
   const pages = text.split('\f').filter((p) => p.trim());
@@ -176,6 +187,7 @@ const finalPdf = await convertDocxToPdf(document);
 const finalText = await extractPdfText(finalPdf);
 assert.ok(finalText.includes(marker));
 assertBqsPdfPagination(document, finalText);
+checkDensityTable(finalText);
 await writeFile(join(out, 'native-roundtrip.docx'), document);
 await writeFile(join(out, 'native-roundtrip.pdf'), finalPdf);
 await checkFonts(join(out, 'native-roundtrip.pdf'));

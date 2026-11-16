@@ -250,6 +250,18 @@ def apply_naabsa_layout(parts, reference_path: Path):
                 replace_prop(prop(t, 'tblPr'), 'tblW', el('tblW', w=9923, type='dxa'))
             for p in t.findall('.//w:p', NS):
                 font(p, 'Calibri', 14 if len(cols) == 13 else 20)
+            # The two compact density tables must not leave their heading or
+            # header on the previous page. Large tank tables still flow freely.
+            if len(cols) == 2:
+                rows = t.findall('w:tr', NS)
+                for row_index, row in enumerate(rows):
+                    replace_prop(prop(row, 'trPr'), 'cantSplit', el('cantSplit'))
+                    for p in row.findall('.//w:p', NS):
+                        replace_prop(prop(p, 'pPr'), 'keepNext',
+                                     el('keepNext') if row_index < len(rows) - 1 else None)
+                previous = t.getprevious()
+                if previous is not None and previous.tag == '{' + W + '}p':
+                    replace_prop(prop(previous, 'pPr'), 'keepNext', el('keepNext'))
 
     # Import the exact header/footer XML and their logo/link relationships.
     rels = E.fromstring(parts['word/_rels/document.xml.rels'])
