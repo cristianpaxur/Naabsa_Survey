@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import zipfile
 from lxml import etree as E
+from bqs_naabsa_layout import apply_naabsa_layout
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_SHA256 = '1fbc24ca016577e097c12a4451ce08d6cc028d264b9daabbb5fc50f76e78a4b9'
@@ -169,6 +170,9 @@ def build(source, output, evidence=None):
     uf=settings.find('w:updateFields',NS)
     if uf is None:uf=el('updateFields');settings.append(uf)
     uf.set('{'+W+'}val','true');parts['word/settings.xml']=xml(settings)
+    # Shared Naabsa design is explicitly requested by the user. Keep the BQS
+    # content contract; reuse the approved MSC cover/chrome/typographic roles.
+    apply_naabsa_layout(parts, ROOT/'templates/msc.clean.docx')
     output.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as z:
         for n,b in parts.items():

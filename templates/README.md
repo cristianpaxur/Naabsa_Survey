@@ -2,6 +2,14 @@
 
 ## BQS
 
+O modelo ativo v2 é `bqs.v2.clean.docx`, derivado do Word BQS fornecido pelo
+usuário. Desde a revisão de 16/11/2026, a capa, contatos, fontes, cabeçalhos,
+rodapé e margens seguem o MSC. Reproduzir com `scripts/build_bqs_template_v2.py
+--source <Word BQS original>`; o script usa `bqs_naabsa_layout.py` e o template
+MSC versionado. O contrato completo está em `bqs.artifact.md`.
+
+Os arquivos abaixo de v1 são mantidos para os relatórios anteriores:
+
 `bqs.clean.docx` is reconstructed from the client PDF because no Word source
 was available. The user explicitly authorized this route. It contains native
 Word tables, manual content controls, photo areas and a measured table of

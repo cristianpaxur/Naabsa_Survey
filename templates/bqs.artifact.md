@@ -1,5 +1,39 @@
 # BQS — contrato do modelo
 
+## Padrão visual vigente do BQS v2 — 16/11/2026
+
+O usuário determinou que o BQS use o design dos demais relatórios. O conteúdo
+continua derivado do Word BQS, mas os componentes visuais compartilhados vêm
+de `msc.clean.docx`, com a tabela de contatos também presente no Draft Survey.
+`scripts/build_bqs_template_v2.py` aplica `scripts/bqs_naabsa_layout.py` depois
+de parametrizar o Word BQS. Originais, mapeamento, cálculos e revisões salvas
+permanecem preservados. O novo layout é aplicado na montagem de documentos.
+
+- Capa: Tahoma 18 pt (Survey Report), 11 pt (serviço), 20 pt (navio),
+  10/10,5 pt (referência e metadados). Blocos e espaçadores nativos do MSC.
+- Contatos: título 12 pt com faixa DEEAF6; grid 2694/6281 twips, divisórias
+  internas de 0,5 pt; Tahoma 10 pt, empresa em negrito e pessoa em parágrafo
+  separado. Quatro linhas BQS, incluindo fornecedores.
+- Corpo: Calibri 11 pt, títulos principais 12 pt e subtítulos 11 pt. Espaço
+  de 11 pt antes/5 pt depois corresponde à separação de blocos do MSC.
+- Cabeçalhos e rodapé: partes nativas do MSC, logo e campo PAGE preservados.
+  A4; top 1418/right 849/bottom 567 twips; left 1134 na primeira seção e
+  993 nas seguintes; distâncias de cabeçalho/rodapé 709 twips.
+- Tabelas de sondagens: dados e 13 colunas preservados, Calibri 7 pt, largura
+  máxima 9923 twips. Demais tabelas Calibri 10 pt. Seções usam uma coluna.
+- Tahoma, Calibri, Times New Roman e Cambria incorporadas a partir das fontes
+  já presentes no template MSC, evitando substituição no Collabora.
+- 21 âncoras de navegação, cinco áreas de fotografia e controles manuais BQS
+  preservados. Troca de fotos não aplica retrospectivamente novos estilos.
+
+Regressão do padrão: `tests/templates/test_bqs_layout.py`, testes BQS do worker
+e `scripts/validate-bqs-layout.mts` no conversor de destino. O último usa
+somente dados sintéticos e testa fotos, ausência de fotos, duas gravações
+nativas, troca de fotos e preservação de edição. Estado de publicação em
+`implementation/019-bqs/deployment.md`.
+
+## Contrato histórico do BQS v1
+
 Versão 1, slug explícito `bqs`, contrato de extração 2, sem variantes.
 
 ## Autoridade e origem

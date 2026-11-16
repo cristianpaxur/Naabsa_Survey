@@ -54,3 +54,11 @@ e visual registrados antes de ativar spec1540c475-26d2-490f-9fd4-36ecf47a60cc.
 BQS selecionável em Novo relatório no Chrome do usuário; botão de continuidade
 habilitado. Tipos legados e relatórios anteriores preservados. T-010/T-011
 concluídos; artefatos de teste identificados em output/bqs-v2/LEIA-ME.md.
+
+## Padronização visual solicitada em 16/11/2026
+
+- [x] T-012 Comparar MSC/Draft/BQS, reutilizar componentes do MSC e incorporar
+  as mesmas fontes no BQS, preservando dados e âncoras do editor.
+- [ ] T-013 Validar capa, tabelas, todas as páginas e ciclo nativo no Collabora.
+- [ ] T-014 Publicar o template validado para novas montagens BQS e conferir
+  versão instalada. Documentos já salvos mantêm seu histórico.
