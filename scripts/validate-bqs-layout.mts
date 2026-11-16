@@ -55,10 +55,12 @@ const checkFonts = async (path: string) => {
 const checkDensityTable = (text: string) => {
   const page = text
     .split('\f')
-    .find((p) => p.includes('According to BDN issued by suppliers.'));
+    .find((p) =>
+      /According\s+to\s+the\s+BDN\s+issued\s+by\s+suppliers\./.test(p),
+    );
   assert.ok(page, 'Barge density introduction exists');
   assert.ok(
-    /Specific Gravity[\s\S]*15[\s\S]*20/.test(page),
+    /Specific\s+Gravity[\s\S]*15[\s\S]*20/.test(page),
     'Compact density table stays with its introduction and header',
   );
 };
