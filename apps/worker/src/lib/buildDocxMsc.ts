@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { posix } from 'node:path';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
+import { enableDynamicToc } from '@naabsa/core/docx-toc';
 import sharp from 'sharp';
 import {
   formatNumberWithDecimals,
@@ -958,7 +959,7 @@ export async function buildReportDocxMsc(input: DocxInputMsc): Promise<Buffer> {
   fillTimeLog(doc, input);
   normalizeTimeLogPadding(doc);
   zip.file('word/document.xml', xmlTools.xml2str(doc));
-  return zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
+  return enableDynamicToc(zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }));
 }
 
 function normalizeTimeLogPadding(doc: XmlDocument): boolean {

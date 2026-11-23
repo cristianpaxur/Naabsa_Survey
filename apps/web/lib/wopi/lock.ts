@@ -26,7 +26,7 @@ export function canPutFile(report: Pick<WopiReport, 'status'>): boolean {
 }
 
 /** Lock corrente, se ainda não expirou; senão `null`. */
-export function currentLock(report: WopiReport, now = Date.now()): string | null {
+export function currentLock(report: Pick<WopiReport, 'wopi_lock' | 'wopi_lock_expires_at'>, now = Date.now()): string | null {
   if (!report.wopi_lock || !report.wopi_lock_expires_at) return null;
   return new Date(report.wopi_lock_expires_at).getTime() > now ? report.wopi_lock : null;
 }

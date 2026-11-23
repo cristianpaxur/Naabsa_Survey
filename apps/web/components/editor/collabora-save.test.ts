@@ -51,7 +51,7 @@ describe('confirmação de salvamento Collabora', () => {
     const saving = requestCollaboraSave(host as unknown as Window, editor as unknown as Window, 'https://office.test');
     response({ success: true, wasModified: false });
     await expect(saving).resolves.toBe('unmodified');
-    const command = JSON.parse(editor.postMessage.mock.calls[0]?.[0] as string) as {
+    const command = JSON.parse(editor.postMessage.mock.calls[1]?.[0] as string) as {
       Values: { DontSaveIfUnmodified: boolean };
     };
     expect(command.Values.DontSaveIfUnmodified).toBe(true);
@@ -66,7 +66,7 @@ describe('confirmação de salvamento Collabora', () => {
     const second = requestCollaboraSave(host as unknown as Window, editor as unknown as Window, 'https://office.test');
     response({ success: true }); // Resposta remota atrasada de A.
     await expect(second).rejects.toThrow('Reabra o editor');
-    expect(editor.postMessage).toHaveBeenCalledOnce();
+    expect(editor.postMessage).toHaveBeenCalledTimes(2);
     expect(host.addEventListener).toHaveBeenCalledOnce();
   });
   it('após remontar, resposta do iframe antigo não pode confirmar B no novo iframe', async () => {
@@ -100,6 +100,19 @@ describe('confirmação de salvamento Collabora', () => {
     await expect(requestCollaboraSave(host as unknown as Window, editor as unknown as Window, 'https://office.test')).rejects.toThrow('aguardando confirmação');
     response({ success: true });
     await expect(first).resolves.toBe('saved');
-    expect(editor.postMessage).toHaveBeenCalledOnce();
+    expect(editor.postMessage).toHaveBeenCalledTimes(2);
   });
+});
+
+it('atualiza as referências de página antes de salvar para preview e aprovação', async () => {
+  const saving = requestCollaboraSave(host as unknown as Window, editor as unknown as Window, 'https://office.test');
+  const messages = editor.postMessage.mock.calls.map(([data, origin]) => ({
+    ...JSON.parse(data as string), origin,
+  }));
+  response({ success: true });
+  await expect(saving).resolves.toBe('saved');
+  expect(messages).toEqual([
+    { MessageId: 'Send_UNO_Command', Values: { Command: '.uno:UpdateFields' }, origin: 'https://office.test' },
+    { MessageId: 'Action_Save', Values: { Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: true }, origin: 'https://office.test' },
+  ]);
 });

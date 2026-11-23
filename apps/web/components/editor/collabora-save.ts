@@ -46,6 +46,11 @@ export function requestCollaboraSave(host: Window, editor: Window, origin: strin
     if (signal?.aborted) { onAbort(); return; }
     try {
       sent = true;
+      // The editor queues UNO commands and save in order on the same socket.
+      // Refresh the native page references before persisting the approved bytes.
+      editor.postMessage(JSON.stringify({ MessageId: 'Send_UNO_Command', Values: {
+        Command: '.uno:UpdateFields',
+      } }), origin);
       editor.postMessage(JSON.stringify({ MessageId: 'Action_Save', Values: {
         Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: true,
       } }), origin);

@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createServiceClient } from '@/lib/supabase/service';
+vi.mock('server-only', () => ({}));
 import { approve, beginDocumentSave, confirmDocumentSave, getEditorUrl, getPdfStatus, reopenDocumentEditor, retryBuildWorkingDocx, retryGeneratePdf } from './editor';
 
 const memory = vi.hoisted(() => ({
-  row: {} as Record<string, unknown>, events: [] as { action: string; payload: unknown }[],
+  objects: new Map<string, Buffer>(), row: {} as Record<string, unknown>, events: [] as { action: string; payload: unknown }[],
   beforeUpdate: undefined as (() => void) | undefined,
   beforeRead: undefined as (() => void) | undefined,
 }));
 const enqueuePdf = vi.hoisted(() => vi.fn());
 const enqueueBuild = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/queue', () => ({ enqueueGeneratePdf: enqueuePdf, enqueueBuildWorkingDocx: enqueueBuild, enqueuePreviewPdf: vi.fn() }));
-vi.mock('@/lib/supabase/service', () => ({ createServiceClient: () => ({ storage: {} }) }));
+vi.mock('@naabsa/core/docx-toc', () => ({
+  enableDynamicToc: (body: Buffer) => body.toString() === 'LEGACY EDITED DOCX'
+    ? Buffer.from('EDITED DOCX WITH PAGE FIELDS') : body,
+}));
+vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }));
 vi.mock('@/lib/wopi/token', () => ({ signToken: () => 'token', WOPI_TOKEN_TTL_SECONDS: 10 * 60 * 60 }));
 vi.mock('@/lib/wopi/discovery', () => ({ getEditorUrlSrc: async () => 'https://office.test/edit?' }));
 vi.mock('@/lib/audit', () => ({ audit: async (_client: unknown, event: { action: string; payload: unknown }) => { memory.events.unshift(event); } }));
@@ -21,7 +27,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
     const query = {
       select: () => query,
       eq: (key: string, value: unknown) => { filters.push([key, value]); return query; },
-      in: () => query, order: () => query, limit: () => query,
+      is: (key: string, value: unknown) => { filters.push([key, value]); return query; }, in: () => query, order: () => query, limit: () => query,
       maybeSingle: async () => { memory.beforeRead?.(); return { data: { ...memory.row }, error: null }; },
       update: (value: Record<string, unknown>) => { patch = value; return query; },
       then: (resolve: (value: unknown) => unknown) => {
@@ -39,8 +45,14 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubEnv('WOPI_TOKEN_SECRET', 'test-editor-secret');
   memory.events = []; memory.beforeUpdate = undefined; memory.beforeRead = undefined;
+  memory.objects.clear();
+  memory.objects.set('r1/working/one.docx', Buffer.from('CURRENT DOCX'));
+  vi.mocked(createServiceClient).mockReturnValue({ storage: { from: () => ({
+    download: async (path: string) => ({ data: memory.objects.has(path) ? new Blob([new Uint8Array(memory.objects.get(path)!)]) : null, error: null }),
+    upload: async (path: string, body: Buffer) => { memory.objects.set(path, body); return { error: null }; },
+  }) } } as unknown as ReturnType<typeof createServiceClient>);
   memory.row = { id: 'r1', status: 'editing', working_docx_path: 'r1/working/one.docx',
-    working_docx_revision: 1, working_docx_generation: 'g1', approved_docx_revision: null, pdf_paths: [] };
+    wopi_lock: null, wopi_lock_expires_at: null, working_docx_revision: 1, working_docx_generation: 'g1', approved_docx_revision: null, pdf_paths: [] };
   enqueuePdf.mockResolvedValue('job-pdf'); enqueueBuild.mockResolvedValue('job-build');
 });
 async function save(): Promise<string> {
@@ -160,5 +172,48 @@ describe('aprovação da versão salva e recuperação de filas', () => {
     memory.row.wopi_lock = 'lock-ativo';
     expect(await reopenDocumentEditor('r1')).toHaveProperty('error');
     expect(memory.row.wopi_lock).toBe('lock-ativo');
+  });
+});
+
+describe('sumário de documentos já editados', () => {
+  it('publica uma revisão com referências antes de abrir o Word antigo, conservando o original', async () => {
+    memory.objects.set('r1/working/one.docx', Buffer.from('LEGACY EDITED DOCX'));
+    expect(await getEditorUrl('r1')).toHaveProperty('url');
+    expect(memory.row.working_docx_revision).toBe(2);
+    expect(memory.objects.get(memory.row.working_docx_path as string)?.toString()).toBe('EDITED DOCX WITH PAGE FIELDS');
+    expect(memory.objects.get('r1/working/one.docx')?.toString()).toBe('LEGACY EDITED DOCX');
+  });
+  it.each(['approved', 'generated'])('não altera um documento %s', async (status) => {
+    memory.row.status = status;
+    memory.objects.set('r1/working/one.docx', Buffer.from('LEGACY EDITED DOCX'));
+    expect(await getEditorUrl('r1')).toHaveProperty('url');
+    expect(memory.row.working_docx_revision).toBe(1);
+    expect(memory.objects.size).toBe(1);
+  });
+  it('não substitui o documento de uma sessão ativa', async () => {
+    memory.row.wopi_lock = 'active';
+    memory.row.wopi_lock_expires_at = new Date(Date.now() + 60_000).toISOString();
+    memory.objects.set('r1/working/one.docx', Buffer.from('LEGACY EDITED DOCX'));
+    expect(await getEditorUrl('r1')).toHaveProperty('url');
+    expect(memory.row.working_docx_revision).toBe(1);
+    expect(memory.objects.size).toBe(1);
+  });
+  it('uma gravação concorrente vence a atualização do sumário', async () => {
+    memory.objects.set('r1/working/one.docx', Buffer.from('LEGACY EDITED DOCX'));
+    memory.beforeUpdate = () => {
+      memory.row.working_docx_revision = 2;
+      memory.row.working_docx_path = 'r1/working/concurrent.docx';
+    };
+    expect(await getEditorUrl('r1')).toHaveProperty('error');
+    expect(memory.row.working_docx_path).toBe('r1/working/concurrent.docx');
+  });
+  it('um lock adquirido durante a atualização impede trocar a revisão', async () => {
+    memory.objects.set('r1/working/one.docx', Buffer.from('LEGACY EDITED DOCX'));
+    memory.beforeUpdate = () => {
+      memory.row.wopi_lock = 'new-session';
+      memory.row.wopi_lock_expires_at = new Date(Date.now() + 60_000).toISOString();
+    };
+    expect(await getEditorUrl('r1')).toHaveProperty('error');
+    expect(memory.row.working_docx_revision).toBe(1);
   });
 });

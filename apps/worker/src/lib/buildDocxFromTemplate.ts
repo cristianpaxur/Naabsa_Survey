@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import Docxtemplater from 'docxtemplater';
 import ImageModule from 'docxtemplater-image-module-free';
 import PizZip from 'pizzip';
+import { enableDynamicToc } from '@naabsa/core/docx-toc';
 import sharp from 'sharp';
 import { formatNumberWithDecimals, type FieldValue } from '@naabsa/core';
 import type { DocxInput } from './buildDocx';
@@ -869,10 +870,10 @@ export async function buildReportDocxFromTemplate(
   document.render(makeTemplateData(input));
   const renderedZip = document.getZip();
   arrangePhasePhotosInTwoColumns(renderedZip, photoCounts);
-  return renderedZip.generate({
+  return enableDynamicToc(renderedZip.generate({
     type: 'nodebuffer',
     compression: 'DEFLATE',
     mimeType:
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  }) as Buffer;
+  }) as Buffer);
 }

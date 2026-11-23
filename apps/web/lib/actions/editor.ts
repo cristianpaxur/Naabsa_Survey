@@ -11,6 +11,7 @@ import { describeQueueFailure } from '@/lib/queue-error';
 import { latestJobOutcome, type AuditEventRow, type JobOutcome } from '@/lib/job-failure';
 import { signToken, WOPI_TOKEN_TTL_SECONDS } from '@/lib/wopi/token';
 import { getEditorUrlSrc } from '@/lib/wopi/discovery';
+import { prepareWorkingToc, type TocReport } from '@/lib/working-toc';
 
 export type ApproveResult = { ok: true } | { error: string; approved?: boolean };
 
@@ -131,10 +132,10 @@ export async function getEditorUrl(
 
   const { data } = await supabase
     .from('reports')
-    .select('status, working_docx_path')
+    .select('status, working_docx_path, working_docx_revision, wopi_lock, wopi_lock_expires_at')
     .eq('id', reportId)
     .maybeSingle();
-  const report = data as { status: string; working_docx_path: string | null } | null;
+  const report = data as TocReport | null;
   if (!report) return { error: 'Relatório não encontrado.' };
 
   if (!report.working_docx_path) {
@@ -151,6 +152,12 @@ export async function getEditorUrl(
       };
     }
     return { pending: true };
+  }
+
+  try {
+    await prepareWorkingToc(supabase, reportId, report);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Não foi possível atualizar o índice.' };
   }
 
   const canWrite = report.status === 'editing';
