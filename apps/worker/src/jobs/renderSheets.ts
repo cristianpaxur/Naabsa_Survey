@@ -12,7 +12,9 @@ import { renderSheetPng } from '../lib/sheetImage';
 import {
   DRAFT_SURVEY_SHEET_PHASES,
   draftSurveySheetImagePath,
+  hasDraftSurveyIntermediate,
   type DraftSurveySheetPhase,
+  type FieldValue,
   type ReportSpec,
 } from '@naabsa/core';
 
@@ -43,7 +45,7 @@ export async function renderSheets(data: RenderSheetsPayload): Promise<void> {
   const r = report as {
     spec_id: string;
     spreadsheet_path: string | null;
-    extracted_data: Record<string, unknown> | null;
+    extracted_data: Record<string, FieldValue> | null;
   } | null;
   if (!r?.spreadsheet_path || !r.spec_id) {
     console.log(`[render_sheets] ${reportId} sem planilha/spec — pulando.`);
@@ -70,7 +72,7 @@ export async function renderSheets(data: RenderSheetsPayload): Promise<void> {
   }
   const buf = Buffer.from(await blob.arrayBuffer());
 
-  const hasIntermediate = r.extracted_data?.['intermediate_date'] != null;
+  const hasIntermediate = hasDraftSurveyIntermediate(r.extracted_data ?? {});
 
   for (const phase of DRAFT_SURVEY_SHEET_PHASES) {
     if (phase === 'intermediate' && !hasIntermediate) continue; // fase ausente

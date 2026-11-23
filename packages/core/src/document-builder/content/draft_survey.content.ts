@@ -29,6 +29,7 @@ import type { BuilderInput } from '../types';
 import { formatDraftSurveyDate, formatDraftSurveyEndTimeSuffix } from '../draft-survey-dates';
 import type { FieldValue } from '../../types';
 import { formatNumberWithDecimals } from '../../number-format';
+import { hasDraftSurveyIntermediate } from '../../draft-survey-intermediate';
 
 const W = 150;
 const H = 100;
@@ -213,7 +214,7 @@ export function buildDraftSurveyContent(
     return photoFrame({ slotId, photoId: p?.photoId ?? null, src: p?.src ?? null, widthMm: w, heightMm: h });
   }
 
-  const hasIntermediate = data['intermediate_date'] != null;
+  const hasIntermediate = hasDraftSurveyIntermediate(data);
   const sides = sideLabel(data['berthing_side']);
   const draftReadingsBody = `${sides.berthed} from shore, alongside vessel and ${sides.opposite} from boat.`;
 

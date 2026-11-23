@@ -14,6 +14,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { transition } from '@/lib/state-machine';
 import {
+  resolveReportData,
   validate,
   type Issue,
   type ReportSpec,
@@ -21,11 +22,11 @@ import {
   type NumberFormatMap,
 } from '@naabsa/core';
 import { groupBySectionOrdered, resolveEffectiveNumberFormats } from '@/lib/effective-values';
+import { loadDraftSurveySourceData } from '@/lib/draft-survey-source';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ReviewClient } from '@/components/review/ReviewClient';
 import { ReuploadPanel } from '@/components/review/ReuploadPanel';
 import { ResetToDraftButton } from '@/components/review/ResetToDraftButton';
-import { resolveFieldValue, collectFields } from '@naabsa/core';
 import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
 import { ReportProgress } from '@/components/reports/ReportProgress';
 
@@ -46,7 +47,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const { data: raw } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, spreadsheet_path, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', id)
     .is('deleted_at', null)
@@ -58,6 +59,7 @@ export default async function ReviewPage({ params }: PageProps) {
     id: string;
     status: string;
     variant: string | null;
+    spreadsheet_path: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
     extracted_number_formats: NumberFormatMap | null;
@@ -131,18 +133,14 @@ export default async function ReviewPage({ params }: PageProps) {
   }
 
   // Calcular valores efetivos e issues iniciais
-  const extracted = row.extracted_data ?? {};
+  const extracted = await loadDraftSurveySourceData(id, row.spreadsheet_path, spec, row.extracted_data);
   const overrides = row.operator_overrides ?? {};
   const variant = row.variant;
 
   const sections = groupBySectionOrdered(spec, variant, extracted, overrides, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {});
 
   // Resolver effective data para validação inicial
-  const fields = collectFields(spec, variant);
-  const effective: Record<string, FieldValue> = {};
-  for (const [name] of fields) {
-    effective[name] = resolveFieldValue(name, overrides, extracted);
-  }
+  const effective = resolveReportData(spec, variant, extracted, overrides);
   const initialIssues = mergeReviewIssues(
     validate(effective, spec, variant),
     row.extraction_issues,

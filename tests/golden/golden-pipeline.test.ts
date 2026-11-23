@@ -155,7 +155,7 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
     const result = await extracted('draft_survey', 'loading');
     const zip = new PizZip(
       await buildReportDocx({
-        data: { ...result.data, intermediate_date: null },
+        data: { ...result.data, intermediate_cargo_quantity: null },
         variant: 'loading',
         logo: null,
         sheetImages: {},

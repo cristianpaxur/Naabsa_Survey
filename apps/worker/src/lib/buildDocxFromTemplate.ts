@@ -17,6 +17,7 @@ import {
   formatDraftSurveyDate,
   formatDraftSurveyEndTimeSuffix,
   formatNumberWithDecimals,
+  hasDraftSurveyIntermediate,
   type FieldValue,
 } from '@naabsa/core';
 import type { DocxInput } from './buildDocx';
@@ -614,8 +615,7 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
   };
   const variant = VARIANT[input.variant];
-  const hasIntermediate =
-    data['intermediate_date'] != null && data['intermediate_date'] !== '';
+  const hasIntermediate = hasDraftSurveyIntermediate(data);
   const finalActing = input.acting.final ?? [];
   const intermediateActing = input.acting.intermediate ?? [];
   const sides = sideLabels(data['berthing_side']);
@@ -754,13 +754,11 @@ export async function buildReportDocxFromTemplate(
   const templateZip = new PizZip(template);
   prepareTemplateLayout(templateZip);
   const photoScale = Math.max(0.7, Math.min(1, input.photoScale ?? 1));
+  const hasIntermediate = hasDraftSurveyIntermediate(input.data);
+  const intermediatePhotos = hasIntermediate ? (input.phasePhotos.intermediate ?? []) : [];
   const photoCounts = {
     initial: input.phasePhotos.initial?.length ?? 0,
-    intermediate:
-      input.data['intermediate_date'] == null ||
-      input.data['intermediate_date'] === ''
-        ? 0
-        : (input.phasePhotos.intermediate?.length ?? 0),
+    intermediate: intermediatePhotos.length,
     final: input.phasePhotos.final?.length ?? 0,
   };
   /**
@@ -800,7 +798,7 @@ export async function buildReportDocxFromTemplate(
   const fixedImages = await Promise.all([
     asPng(input.coverPhoto, scaledSize(COVER_IMAGE_SIZE, photoScale)),
     asPng(input.sheetImages.initial, [684, 264]),
-    asPng(input.sheetImages.intermediate, [684, 244]),
+    asPng(hasIntermediate ? input.sheetImages.intermediate : null, [684, 244]),
     asPng(input.sheetImages.final, [684, 244]),
   ]);
   images.set('coverPhoto', fixedImages[0]!);
@@ -817,7 +815,7 @@ export async function buildReportDocxFromTemplate(
           : scaledSize(SINGLE_PHOTO_SIZE, photoScale),
       ),
     );
-  for (const [index, photo] of (input.phasePhotos.intermediate ?? []).entries())
+  for (const [index, photo] of intermediatePhotos.entries())
     images.set(
       `photoIntermediate${index}`,
       await asPng(

@@ -60,7 +60,7 @@ export function groupBySectionOrdered(
   operatorFormats: NumberFormatMap = {},
 ): EffectiveSection[] {
   const safeOverrides = overrides ?? {};
-  const fields = collectFields(spec, variant);
+  const fields = collectFields(spec, variant, extracted);
 
   // Preserva a ordem de inserção (seções aparecem na ordem do spec).
   const sectionMap = new Map<string, EffectiveField[]>();

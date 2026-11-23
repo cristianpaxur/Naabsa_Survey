@@ -83,6 +83,10 @@
   - **Dependências:** T-006, T-007
   - **Estimativa:** Pequena
 
+- [x] **T-009 — Validação do intermediário no Draft Survey**
+  - Consultar `Intermediario!O19` para incluir a fase na revisão e no relatório.
+  - Bloquear o avanço com carga intermediária e data fora da sequência ou calados todos zerados ou vazios.
+
 ---
 
 ## Registro de Progresso
@@ -97,6 +101,7 @@
 | T-006  | ✅ Concluída | 2026-06-12 | Casos de borda cobertos via E2E spec |
 | T-007  | ✅ Concluída | 2026-06-12 | `tests/e2e/review.spec.ts` (não executado sem .env) |
 | T-008  | ✅ Concluída | 2026-06-12 | CA-001..006 verdes (14 E2E passando); bugs de date input e field names corrigidos |
+| T-009  | ✅ Concluída | 2026-11-23 | Regressões de extração e revisão, com conferência local do Word e do PDF nas duas situações de O19 |
 
 ---
 

@@ -13,7 +13,7 @@ import {
   formatNumberWithDecimals,
   isCalculatedDifferenceField,
   resolveDisplayDecimals,
-  resolveFieldValue,
+  resolveReportData,
   type ReportSpec,
   type FieldValue,
   type Issue,
@@ -52,7 +52,7 @@ export function buildReviewPrompt(
   data: Record<string, FieldValue>,
   displayDecimals: NumberFormatMap,
 ): { system: string; userText: string } {
-  const fields = collectFields(spec, variant)
+  const fields = collectFields(spec, variant, data)
     .filter(
       ([name, def]) =>
         def.ai_review !== false && !isCalculatedDifferenceField(name),
@@ -264,17 +264,14 @@ export async function aiReview(
     const spec = (specRow as { spec: ReportSpec } | null)?.spec;
     if (!spec) throw new Error('spec_missing');
     const cells = new Map<string, string | null>();
+    const reportData = resolveReportData(spec, r.variant, r.extracted_data, r.operator_overrides ?? {});
     const effective: Record<string, FieldValue> = {};
     const numberFormats: NumberFormatMap = {};
-    for (const [name, def] of collectFields(spec, r.variant)) {
+    for (const [name, def] of collectFields(spec, r.variant, reportData)) {
       if (def.ai_review === false || isCalculatedDifferenceField(name))
         continue;
       cells.set(name, def.cell ?? null);
-      effective[name] = resolveFieldValue(
-        name,
-        r.operator_overrides ?? {},
-        r.extracted_data,
-      );
+      effective[name] = reportData[name] ?? null;
       const decimals = resolveDisplayDecimals(
         name,
         def,
@@ -301,7 +298,7 @@ export async function aiReview(
     const { system, userText } = buildReviewPrompt(
       spec,
       r.variant,
-      effective,
+      reportData,
       numberFormats,
     );
     const text = await callLLM(

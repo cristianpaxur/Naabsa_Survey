@@ -48,6 +48,7 @@ export function isValidTransition(
 export interface TransitionOptions {
   clearWopiLock?: boolean;
   expectedPhotoRevision?: number;
+  expectedDataRevision?: number;
 }
 
 /**
@@ -92,6 +93,8 @@ export async function transition(
       'photo_assignment_revision',
       options.expectedPhotoRevision,
     );
+  if (options.expectedDataRevision !== undefined)
+    update = update.eq('data_revision', options.expectedDataRevision);
   const { error, count } = await update;
   if (error) throw error;
   if (count === 0) {

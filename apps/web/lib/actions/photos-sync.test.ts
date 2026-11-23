@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import draftSurveySpec from '../../../../tests/fixtures/specs/draft_survey.v1.json';
 const state = vi.hoisted(() => ({
   type: 'msc',
   report: {
@@ -9,6 +10,14 @@ const state = vi.hoisted(() => ({
     working_docx_revision: 4,
     working_docx_generation: 'g1',
     photo_assignment_revision: 7,
+    data_revision: 3,
+    variant: 'loading',
+    extracted_data: {
+      intermediate_cargo_quantity: 60000,
+      initial_date: '2026-07-28', intermediate_date: '2026-07-27', final_date: '2026-07-30',
+      int_fwd_mean: 10, int_mid_mean: 11, int_aft_mean: 12,
+    },
+    operator_overrides: {} as Record<string, string>,
   },
   events: [] as Array<{
     action: string;
@@ -51,7 +60,7 @@ vi.mock('@/lib/supabase/server', () => ({
             table === 'reports'
               ? state.report
               : {
-                  spec: {
+                  spec: state.type === 'draft_survey' ? { ...draftSurveySpec, photo_slots: [] } : {
                     report_type: state.type,
                     photo_slots: [{ id: 'vessel', label: 'Vessel' }],
                   },
@@ -88,6 +97,18 @@ beforeEach(() => {
   state.report.status = 'in_review';
   state.report.working_docx_path = 'original.docx';
   state.report.working_docx_revision = 4;
+  state.report.operator_overrides = {};
+});
+it('revalida os dados do Draft Survey ao tentar avançar direto pelas fotos', async () => {
+  state.type = 'draft_survey';
+  expect(await advance('r1')).toMatchObject({ error: expect.stringContaining('data intermediária') });
+  expect(transition).not.toHaveBeenCalled();
+
+  state.report.operator_overrides = { intermediate_date: '2026-07-29' };
+  expect(await advance('r1')).toEqual({ ok: true });
+  expect(transition).toHaveBeenCalledWith(expect.anything(), 'r1', 'in_review', 'editing', 'u1', {
+    expectedPhotoRevision: 7, expectedDataRevision: 3,
+  });
 });
 describe('returning from photo allocation to an existing MSC Word', () => {
   it('também sincroniza o BQS antes de reabrir o Word existente', async () => {

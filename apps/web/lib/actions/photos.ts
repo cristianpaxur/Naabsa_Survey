@@ -1,9 +1,16 @@
 'use server';
 
-import type { PhotoSlot, ReportSpec } from '@naabsa/core';
+import {
+  resolveReportData,
+  validateDraftSurveyIntermediate,
+  type FieldValue,
+  type PhotoSlot,
+  type ReportSpec,
+} from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
+import { loadDraftSurveySourceData } from '@/lib/draft-survey-source';
 import { transition } from '@/lib/state-machine';
 import {
   pendingRequiredSlots,
@@ -32,6 +39,11 @@ interface ReportRow {
   working_docx_revision?: number;
   working_docx_generation?: string;
   photo_assignment_revision?: number;
+  data_revision?: number;
+  variant?: string | null;
+  spreadsheet_path?: string | null;
+  extracted_data?: Record<string, FieldValue> | null;
+  operator_overrides?: Record<string, FieldValue> | null;
 }
 
 interface PhotoRow {
@@ -46,11 +58,15 @@ interface PhotoRow {
 async function loadReport(
   supabase: ServerClient,
   reportId: string,
+  withReviewData = false,
 ): Promise<ReportRow | null> {
+  const reviewColumns = withReviewData
+    ? ',data_revision,variant,spreadsheet_path,extracted_data,operator_overrides'
+    : '';
   const { data } = await supabase
     .from('reports')
     .select(
-      'id,status,spec_id,working_docx_path,working_docx_revision,working_docx_generation,photo_assignment_revision',
+      `id,status,spec_id,working_docx_path,working_docx_revision,working_docx_generation,photo_assignment_revision${reviewColumns}`,
     )
     .eq('id', reportId)
     .is('deleted_at', null)
@@ -309,7 +325,7 @@ export async function advance(
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
 
-  const report = await loadReport(supabase, reportId);
+  const report = await loadReport(supabase, reportId, true);
   if (!report) return { error: 'Relatório não encontrado.' };
   if (report.status !== 'in_review') {
     return { error: 'O relatório não está em revisão.' };
@@ -317,6 +333,17 @@ export async function advance(
 
   const spec = await loadSpec(supabase, report.spec_id);
   if (!spec) return { error: 'Spec não encontrado.' };
+  if (spec.report_type === 'draft_survey') {
+    const variant = report.variant ?? null;
+    const extracted = await loadDraftSurveySourceData(
+      reportId, report.spreadsheet_path, spec, report.extracted_data,
+    );
+    const data = resolveReportData(
+      spec, variant, extracted, report.operator_overrides ?? {},
+    );
+    const [issue] = validateDraftSurveyIntermediate(data, spec, variant);
+    if (issue) return { error: `Volte à revisão dos dados. ${issue.message}` };
+  }
   const slots = spec.photo_slots ?? [];
 
   // Só permite montar o Word quando as fotos que entrarão nele já estiverem
@@ -453,6 +480,7 @@ export async function advance(
   try {
     await transition(supabase, reportId, 'in_review', 'editing', user.id, {
       expectedPhotoRevision: report.photo_assignment_revision,
+      ...(spec.report_type === 'draft_survey' && { expectedDataRevision: report.data_revision }),
     });
   } catch (err) {
     return {

@@ -23,6 +23,7 @@ import {
   formatDraftSurveyDate,
   formatDraftSurveyEndTimeSuffix,
   formatNumberWithDecimals,
+  hasDraftSurveyIntermediate,
   type FieldValue,
   type NumberFormatMap,
 } from '@naabsa/core';
@@ -142,7 +143,7 @@ export async function buildReportDocxLegacy(input: DocxInput): Promise<Buffer> {
     return `${signed ? (value >= 0 ? '+ ' : '- ') : ''}${number}${suffix}`;
   };
   const V = VARIANT[input.variant];
-  const hasInter = data['intermediate_date'] != null;
+  const hasInter = hasDraftSurveyIntermediate(data);
 
   // Numeração de seções. Photographic Report não é mais seção própria: cada fase
   // (Initial/Intermediate/Final) ganha um subitem "Photographic Report" no fim

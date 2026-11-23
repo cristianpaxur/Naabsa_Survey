@@ -44,6 +44,7 @@ it.each([
       terminal: 'TEG',
       initial_date: '2026-10-26', initial_start: '23:20', initial_end: '02:00',
       intermediate_date: '2026-10-31', intermediate_start: '22:30', intermediate_end: '00:00',
+      intermediate_cargo_quantity: 60000,
       final_date: '2026-12-31', final_start: '23:00', final_end: '01:30',
     },
     variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
@@ -164,7 +165,7 @@ describe('buildReportDocxFromTemplate', () => {
 
   it('mantém ocultas as bordas das três tabelas Draft readings', async () => {
     const docx = await buildReportDocxFromTemplate({
-      data: { intermediate_date: '2026-08-15' },
+      data: { intermediate_date: '2026-08-15', intermediate_cargo_quantity: 60000 },
       variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
     });
     const xml = new PizZip(docx).file('word/document.xml')!.asText();
@@ -179,7 +180,7 @@ describe('buildReportDocxFromTemplate', () => {
 
   it('renders image paragraphs as valid sibling paragraphs for Collabora', async () => {
     const docx = await buildReportDocxFromTemplate({
-      data: { intermediate_date: '2026-09-14' },
+      data: { intermediate_date: '2026-09-14', intermediate_cargo_quantity: 60000 },
       variant: 'loading',
       logo: null,
       coverPhoto: PNG,
@@ -327,7 +328,7 @@ describe('buildReportDocxFromTemplate', () => {
 
   it('uses at most two photo columns and preserves the single-photo layout', async () => {
     const docx = await buildReportDocxFromTemplate({
-      data: { intermediate_date: '2026-09-14' },
+      data: { intermediate_date: '2026-09-14', intermediate_cargo_quantity: 60000 },
       variant: 'loading',
       logo: null,
       coverPhoto: PNG,

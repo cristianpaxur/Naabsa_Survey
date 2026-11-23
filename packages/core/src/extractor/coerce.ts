@@ -157,7 +157,7 @@ export function excelSerialToISO(serial: number, date1904 = false): string {
   return dateToISO(new Date(ms));
 }
 
-function parseDateString(s: string): string | null {
+export function parseDateString(s: string): string | null {
   const english =
     /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})$/i.exec(
       s,

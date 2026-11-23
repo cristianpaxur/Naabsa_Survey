@@ -251,11 +251,11 @@ describe('buildDraftSurvey — CA-001', () => {
     expect(json).not.toContain('loaded in');
   });
 
-  it('Intermediate não aparece quando intermediate_date ausente', () => {
+  it('omite o intermediário quando O19 está vazio mesmo com data preenchida', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
-      data: { ...baseData, intermediate_date: null },
+      data: { ...baseData, intermediate_date: '24/Jun/2026', intermediate_cargo_quantity: null },
       tables: {},
       photos: [],
     };
@@ -264,13 +264,14 @@ describe('buildDraftSurvey — CA-001', () => {
     expect(json).not.toContain('photos_intermediate');
   });
 
-  it('Intermediate aparece quando intermediate_date presente', () => {
+  it('mantém o intermediário quando há carga na extração antiga', () => {
     const input: BuilderInput = {
       spec,
       variant: 'discharge',
       data: {
         ...baseData,
         intermediate_date: '24/Jun/2026',
+        int_fig_naabsa: 60000,
         intermediate_start: '11:00',
         intermediate_end: '13:00',
         int_fwd_mean: 4.65,

@@ -5,7 +5,7 @@ import { buildReportDocxMsc } from './buildDocxMsc';
 
 const draft = (intermediate: boolean) =>
   buildReportDocx({
-    data: intermediate ? { intermediate_date: '2026-11-23' } : {},
+    data: { intermediate_date: '2026-11-23', intermediate_cargo_quantity: intermediate ? 60000 : 0 },
     variant: 'loading',
     logo: null,
     sheetImages: {},

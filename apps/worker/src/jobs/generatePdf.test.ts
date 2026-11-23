@@ -207,13 +207,16 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
     expect(built.data['initial_end']).toBe('10:20');
   });
 
-  it('atualiza o horário extraído antigo e renderiza novos prints a partir da planilha original', async () => {
-    const spreadsheet = readFileSync(
-      new URL(
+  it('omite o print intermediário com O19 inválido em um relatório já extraído', async () => {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(fileURLToPath(new URL(
         '../../../../tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx',
         import.meta.url,
-      ),
-    );
+    )));
+    workbook.getWorksheet('Intermediario')!.getCell('O19').value = {
+      formula: '1/0', result: { error: '#DIV/0!' },
+    };
+    const spreadsheet = Buffer.from(await workbook.xlsx.writeBuffer());
     const spec = JSON.parse(
       readFileSync(
         new URL(
@@ -254,6 +257,8 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
         initial_date: '2026-02-08',
         initial_start: '07:55',
         initial_end: '08:50',
+        intermediate_date: '2026-02-01',
+        int_fig_naabsa: 59852.754,
       },
       operator_overrides: {},
       extracted_number_formats: {},
@@ -299,11 +304,14 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
 
     expect(built.data['initial_start']).toBe('07:55');
     expect(built.data['initial_end']).toBe('10:00');
+    expect(built.data['intermediate_cargo_quantity']).toBeNull();
+    expect(visibleText(new PizZip(built.docx).file('word/document.xml')!.asText())).not.toContain('Intermediate');
     expect(render.mock.calls.map(([, sheet]) => sheet)).toEqual([
       'Inicial',
       'final',
     ]);
     const requestedPaths = download.mock.calls.map(([path]) => path);
+    expect(requestedPaths).not.toContain('r1/sheets/intermediate-v2.png');
     for (const path of oldImages) expect(requestedPaths).not.toContain(path);
     expect(upload.mock.calls).toEqual([
       [

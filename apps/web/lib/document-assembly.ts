@@ -3,7 +3,7 @@ import ExcelJS from 'exceljs';
 import {
   buildDraftSurvey,
   collectFields,
-  resolveFieldValue,
+  resolveReportData,
   resolveDisplayDecimals,
   runExtraction,
   DRAFT_SURVEY_SHEET_PHASES,
@@ -31,20 +31,6 @@ import { createServiceClient } from '@/lib/supabase/service';
 const BUILDERS: Record<string, (input: BuilderInput) => TipTapDoc> = {
   draft_survey: buildDraftSurvey,
 };
-
-/** Resolve os valores efetivos (flat) de todos os campos do spec/variante. */
-function effectiveData(
-  spec: ReportSpec,
-  variant: string | null,
-  extracted: Record<string, FieldValue>,
-  overrides: Record<string, FieldValue> | null,
-): Record<string, FieldValue> {
-  const out: Record<string, FieldValue> = {};
-  for (const [name] of collectFields(spec, variant)) {
-    out[name] = resolveFieldValue(name, overrides ?? {}, extracted);
-  }
-  return out;
-}
 
 interface AllocatedPhotoRow {
   id: string;
@@ -161,11 +147,11 @@ export async function assembleDocument(
     );
   }
 
-  const data = effectiveData(
+  const data = resolveReportData(
     input.spec,
     input.variant,
     input.extracted,
-    input.overrides,
+    input.overrides ?? {},
   );
   const photos = await loadAllocatedPhotos(supabase, reportId);
   const numberFormats: NumberFormatMap = {};

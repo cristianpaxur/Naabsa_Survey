@@ -16,6 +16,11 @@ import type {
   CompareOp,
 } from '../types';
 import { collectFields } from './extract';
+import { parseDateString } from './coerce';
+import {
+  hasDraftSurveyIntermediate,
+  isDraftSurveyIntermediateField,
+} from '../draft-survey-intermediate';
 import { isCalculatedDifferenceField } from '../review-policy';
 
 const MSC_SOURCE_REVIEW_FIELDS = new Set([
@@ -30,9 +35,11 @@ export function validate(
   spec: ReportSpec,
   variant: string | null,
 ): Issue[] {
-  const issues: Issue[] = [];
-  const fields = collectFields(spec, variant);
+  const issues = validateDraftSurveyIntermediate(data, spec, variant);
+  const fields = collectFields(spec, variant, data);
   const cellOf = new Map<string, string>(fields.map(([n, f]) => [n, f.cell]));
+  const skipIntermediate =
+    spec.report_type === 'draft_survey' && !hasDraftSurveyIntermediate(data);
 
   for (const [name, field] of fields) {
     if (isCalculatedDifferenceField(name)) continue;
@@ -63,10 +70,66 @@ export function validate(
   for (const rule of spec.validations ?? []) {
     const target = rule.rule === 'range' ? rule.field : rule.left;
     if (isCalculatedDifferenceField(target)) continue;
+    if (
+      skipIntermediate &&
+      (isDraftSurveyIntermediateField(target) ||
+        (rule.rule === 'compare' && isDraftSurveyIntermediateField(rule.right)))
+    ) continue;
     const issue = validateRule(rule, data, cellOf);
     if (issue) issues.push(issue);
   }
   return issues;
+}
+
+export function validateDraftSurveyIntermediate(
+  data: Record<string, FieldValue>,
+  spec: ReportSpec,
+  variant: string | null,
+): Issue[] {
+  if (spec.report_type !== 'draft_survey' || !hasDraftSurveyIntermediate(data)) {
+    return [];
+  }
+
+  const issues: Issue[] = [];
+  const cells = new Map(
+    collectFields(spec, variant).map(([name, field]) => [name, field.cell]),
+  );
+  const dateCell = cells.get('intermediate_date');
+  if (dateCell) {
+    const intermediate = reviewDate(data['intermediate_date']);
+    const initial = reviewDate(data['initial_date']);
+    const final = reviewDate(data['final_date']);
+    if (!intermediate) {
+      issues.push(mk(
+        'intermediate_date', dateCell, 'error', 'Informe uma data intermediária válida.',
+      ));
+    } else if ((initial && intermediate < initial) || (final && intermediate > final)) {
+      issues.push(mk(
+        'intermediate_date', dateCell, 'error',
+        'A data intermediária deve estar entre as datas inicial e final.',
+      ));
+    }
+  }
+
+  const drafts = ['int_fwd_mean', 'int_mid_mean', 'int_aft_mean'];
+  const firstDraft = drafts.find((name) => cells.has(name));
+  const hasDraftReadings = drafts.some((name) => {
+    const value = data[name];
+    return cells.has(name) && typeof value === 'number' && Number.isFinite(value) && value > 0;
+  });
+  if (firstDraft && !hasDraftReadings) {
+    issues.push(mk(
+      firstDraft,
+      cells.get(firstDraft) ?? null,
+      'error',
+      'Os calados intermediários estão zerados ou vazios. Confira as leituras da vistoria intermediária.',
+    ));
+  }
+  return issues;
+}
+
+function reviewDate(value: FieldValue | undefined): string | null {
+  return typeof value === 'string' ? parseDateString(value.trim()) : null;
 }
 
 function mk(

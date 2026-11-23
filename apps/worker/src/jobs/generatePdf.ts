@@ -17,13 +17,17 @@ import sharp from 'sharp';
 import {
   runExtraction,
   collectFields,
-  resolveFieldValue,
+  resolveReportData,
   resolveDisplayDecimals,
   resolveVariant,
   normalizeCell,
   coerceField,
   DRAFT_SURVEY_SHEET_PHASES,
+  DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD,
   draftSurveySheetImagePath,
+  hasDraftSurveyIntermediate,
+  isDraftSurveyIntermediateField,
+  validateDraftSurveyIntermediate,
   type DraftSurveySheetPhase as SheetPhase,
   type ReportSpec,
   type FieldValue,
@@ -90,20 +94,6 @@ async function fetchLogo(): Promise<Buffer | null> {
     logoCache = null;
   }
   return logoCache;
-}
-
-/** Valores efetivos (extracted + overrides) — espelha apps/web/lib/document-assembly.ts. */
-function effectiveData(
-  spec: ReportSpec,
-  variant: string | null,
-  extracted: Record<string, FieldValue>,
-  overrides: Record<string, FieldValue> | null,
-): Record<string, FieldValue> {
-  const out: Record<string, FieldValue> = {};
-  for (const [name] of collectFields(spec, variant)) {
-    out[name] = resolveFieldValue(name, overrides ?? {}, extracted);
-  }
-  return out;
 }
 
 const toStr = (m: unknown): string[][] =>
@@ -313,14 +303,23 @@ export async function buildWorkingDocx(
     FieldValue
   >;
   const currentExtraction = wb ? runExtraction(wb, spec, variant) : null;
-  // Additive MSC spec repairs introduce fields absent from older extractions.
-  // Fill only missing keys from the original workbook; persisted values,
-  // explicit clears and operator overrides keep their priority.
+  const legacyDraftSurvey =
+    row.type_slug === 'draft_survey' &&
+    !Object.hasOwn(extracted, DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD) &&
+    Object.hasOwn(currentExtraction?.data ?? {}, DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD);
+  // Campos ausentes das extrações antigas podem ser recuperados da planilha.
   const assemblyExtracted =
-    row.type_slug === 'msc'
+    row.type_slug === 'msc' || legacyDraftSurvey
       ? { ...currentExtraction?.data, ...extracted }
       : extracted;
-  const data = effectiveData(spec, variant, assemblyExtracted, overrides);
+  const data = resolveReportData(spec, variant, assemblyExtracted, overrides);
+  const hasIntermediate = hasDraftSurveyIntermediate(data);
+  if (row.type_slug === 'draft_survey') {
+    const intermediateIssues = validateDraftSurveyIntermediate(data, spec, variant);
+    if (intermediateIssues.length > 0) {
+      throw new Error(intermediateIssues.map((issue) => issue.message).join(' '));
+    }
+  }
   // Older MSC extractions read English text like "24,158.9" as 24.1589.
   // Repair only that provable parsing artifact from the same original cell;
   // saved operator values/clears and unrelated persisted values stay authoritative.
@@ -363,6 +362,7 @@ export async function buildWorkingDocx(
       ['final_end', 'final', 'H5'],
     ] as const;
     for (const [name, sheet, cell] of sources) {
+      if (!hasIntermediate && isDraftSurveyIntermediateField(name)) continue;
       if (Object.hasOwn(overrides, name)) continue;
       const raw = normalizeCell(
         wb.getWorksheet(sheet)?.getCell(cell).value ?? null,
@@ -553,7 +553,9 @@ export async function buildWorkingDocx(
     final: Buffer | null;
   } = {
     initial: await download(svc, sheetImagePath('initial')),
-    intermediate: await download(svc, sheetImagePath('intermediate')),
+    intermediate: hasIntermediate
+      ? await download(svc, sheetImagePath('intermediate'))
+      : null,
     final: await download(svc, sheetImagePath('final')),
   };
   // Baixa a planilha uma vez para usar em qualquer render sob demanda.
@@ -578,8 +580,6 @@ export async function buildWorkingDocx(
       final: t('fin_draft_marks'),
     };
   }
-  const hasIntermediate =
-    data['intermediate_date'] != null && data['intermediate_date'] !== '';
   for (const phase of DRAFT_SURVEY_SHEET_PHASES) {
     if (sheetImages[phase]) continue; // já existe
     if (phase === 'intermediate' && !hasIntermediate) continue; // fase ausente
@@ -628,6 +628,7 @@ export async function buildWorkingDocx(
     crop: Crop | null;
   }[]) {
     if (!r.slot_id || !r.processed_path) continue;
+    if (r.slot_id === 'photos_intermediate' && !hasIntermediate) continue;
     const buf = await download(svc, r.processed_path);
     if (buf) (bySlot[r.slot_id] ??= []).push(await applyCrop(buf, r.crop));
   }

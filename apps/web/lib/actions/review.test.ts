@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getReviewStatus, setOverride, retryAiReview } from './review';
+import ExcelJS from 'exceljs';
+import { confirmData, getReviewStatus, setOverride, retryAiReview } from './review';
+import draftSurveySpec from '../../../../tests/fixtures/specs/draft_survey.v1.json';
 
 const memory = vi.hoisted(() => ({ user: true, row: {} as Record<string, any>, concurrent: false }));
 const request = vi.hoisted(() => vi.fn(async () => {}));
 const auditLog = vi.hoisted(() => vi.fn(async () => {}));
+const download = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/request-ai-review', () => ({ requestAiReview: request }));
 vi.mock('@/lib/audit', () => ({ audit: auditLog }));
+vi.mock('@/lib/supabase/service', () => ({
+  createServiceClient: () => ({ storage: { from: () => ({ download }) } }),
+}));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: memory.user ? { id: 'u1' } : null } }) },
   from: () => {
@@ -30,6 +36,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({
 }) }));
 beforeEach(() => {
   memory.user = true; memory.concurrent = false; request.mockClear(); auditLog.mockClear();
+  download.mockReset();
   memory.row = { id: 'r1', status: 'in_review', variant: null, data_revision: 2, extracted_data: { imo: '111', vessel: 'Alpha' }, operator_overrides: {},
     extracted_number_formats: { summer_dwt: 2 }, operator_number_formats: {},
     extraction_issues: [{ field: 'imo', origin: 'ai', level: 'warning', cell: 'C17', message: 'IMO suspeito' }],
@@ -41,6 +48,52 @@ beforeEach(() => {
   };
 });
 describe('revisão integrada nas server actions', () => {
+  it('consulta O19 na planilha de um relatório antigo com o espelho C38 desatualizado', async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.addWorksheet('Intermediario').getCell('O19').value = {
+      formula: '1/0', result: { error: '#DIV/0!' },
+    };
+    const spreadsheet = await workbook.xlsx.writeBuffer();
+    download.mockResolvedValue({ data: { arrayBuffer: async () => spreadsheet }, error: null });
+    memory.row.report_specs.spec = draftSurveySpec;
+    memory.row.spreadsheet_path = 'r1/spreadsheet.xlsx';
+    memory.row.extracted_data = {
+      vessel_name: 'MV Alpha', port: 'Santos', cargo: 'Grãos',
+      initial_date: '2026-07-28', intermediate_date: '2026-07-27', final_date: '2026-07-30',
+      int_fig_naabsa: 60000,
+      int_fwd_mean: 0, int_mid_mean: 0, int_aft_mean: 0,
+    };
+    memory.row.extraction_issues = [
+      { field: 'intermediate_date', cell: 'C5', level: 'warning', origin: 'ai', message: 'Data anterior à inicial' },
+    ];
+    memory.row.ai_review = null;
+
+    expect(await getReviewStatus('r1')).toMatchObject({ issues: [] });
+    expect(download).toHaveBeenCalledWith('r1/spreadsheet.xlsx');
+    expect(await confirmData('r1')).toEqual({ ok: true });
+  });
+
+  it('bloqueia cronologia inválida com carga intermediária mesmo com a IA desativada', async () => {
+    memory.row.report_specs.spec = draftSurveySpec;
+    memory.row.extracted_data = {
+      vessel_name: 'MV Alpha', port: 'Santos', cargo: 'Grãos',
+      initial_date: '2026-07-28', intermediate_date: '2026-07-27', final_date: '2026-07-30',
+      intermediate_cargo_quantity: 60000,
+      int_fwd_mean: 10, int_mid_mean: 11, int_aft_mean: 12,
+    };
+    memory.row.extraction_issues = [];
+    memory.row.ai_review = { status: 'disabled' };
+
+    expect(await getReviewStatus('r1')).toMatchObject({
+      issues: [expect.objectContaining({ field: 'intermediate_date', level: 'error' })],
+    });
+    expect(await confirmData('r1')).toHaveProperty('error');
+    expect(auditLog).not.toHaveBeenCalled();
+
+    expect(await setOverride('r1', 'intermediate_date', '2026-07-28')).toMatchObject({ issues: [] });
+    expect(await confirmData('r1')).toEqual({ ok: true });
+  });
+
   it('salvar somente precisão invalida aviso dependente sem perder dígitos do valor', async () => {
     memory.row.extracted_data.summer_dwt = 81.2345;
     memory.row.ai_review = {

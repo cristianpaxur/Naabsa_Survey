@@ -92,6 +92,44 @@ describe('CA-007b — extração limpa da planilha real Draft Survey', () => {
     }
   });
 
+  it.each<ExcelJS.CellValue>([
+    null,
+    { formula: '1-1', result: 0 },
+    { formula: '1/0', result: { error: '#DIV/0!' } },
+  ])('ignora data, figures e tabelas intermediárias quando O19 é %j', async (cargo) => {
+    const source = new ExcelJS.Workbook();
+    await source.xlsx.readFile(xlsxPath);
+    const intermediate = source.getWorksheet('Intermediario')!;
+    intermediate.getCell('O19').value = cargo;
+    intermediate.getCell('C5').value = new Date('2026-02-01');
+    // A aba DS INTERMEDIATE mantém os caches antigos em C37 e C38.
+    const result = runExtraction(source, spec.spec);
+    expect(result.data.intermediate_date).toBeNull();
+    expect(result.data.int_fig_shore_scale).toBeNull();
+    expect(result.data.int_fig_naabsa).toBeNull();
+    expect(result.tables).not.toHaveProperty('int_draft_marks');
+    expect(result.tables).toHaveProperty('fin_draft_marks');
+    expect(result.issues).toHaveLength(0);
+  });
+
+  it('bloqueia data fora da sequência e calados zerados quando O19 tem carga', async () => {
+    const source = new ExcelJS.Workbook();
+    await source.xlsx.readFile(xlsxPath);
+    const intermediate = source.getWorksheet('Intermediario')!;
+    intermediate.getCell('C5').value = new Date('2026-02-01');
+    for (const [mean, corrected] of [['D9', 'H9'], ['D10', 'H10'], ['D11', 'H11']]) {
+      intermediate.getCell(mean!).value = 0;
+      intermediate.getCell(corrected!).value = 0;
+    }
+
+    const result = runExtraction(source, spec.spec);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'intermediate_date', cell: 'C5', level: 'error', origin: 'validation' }),
+      expect.objectContaining({ field: 'int_fwd_mean', cell: 'D9', level: 'error', origin: 'validation' }),
+    ]));
+    expect(result.tables).toHaveProperty('int_draft_marks');
+  });
+
   it('tabelas range-based têm pelo menos uma linha não-nula (ranges confirmados)', () => {
     const { tables } = runExtraction(workbook, spec.spec);
     const tableIds = Object.keys(tables);

@@ -20,6 +20,14 @@ import type {
   NumberFormatMap,
 } from '../types';
 import { inferExcelDisplayDecimals } from '../number-format';
+import {
+  DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD,
+  draftSurveyIntermediateCargo,
+  draftSurveyIntermediateCargoSource,
+  hasDraftSurveyIntermediate,
+  isDraftSurveyIntermediateField,
+} from '../draft-survey-intermediate';
+import { resolveFieldValue } from '../resolveFieldValue';
 import { coerceField, type RawCellValue } from './coerce';
 
 export function extract(
@@ -58,13 +66,21 @@ export function extract(
     return { data, numberFormats, tables: {}, issues };
   }
 
-  const fields = collectFields(spec, variant);
+  const cargo = readDraftSurveyIntermediateCargo(workbook, spec);
+  if (cargo !== undefined) data[DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD] = cargo;
+  const skipIntermediate = cargo !== undefined && !hasDraftSurveyIntermediate(data);
+  const activeFields: [string, FieldDef][] = [];
 
   // Todas as abas necessárias devem existir (RF-08 multi-aba). Uma aba só pode
   // faltar quando todos os seus campos são opcionais e todas as tabelas nela
   // definidas também são opcionais — caso da fase Intermediate do Draft Survey.
   const needed = new Set<string>();
-  for (const [name, field] of fields) {
+  for (const [name, field] of collectFields(spec, variant)) {
+    if (skipIntermediate && isDraftSurveyIntermediateField(name)) {
+      data[name] = null;
+      continue;
+    }
+    activeFields.push([name, field]);
     const s = sheetOf(field.sheet, spec);
     if (!s) {
       issues.push(sheetIssue(`Campo '${name}' sem aba (defina sheet).`));
@@ -75,7 +91,7 @@ export function extract(
   if (issues.length > 0) return { data, numberFormats, tables: {}, issues };
   const missing = [...needed].filter((s) => !workbook.getWorksheet(s));
   const optionalMissing = new Set(
-    missing.filter((sheet) => isOptionalSheet(sheet, fields, spec)),
+    missing.filter((sheet) => isOptionalSheet(sheet, activeFields, spec)),
   );
   const blockingMissing = missing.filter(
     (sheet) => !optionalMissing.has(sheet),
@@ -89,7 +105,7 @@ export function extract(
 
   const date1904 = Boolean(workbook.properties?.date1904);
 
-  for (const [name, field] of fields) {
+  for (const [name, field] of activeFields) {
     const sheet = sheetOf(field.sheet, spec) as string;
     const ws = workbook.getWorksheet(sheet);
     if (!ws) {
@@ -130,13 +146,25 @@ export function extract(
   }
 
   // Tabelas range-based (v2) — erros não bloqueiam os campos já extraídos.
-  const { tables, issues: tableIssues } = extractTables(workbook, spec);
+  const { tables, issues: tableIssues } = extractTables(workbook, spec, skipIntermediate);
   return {
     data,
     numberFormats,
     tables,
     issues: [...issues, ...tableIssues],
   };
+}
+
+/** undefined indica spec sem fase intermediária. null indica O19 sem quantidade válida. */
+export function readDraftSurveyIntermediateCargo(
+  workbook: ExcelJS.Workbook,
+  spec: ReportSpec,
+): number | null | undefined {
+  const source = draftSurveyIntermediateCargoSource(spec);
+  if (!source) return undefined;
+  const cell = workbook.getWorksheet(source.sheet)?.getCell(source.cell);
+  const cargo = cell ? normalizeWorksheetCell(cell) : null;
+  return typeof cargo === 'number' && Number.isFinite(cargo) ? cargo : null;
 }
 
 function resolveSourceCell(
@@ -237,6 +265,7 @@ export function resolveVariant(
 export function collectFields(
   spec: ReportSpec,
   variant: string | null,
+  data?: Record<string, FieldValue>,
 ): [string, FieldDef][] {
   const entries: [string, FieldDef][] = Object.entries(
     spec.source.common.fields,
@@ -245,7 +274,26 @@ export function collectFields(
     const block = spec.source.by_variant?.[variant];
     if (block) entries.push(...Object.entries(block.fields));
   }
-  return entries;
+  return spec.report_type === 'draft_survey' && data && !hasDraftSurveyIntermediate(data)
+    ? entries.filter(([name]) => !isDraftSurveyIntermediateField(name))
+    : entries;
+}
+
+/** Aplica overrides aos campos ativos e preserva a presença da fase da planilha. */
+export function resolveReportData(
+  spec: ReportSpec,
+  variant: string | null,
+  extracted: Record<string, FieldValue>,
+  overrides: Record<string, FieldValue> = {},
+): Record<string, FieldValue> {
+  const data: Record<string, FieldValue> = {};
+  for (const [name] of collectFields(spec, variant, extracted)) {
+    data[name] = resolveFieldValue(name, overrides, extracted);
+  }
+  if (draftSurveyIntermediateCargoSource(spec)) {
+    data[DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD] = draftSurveyIntermediateCargo(extracted);
+  }
+  return data;
 }
 
 /**
@@ -280,11 +328,13 @@ function isOptionalSheet(
 function extractTables(
   workbook: ExcelJS.Workbook,
   spec: ReportSpec,
+  skipIntermediate: boolean,
 ): { tables: Record<string, FieldValue[][]>; issues: Issue[] } {
   const tables: Record<string, FieldValue[][]> = {};
   const issues: Issue[] = [];
 
   for (const tableDef of spec.source.tables ?? []) {
+    if (skipIntermediate && tableDef.phase === 'intermediate') continue;
     const ws = workbook.getWorksheet(tableDef.sheet);
     if (!ws) {
       if (!tableDef.optional) {

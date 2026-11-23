@@ -13,10 +13,11 @@ import { audit } from '@/lib/audit';
 import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
 import { requestAiReview } from '@/lib/request-ai-review';
 import { resolveEffectiveNumberFormats } from '@/lib/effective-values';
+import { loadDraftSurveySourceData } from '@/lib/draft-survey-source';
 import { resolveDisplayDecimals, type NumberFormatMap } from '@naabsa/core/number-format';
 import {
   validate,
-  resolveFieldValue,
+  resolveReportData,
   collectFields,
   type Issue,
   type ReportSpec,
@@ -44,7 +45,7 @@ interface ReportRow {
   id: string;
   status: string;
   variant: string | null;
-  extracted_data: Record<string, FieldValue> | null;
+  extracted_data: Record<string, FieldValue>;
   operator_overrides: Record<string, FieldValue> | null;
   extracted_number_formats: NumberFormatMap | null;
   operator_number_formats: NumberFormatMap | null;
@@ -61,7 +62,7 @@ async function fetchReport(
   const { data } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, spreadsheet_path, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', reportId)
     .single();
@@ -73,6 +74,7 @@ async function fetchReport(
     id: string;
     status: string;
     variant: string | null;
+    spreadsheet_path: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
     extracted_number_formats: NumberFormatMap | null;
@@ -96,7 +98,7 @@ async function fetchReport(
     id: raw.id,
     status: raw.status,
     variant: raw.variant,
-    extracted_data: raw.extracted_data,
+    extracted_data: await loadDraftSurveySourceData(raw.id, raw.spreadsheet_path, spec, raw.extracted_data),
     operator_overrides: raw.operator_overrides,
     extracted_number_formats: raw.extracted_number_formats,
     operator_number_formats: raw.operator_number_formats,
@@ -105,21 +107,6 @@ async function fetchReport(
     data_revision: raw.data_revision,
     spec,
   };
-}
-
-/** Resolve valores efetivos com overrides aplicados (RF-13). */
-function effectiveData(
-  spec: ReportSpec,
-  variant: string | null,
-  extracted: Record<string, FieldValue>,
-  overrides: Record<string, FieldValue>,
-): Record<string, FieldValue> {
-  const fields = collectFields(spec, variant);
-  const result: Record<string, FieldValue> = {};
-  for (const [name] of fields) {
-    result[name] = resolveFieldValue(name, overrides, extracted);
-  }
-  return result;
 }
 
 // ── setOverride ─────────────────────────────────────────────────────────────
@@ -151,12 +138,12 @@ export async function setOverride(
 
   const currentOverrides = report.operator_overrides ?? {};
   const previousValue = currentOverrides[field] ?? null;
+  const extracted = report.extracted_data;
 
-  // Verificar se o campo existe no spec
-  const fields = collectFields(report.spec, report.variant);
+  const fields = collectFields(report.spec, report.variant, extracted);
   const fieldDef = fields.find(([name]) => name === field);
   if (!fieldDef) {
-    return { error: `Campo '${field}' não encontrado no spec.` };
+    return { error: `Campo '${field}' indisponível para revisão.` };
   }
   if (decimals !== undefined && (fieldDef[1].type !== 'number' || !Number.isInteger(decimals) || decimals < 0 || decimals > 100)) {
     return { error: 'As casas decimais devem ser um inteiro de 0 a 100 e só podem ser definidas para campos numéricos.' };
@@ -202,8 +189,7 @@ export async function setOverride(
   });
 
   // Revalidar com valores efetivos
-  const extracted = report.extracted_data ?? {};
-  const effective = effectiveData(
+  const effective = resolveReportData(
     report.spec,
     report.variant,
     extracted,
@@ -232,8 +218,8 @@ export async function getReviewStatus(reportId: string): Promise<SetOverrideResu
   if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
   const report = await fetchReport(supabase, reportId);
   if (!report) return { error: 'Não foi possível atualizar a revisão.' };
-  const extracted = report.extracted_data ?? {};
-  const effective = effectiveData(report.spec, report.variant, extracted, report.operator_overrides ?? {});
+  const extracted = report.extracted_data;
+  const effective = resolveReportData(report.spec, report.variant, extracted, report.operator_overrides ?? {});
   const numberFormats = resolveEffectiveNumberFormats(
     report.spec, report.variant, report.extracted_number_formats ?? {},
     report.operator_number_formats ?? {}, report.operator_overrides ?? {},
@@ -278,9 +264,9 @@ export async function confirmData(
   }
 
   // Defesa server-side: revalida com valores efetivos
-  const extracted = report.extracted_data ?? {};
+  const extracted = report.extracted_data;
   const overrides = report.operator_overrides ?? {};
-  const effective = effectiveData(
+  const effective = resolveReportData(
     report.spec,
     report.variant,
     extracted,
