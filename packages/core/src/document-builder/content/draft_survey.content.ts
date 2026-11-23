@@ -26,6 +26,7 @@ import {
   sheetImage,
 } from '../nodes';
 import type { BuilderInput } from '../types';
+import { formatDraftSurveyDate, formatDraftSurveyEndTimeSuffix } from '../draft-survey-dates';
 import type { FieldValue } from '../../types';
 import { formatNumberWithDecimals } from '../../number-format';
 
@@ -53,29 +54,6 @@ function fmtMt(v: FieldValue | undefined): string {
   if (typeof v === 'number' && Number.isFinite(v)) return `${fmtThousands(v, 3)} MT`;
   if (typeof v === 'number') return '—';
   return v == null ? '—' : String(v);
-}
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-function ordinal(d: number): string {
-  if (d === 1 || d === 21 || d === 31) return 'st';
-  if (d === 2 || d === 22) return 'nd';
-  if (d === 3 || d === 23) return 'rd';
-  return 'th';
-}
-
-/** ISO 'YYYY-MM-DD' → inglês 'Month Dth, YYYY' (determinístico, sem locale). */
-function fmtDate(v: FieldValue | undefined, fallback = '—'): string {
-  if (v === null || v === undefined) return fallback;
-  const s = String(v);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) return s;
-  const year = +m[1]!, month = +m[2]!, day = +m[3]!;
-  if (month < 1 || month > 12) return s;
-  return `${MONTHS[month - 1]} ${day}${ordinal(day)}, ${year}`;
 }
 
 /** Hora "08:00" → "08:00h". */
@@ -259,7 +237,7 @@ export function buildDraftSurveyContent(
         text('at '),
         text(fmtVal(data['port']), [dataField('port')]),
         text(' Port/Brazil – '),
-        text(fmtDate(data['final_date']), [dataField('final_date')]),
+        text(formatDraftSurveyDate(data['final_date']), [dataField('final_date')]),
       ],
       'center',
     ),
@@ -399,30 +377,34 @@ export function buildDraftSurveyContent(
 
   function phaseNarrative(p: PhaseCfg): TipTapNode {
     const parties = partiesPhrase(p);
+    const phaseDate = data[p.dateField];
+    const startTime = data[p.startField];
+    const endTime = data[p.endField];
+    const endTimeSuffix = formatDraftSurveyEndTimeSuffix(phaseDate, startTime, endTime);
     if (p.key === 'initial') {
       return paragraph([
         text(`The ${p.key} Draft Survey was carried out on `),
-        text(fmtDate(data[p.dateField]), [dataField(p.dateField)]),
+        text(formatDraftSurveyDate(phaseDate), [dataField(p.dateField)]),
         text(', upon berthing at '),
         text(fmtVal(data['terminal']), [dataField('terminal')]),
         text(' Terminal, shed '),
         text(fmtVal(data['shed']), [dataField('shed')]),
         text(' from '),
-        text(fmtTime(data[p.startField]), [dataField(p.startField)]),
+        text(fmtTime(startTime), [dataField(p.startField)]),
         text(' up to '),
-        text(fmtTime(data[p.endField]), [dataField(p.endField)]),
-        text(` local time jointly with ship's command${parties} and the undersigned surveyor.`),
+        text(fmtTime(endTime), [dataField(p.endField)]),
+        text(`${endTimeSuffix} jointly with ship's command${parties} and the undersigned surveyor.`),
       ]);
     }
     return paragraph([
       text(`The ${p.key} Draft Survey was carried out on `),
-      text(fmtDate(data[p.dateField]), [dataField(p.dateField)]),
+      text(formatDraftSurveyDate(phaseDate), [dataField(p.dateField)]),
       text(', from '),
-      text(fmtTime(data[p.startField]), [dataField(p.startField)]),
+      text(fmtTime(startTime), [dataField(p.startField)]),
       text(' up to '),
-      text(fmtTime(data[p.endField]), [dataField(p.endField)]),
+      text(fmtTime(endTime), [dataField(p.endField)]),
       text(
-        ` local time jointly with ship's command${parties} and the undersigned surveyor to ascertain the ` +
+        `${endTimeSuffix} jointly with ship's command${parties} and the undersigned surveyor to ascertain the ` +
           `total quantity of the cargo ${V.done} being the following figures disclosed:`,
       ),
     ]);

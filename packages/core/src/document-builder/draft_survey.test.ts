@@ -95,6 +95,25 @@ const baseData: BuilderInput['data'] = {
   final_end: '16:30',
 };
 
+it.each([
+  ['2026-10-26', '23:20', '02:00', '02:00h on October 27th, 2026 (local time)'],
+  ['2026-10-26', '9:00', '12:00', '12:00h local time'],
+  ['2026-10-26', '23:20', '23:20', '23:20h local time'],
+  ['2026-10-26', '23:20', null, '— local time'],
+  ['2026-10-26', '29:20', '02:00', '02:00h local time'],
+  ['2026-02-30', '23:20', '02:00', '02:00h local time'],
+] as const)('renderiza o término da fase Initial (%s, %s → %s)', (date, start, end, expected) => {
+  const result = buildDraftSurvey({
+    spec, variant: 'loading',
+    data: { ...baseData, initial_date: date, initial_start: start, initial_end: end },
+    tables: {}, photos: [],
+  });
+  const narrative = result.content.find((node) =>
+    node.content?.[0]?.text?.startsWith('The initial Draft Survey was carried out on '),
+  );
+  expect(narrative?.content?.map((node) => node.text).join('')).toContain(`up to ${expected} jointly`);
+});
+
 describe('buildDraftSurvey — CA-001', () => {
   it('formata Delivered pelo mapa e preserva dados numéricos', () => {
     const data = { delivered: 1981 };

@@ -19,7 +19,13 @@ import {
 
 /** Entrelinha confortável (~1.15) para o texto corrido — ar entre as linhas. */
 const BODY_LINE = { line: 276, lineRule: LineRuleType.AUTO } as const;
-import { formatNumberWithDecimals, type FieldValue, type NumberFormatMap } from '@naabsa/core';
+import {
+  formatDraftSurveyDate,
+  formatDraftSurveyEndTimeSuffix,
+  formatNumberWithDecimals,
+  type FieldValue,
+  type NumberFormatMap,
+} from '@naabsa/core';
 import { buildReportDocxFromTemplate } from './buildDocxFromTemplate';
 
 const NAVY = '002060';
@@ -48,14 +54,6 @@ export interface DocxInput {
 
 // ── helpers de formatação ────────────────────────────────────────────────────
 const v = (x: FieldValue | undefined, fb = '—'): string => (x == null || x === '' ? fb : String(x));
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-function ord(d: number): string { return d === 1 || d === 21 || d === 31 ? 'st' : d === 2 || d === 22 ? 'nd' : d === 3 || d === 23 ? 'rd' : 'th'; }
-function fmtDate(x: FieldValue | undefined): string {
-  if (x == null) return '—';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(x));
-  if (!m) return String(x);
-  return `${MONTHS[+m[2]! - 1]} ${+m[3]!}${ord(+m[3]!)}, ${+m[1]!}`;
-}
 function grp(n: number, dec: number): string {
   const neg = n < 0; const f = Math.abs(n).toFixed(dec); const [i, d] = f.split('.');
   return `${neg ? '-' : ''}${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${d ? '.' + d : ''}`;
@@ -205,7 +203,7 @@ export async function buildReportDocxLegacy(input: DocxInput): Promise<Buffer> {
   body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [run('Draft Survey', { bold: true, size: 56 })] }));
   body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(`“${v(data['vessel_name'], '')}”`, { bold: true, size: 44, font: TITLE_FONT })] }));
   body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [run(`Flag ${v(data['flag'])} – IMO ${v(data['imo'])}`, { size: 22 })] }));
-  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [run(`at ${v(data['port'])} Port/Brazil – ${fmtDate(data['final_date'])}`, { size: 22 })] }));
+  body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [run(`at ${v(data['port'])} Port/Brazil – ${formatDraftSurveyDate(data['final_date'])}`, { size: 22 })] }));
   if (input.coverPhoto) body.push(img(input.coverPhoto, 150));
 
   // ── PERSON / COMPANIES CONTACTED — pertence à CAPA (página 1) ──
@@ -322,17 +320,20 @@ function personRow(label: string, lines: string[]): TableRow {
 function phaseSection(num: number, title: string, x: 'init' | 'int' | 'fin', data: Data, V: (typeof VARIANT)[keyof typeof VARIANT], image: Buffer | null | undefined, acting: string[][], phasePhotos: Buffer[], numericField: NumericField): (Paragraph | Table)[] {
   const out: (Paragraph | Table)[] = [];
   const fp = x === 'int' ? 'int' : x === 'fin' ? 'fin' : null;
-  const dateField = x === 'init' ? 'initial_date' : x === 'int' ? 'intermediate_date' : 'final_date';
-  const startF = x === 'init' ? 'initial_start' : x === 'int' ? 'intermediate_start' : 'final_start';
-  const endF = x === 'init' ? 'initial_end' : x === 'int' ? 'intermediate_end' : 'final_end';
+  const phase = x === 'init' ? 'initial' : x === 'int' ? 'intermediate' : 'final';
+  const phaseDate = data[`${phase}_date`];
+  const startTime = data[`${phase}_start`];
+  const endTime = data[`${phase}_end`];
+  const date = formatDraftSurveyDate(phaseDate);
+  const endTimeSuffix = formatDraftSurveyEndTimeSuffix(phaseDate, startTime, endTime);
   const partyRoles = acting.slice(1).map((r) => String(r[0] ?? '').trim().toLowerCase()).filter(Boolean);
   const parties = partyRoles.length ? `, ${partyRoles.join(', ')}` : '';
 
   out.push(sectionTitle(`s${num}`, `${num}. ${title}`));
   if (x === 'init') {
-    out.push(para([run(`The initial Draft Survey was carried out on ${fmtDate(data[dateField])}, upon berthing at ${v(data['terminal'])} Terminal, shed ${v(data['shed'])} from ${v(data[startF])}h up to ${v(data[endF])}h local time jointly with ship's command${parties} and the undersigned surveyor.`)], { spacing: 40 }));
+    out.push(para([run(`The initial Draft Survey was carried out on ${date}, upon berthing at ${v(data['terminal'])} Terminal, shed ${v(data['shed'])} from ${v(startTime)}h up to ${v(endTime)}h${endTimeSuffix} jointly with ship's command${parties} and the undersigned surveyor.`)], { spacing: 40 }));
   } else {
-    out.push(para([run(`The ${title.toLowerCase()} Draft Survey was carried out on ${fmtDate(data[dateField])}, from ${v(data[startF])} up to ${v(data[endF])} h local time jointly with ship's command${parties} and the undersigned surveyor to ascertain the total quantity of the cargo ${V.done} being the following figures disclosed:`)]));
+    out.push(para([run(`The ${title.toLowerCase()} Draft Survey was carried out on ${date}, from ${v(startTime)} up to ${v(endTime)} h${endTimeSuffix} jointly with ship's command${parties} and the undersigned surveyor to ascertain the total quantity of the cargo ${V.done} being the following figures disclosed:`)]));
     // figures
     if (fp) {
       out.push(leader(`${V.officialFig} figures (Official)`, numericField(`${fp}_fig_shore_scale`, 3, ' MT', true)));
