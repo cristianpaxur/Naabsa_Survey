@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import PizZip from 'pizzip';
 import sharp from 'sharp';
 import { buildReportDocxFromTemplate } from './buildDocxFromTemplate';
-import { buildReportDocxLegacy } from './buildDocx';
+import { buildReportDocx, buildReportDocxLegacy } from './buildDocx';
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==',
@@ -14,6 +14,26 @@ function documentText(docx: Buffer): string {
   return [...xml.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)]
     .map((match) => match[1]).join('\n');
 }
+
+it.each([
+  ['template', buildReportDocx],
+  ['rollback nativo', buildReportDocxLegacy],
+] as const)('mostra a data de término após a meia-noite no DOCX (%s)', async (_name, build) => {
+  const text = documentText(await build({
+    data: {
+      terminal: 'TEG',
+      initial_date: '2026-10-26', initial_start: '23:20', initial_end: '02:00',
+      intermediate_date: '2026-10-31', intermediate_start: '22:30', intermediate_end: '00:00',
+      final_date: '2026-12-31', final_start: '23:00', final_end: '01:30',
+    },
+    variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+  }));
+
+  expect(text).toContain('The initial Draft Survey was carried out on October 26th, 2026, upon berthing at TEG Terminal');
+  expect(text).toContain('from 23:20h up to 02:00h on October 27th, 2026 (local time)');
+  expect(text).toContain('The intermediate Draft Survey was carried out on October 31st, 2026, from 22:30 up to 00:00 h on November 1st, 2026 (local time)');
+  expect(text).toContain('The final Draft Survey was carried out on December 31st, 2026, from 23:00 up to 01:30 h on January 1st, 2027 (local time)');
+});
 
 describe.each([
   ['template', buildReportDocxFromTemplate],

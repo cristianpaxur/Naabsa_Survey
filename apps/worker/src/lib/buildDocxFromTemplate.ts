@@ -11,7 +11,12 @@ import Docxtemplater from 'docxtemplater';
 import ImageModule from 'docxtemplater-image-module-free';
 import PizZip from 'pizzip';
 import sharp from 'sharp';
-import { formatNumberWithDecimals, type FieldValue } from '@naabsa/core';
+import {
+  formatDraftSurveyDate,
+  formatDraftSurveyEndTimeSuffix,
+  formatNumberWithDecimals,
+  type FieldValue,
+} from '@naabsa/core';
 import type { DocxInput } from './buildDocx';
 
 type NumericField = (name: string, fallback?: number, suffix?: string, grouped?: boolean, signed?: boolean) => string;
@@ -36,20 +41,6 @@ const COMPACT_PHOTO_GRID_WIDTH_TWIPS = 9360;
 // fits directly below the phase spreadsheet image.
 const WIDE_GRID_PHOTO_SIZE = [330, 248] as const;
 const WIDE_PHOTO_GRID_WIDTH_TWIPS = 10260;
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 
 /**
  * The free image module has a compatibility bug with per-tag centered markers:
@@ -473,22 +464,6 @@ function withoutMr(raw: FieldValue | undefined): string {
   return value(raw).replace(/^Mr\.?\s+/i, '');
 }
 
-function ordinal(day: number): string {
-  if (day === 1 || day === 21 || day === 31) return 'st';
-  if (day === 2 || day === 22) return 'nd';
-  if (day === 3 || day === 23) return 'rd';
-  return 'th';
-}
-
-function formatDate(raw: FieldValue | undefined): string {
-  if (raw == null || raw === '') return '—';
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(raw));
-  if (!match) return String(raw);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  return `${MONTHS[month - 1]} ${day}${ordinal(day)}, ${match[1]}`;
-}
-
 function grouped(number: number, decimals: number): string {
   const negative = number < 0;
   const [integer = '0', fraction] = Math.abs(number)
@@ -636,13 +611,22 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     finalActing,
   );
 
-  const initialNarrative = `The initial Draft Survey was carried out on ${formatDate(data['initial_date'])}, upon berthing at ${value(data['terminal'])} Terminal, shed ${value(data['shed'])} from ${value(data['initial_start'])}h up to ${value(data['initial_end'])}h local time jointly with ship's command${partiesSuffix(finalActing)} and the undersigned surveyor.`;
   const phaseNarrative = (
-    label: string,
-    prefix: 'intermediate' | 'final',
+    phase: 'initial' | 'intermediate' | 'final',
     acting: string[][],
-  ) =>
-    `The ${label} Draft Survey was carried out on ${formatDate(data[`${prefix}_date`])}, from ${value(data[`${prefix}_start`])} up to ${value(data[`${prefix}_end`])} h local time jointly with ship's command${partiesSuffix(acting)} and the undersigned surveyor to ascertain the total quantity of the cargo ${variant.done} being the following figures disclosed:`;
+  ) => {
+    const phaseDate = data[`${phase}_date`];
+    const startTime = data[`${phase}_start`];
+    const endTime = data[`${phase}_end`];
+    const date = formatDraftSurveyDate(value(phaseDate));
+    const endTimeSuffix = formatDraftSurveyEndTimeSuffix(phaseDate, startTime, endTime);
+    const participants = `jointly with ship's command${partiesSuffix(acting)} and the undersigned surveyor`;
+
+    if (phase === 'initial') {
+      return `The initial Draft Survey was carried out on ${date}, upon berthing at ${value(data['terminal'])} Terminal, shed ${value(data['shed'])} from ${value(startTime)}h up to ${value(endTime)}h${endTimeSuffix} ${participants}.`;
+    }
+    return `The ${phase} Draft Survey was carried out on ${date}, from ${value(startTime)} up to ${value(endTime)} h${endTimeSuffix} ${participants} to ascertain the total quantity of the cargo ${variant.done} being the following figures disclosed:`;
+  };
 
   return {
     ...tocData(input.tocPages),
@@ -651,7 +635,7 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     flag: value(data['flag']),
     imo: value(data['imo']),
     port: portName(data['port']),
-    final_date: formatDate(data['final_date']),
+    final_date: formatDraftSurveyDate(value(data['final_date'])),
     client: value(data['client']),
     operator: value(data['operator']),
     surveyor_name: value(data['surveyor_name'], UNDERSIGNED_SURVEYOR),
@@ -672,13 +656,9 @@ function makeTemplateData(input: DocxInput): Record<string, unknown> {
     summer_dwt: numericField('summer_dwt', 3, '', true),
     hasIntermediate,
     final_no: hasIntermediate ? 5 : 4,
-    initial_narrative: initialNarrative,
-    intermediate_narrative: phaseNarrative(
-      'intermediate',
-      'intermediate',
-      intermediateActing,
-    ),
-    final_narrative: phaseNarrative('final', 'final', finalActing),
+    initial_narrative: phaseNarrative('initial', finalActing),
+    intermediate_narrative: phaseNarrative('intermediate', intermediateActing),
+    final_narrative: phaseNarrative('final', finalActing),
     initial_draft_readings: draftReadings,
     intermediate_draft_readings: draftReadings,
     final_draft_readings: draftReadings,
