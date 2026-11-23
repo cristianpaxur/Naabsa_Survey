@@ -13,11 +13,17 @@ import {
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  pointerWithin,
+  type CollisionDetection,
   type DragEndEvent,
-  PointerSensor,
+  type DragStartEvent,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import type { PhotoSlot } from '@naabsa/core';
 import {
   allocate,
@@ -33,11 +39,12 @@ import {
 } from '@/lib/actions/photos';
 import { uploadPhotos } from '@/lib/photo-upload';
 import { pendingRequiredSlots } from '@/lib/photo-gate';
-import { Gallery } from './Gallery';
+import { Gallery, GalleryPanel } from './Gallery';
 import { SlotList } from './SlotList';
 import { CropModal } from './CropModal';
 import { AiBanner } from './AiBanner';
-import type { UIPhoto } from './types';
+import { PhotoImage } from './PhotoImage';
+import type { PhotoDropTarget, UIPhoto } from './types';
 
 export interface PhotosClientProps {
   reportId: string;
@@ -47,6 +54,22 @@ export interface PhotosClientProps {
   initialPhotos: UIPhoto[];
   progress?: ReactNode;
 }
+
+const photoCollisions: CollisionDetection = (args) => {
+  const point = args.pointerCoordinates;
+  if (!point) return [];
+  // Os retângulos medidos pelo DnD podem se estender para fora da região rolável.
+  const area = document
+    .elementFromPoint(point.x, point.y)
+    ?.closest('[data-photo-drop-area]');
+  if (!area) return [];
+  return pointerWithin({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(({ node }) =>
+      area.contains(node.current),
+    ),
+  });
+};
 
 /**
  * Orquestrador da tela de fotos (tela 05). Mantém o estado das fotos, faz o
@@ -74,6 +97,10 @@ export function PhotosClient({
   const [retryFiles, setRetryFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [draggedPhoto, setDraggedPhoto] = useState<UIPhoto | null>(null);
+  const [placementPreview, setPlacementPreview] = useState<UIPhoto[] | null>(
+    null,
+  );
   const fileRef = useRef<HTMLInputElement>(null);
 
   const aiSuggestedCount = photos.filter((p) => p.aiSuggested).length;
@@ -88,7 +115,10 @@ export function PhotosClient({
     );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 6 },
+    }),
   );
 
   const refreshInFlight = useRef<Promise<boolean> | null>(null);
@@ -157,22 +187,29 @@ export function PhotosClient({
     };
   }, [refresh]);
 
-  async function runAction(action: () => Promise<ActionResult>) {
+  async function runAction(
+    action: () => Promise<ActionResult>,
+    preview?: UIPhoto[],
+  ) {
     if (busy || advancing) return false;
     setBusy(true);
     setError(null);
+    if (preview) setPlacementPreview(preview);
     try {
       const result = await action();
       if ('error' in result) {
         setError(result.error);
+        if (preview) await refresh(true);
         return false;
       }
       await refresh(true);
       return true;
     } catch {
       setError('Falha de conexão. Tente novamente.');
+      if (preview) await refresh(true);
       return false;
     } finally {
+      if (preview) setPlacementPreview(null);
       setBusy(false);
     }
   }
@@ -217,26 +254,27 @@ export function PhotosClient({
     if (await refresh(true)) setCropPhotoId(photoId);
   }
 
-  async function changeOrder(photo: UIPhoto, direction: number) {
-    if (!photo.slotId) return;
-    const ordered = [...(photosBySlot[photo.slotId] ?? [])];
-    const index = ordered.findIndex((p) => p.id === photo.id);
-    const next = index + direction;
-    if (next < 0 || next >= ordered.length) return;
-    [ordered[index], ordered[next]] = [ordered[next]!, ordered[index]!];
-    await runAction(() =>
-      reorder(
-        reportId,
-        photo.slotId!,
-        ordered.map((p) => p.id),
-      ),
-    );
+  async function changeOrder(photo: UIPhoto, next: number) {
+    const { slotId } = photo;
+    if (!slotId) return;
+    const ids = (photosBySlot[slotId] ?? []).map((p) => p.id);
+    const index = ids.indexOf(photo.id);
+    if (index < 0 || next < 0 || next >= ids.length || index === next) return;
+    const ordered = arrayMove(ids, index, next);
+    const positions = new Map(ordered.map((id, position) => [id, position]));
+    const preview = photos.map((p) => {
+      const position = positions.get(p.id);
+      return position === undefined ? p : { ...p, position };
+    });
+    await runAction(() => reorder(reportId, slotId, ordered), preview);
   }
+
+  const visiblePhotos = placementPreview ?? photos;
 
   // Mapa foto alocada por slot (ordenada por position).
   const photosBySlot = useMemo(() => {
     const map: Record<string, UIPhoto[]> = {};
-    for (const p of photos) {
+    for (const p of visiblePhotos) {
       if (!p.slotId) continue;
       (map[p.slotId] ??= []).push(p);
     }
@@ -244,9 +282,9 @@ export function PhotosClient({
       map[k]!.sort((a, b) => a.position - b.position);
     }
     return map;
-  }, [photos]);
+  }, [visiblePhotos]);
 
-  const unallocatedPhotos = photos.filter((photo) => !photo.slotId);
+  const unallocatedPhotos = visiblePhotos.filter((photo) => !photo.slotId);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -259,23 +297,58 @@ export function PhotosClient({
 
   async function doAllocate(photoId: string, slotId: string) {
     const slot = slots.find((s) => s.id === slotId);
+    if (!slot) return;
     const assigned = (photosBySlot[slotId] ?? []).filter(
-      (p) => p.id !== photoId,
+      (photo) => photo.id !== photoId,
     );
-    const position = Math.max(-1, ...assigned.map((p) => p.position)) + 1;
-    if (slot?.max !== undefined && assigned.length >= slot.max) {
+    if (slot.max !== undefined && assigned.length >= slot.max) {
       setError(`Slot "${slot.label}" cheio (máx. ${slot.max}).`);
       return;
     }
-    if (await runAction(() => allocate(reportId, photoId, slotId, position)))
+    const position = Math.max(-1, assigned.at(-1)?.position ?? -1) + 1;
+    const preview = photos.map((p) =>
+      p.id === photoId ? { ...p, slotId, position } : p,
+    );
+    if (
+      await runAction(
+        () => allocate(reportId, photoId, slotId, position),
+        preview,
+      )
+    )
       setPicked(null);
   }
 
-  function onDragEnd(e: DragEndEvent) {
-    if (busy || advancing) return;
-    const photoId = e.active.data.current?.photoId as string | undefined;
-    const slotId = e.over?.data.current?.slotId as string | undefined;
-    if (photoId && slotId) void doAllocate(photoId, slotId);
+  async function doUnallocate(photoId: string) {
+    const preview = photos.map((p) =>
+      p.id === photoId ? { ...p, slotId: null, position: 0 } : p,
+    );
+    await runAction(() => unallocate(reportId, photoId), preview);
+  }
+
+  function onDragStart({ active }: DragStartEvent) {
+    const photoId = active.data.current?.photoId;
+    setDraggedPhoto(photos.find((photo) => photo.id === photoId) ?? null);
+  }
+
+  function onDragEnd({ over }: DragEndEvent) {
+    setDraggedPhoto(null);
+    if (busy || advancing || !draggedPhoto) return;
+    const target = over?.data.current as PhotoDropTarget | undefined;
+    const photo = photos.find((p) => p.id === draggedPhoto.id);
+    if (!target || !photo || photo.status !== 'done') return;
+
+    if (target.kind === 'gallery') {
+      if (photo.slotId) void doUnallocate(photo.id);
+    } else if (target.kind === 'slot') {
+      if (photo.slotId !== target.slotId)
+        void doAllocate(photo.id, target.slotId);
+    } else if (photo.slotId === target.slotId) {
+      const next =
+        photosBySlot[target.slotId]?.findIndex(
+          (p) => p.id === target.photoId,
+        ) ?? -1;
+      void changeOrder(photo, next);
+    }
   }
 
   function onClickAllocate(slotId: string) {
@@ -346,9 +419,8 @@ export function PhotosClient({
           </span>
         </div>
         <div style={{ fontSize: 13, color: 'var(--rocha)', marginTop: 5 }}>
-          Arraste uma foto da galeria para o slot (ou selecione e clique em
-          “Alocar”). Fotos são opcionais. Sugestões da IA só entram no documento
-          depois de confirmadas.
+          Arraste fotos entre a galeria e os grupos. Dentro de um grupo, arraste
+          uma foto sobre outra para mudar a ordem.
         </div>
       </div>
 
@@ -362,8 +434,7 @@ export function PhotosClient({
           role="status"
           style={{ marginBottom: 16, fontSize: 12.5, color: 'var(--rocha)' }}
         >
-          A IA não sugeriu alocações para estas fotos. Selecione uma foto na
-          galeria e use “Alocar” no grupo desejado.
+          A IA não sugeriu alocações para estas fotos.
         </div>
       )}
 
@@ -399,18 +470,33 @@ export function PhotosClient({
         onChange={(e) => void onUpload(e.target.files)}
       />
 
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="photos-workspace">
+      <DndContext
+        id={`report-photos-${reportId}`}
+        sensors={sensors}
+        collisionDetection={photoCollisions}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => setDraggedPhoto(null)}
+        accessibility={{
+          screenReaderInstructions: {
+            draggable:
+              'Na galeria, selecione a foto e use Alocar. Nos grupos, use Posição ou Desalocar.',
+          },
+          announcements: {
+            onDragStart: () => 'Movendo foto.',
+            onDragOver: ({ over }) =>
+              over ? 'Destino disponível.' : 'Cursor fora de um destino.',
+            onDragEnd: () => undefined,
+            onDragCancel: () => 'Movimentação cancelada.',
+          },
+        }}
+      >
+        <div
+          className="photos-workspace"
+          data-dragging={!!draggedPhoto || undefined}
+        >
           {/* Galeria à esquerda */}
-          <div
-            style={{
-              border: '1px solid #ece8e1',
-              borderRadius: 14,
-              background: '#fff',
-              padding: 18,
-              minWidth: 0,
-            }}
-          >
+          <GalleryPanel acceptsPhoto={!!draggedPhoto?.slotId && !busy}>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || advancing}
@@ -453,7 +539,7 @@ export function PhotosClient({
                   fontWeight: 600,
                 }}
               >
-                Foto selecionada — clique em “Alocar” no slot desejado.{' '}
+                Clique em “Alocar” no grupo desejado.{' '}
                 <button
                   onClick={() => setPicked(null)}
                   style={{
@@ -472,6 +558,7 @@ export function PhotosClient({
             <GalleryPicker
               photos={unallocatedPhotos}
               picked={picked}
+              busy={busy || advancing}
               onPick={setPicked}
               renderActions={(photo) => (
                 <>
@@ -501,22 +588,20 @@ export function PhotosClient({
                 </>
               )}
             />
-          </div>
+          </GalleryPanel>
 
           {/* Slots à direita */}
           <div style={{ minWidth: 0 }}>
             <SlotList
               slots={slots}
               photosBySlot={photosBySlot}
+              draggedPhoto={draggedPhoto}
+              savingPlacement={placementPreview !== null}
               onCrop={(id) => void openCrop(id)}
               onClickAllocate={onClickAllocate}
-              onUnallocate={(id) =>
-                void runAction(() => unallocate(reportId, id))
-              }
+              onUnallocate={(id) => void doUnallocate(id)}
               onRemove={(id) => void runAction(() => removePhoto(reportId, id))}
-              onReorder={(photo, direction) =>
-                void changeOrder(photo, direction)
-              }
+              onReorder={(photo, index) => void changeOrder(photo, index)}
               busy={busy || advancing}
             />
 
@@ -542,6 +627,20 @@ export function PhotosClient({
             </button>
           </div>
         </div>
+        <DragOverlay dropAnimation={null} style={{ pointerEvents: 'none' }}>
+          {draggedPhoto && (
+            <div className="photo-drag-preview" aria-hidden>
+              {draggedPhoto.thumbUrl && (
+                <PhotoImage
+                  src={draggedPhoto.thumbUrl}
+                  label={draggedPhoto.label}
+                  retryable={false}
+                />
+              )}
+              <span className="photo-drag-grip" />
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
 
       {cropPhoto && cropPhoto.processedUrl && cropSlot && (
@@ -562,18 +661,20 @@ export function PhotosClient({
 function GalleryPicker({
   photos,
   picked,
+  busy,
   onPick,
   renderActions,
 }: {
   photos: UIPhoto[];
   picked: string | null;
+  busy: boolean;
   onPick: (id: string) => void;
   renderActions: (photo: UIPhoto) => ReactNode;
 }) {
   return (
     <div
       onKeyDown={(event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (busy || (event.key !== 'Enter' && event.key !== ' ')) return;
         const target = event.target as HTMLElement;
         if (target.tagName === 'BUTTON') return;
         const id = target
@@ -588,13 +689,19 @@ function GalleryPicker({
         }
       }}
       onClick={(e) => {
+        if (busy) return;
         const el = (e.target as HTMLElement).closest('[data-photo-id]');
         const id = el?.getAttribute('data-photo-id');
         const p = photos.find((x) => x.id === id);
         if (id && p && p.status === 'done') onPick(id);
       }}
     >
-      <Gallery photos={photos} picked={picked} renderActions={renderActions} />
+      <Gallery
+        photos={photos}
+        picked={picked}
+        busy={busy}
+        renderActions={renderActions}
+      />
     </div>
   );
 }

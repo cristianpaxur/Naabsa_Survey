@@ -26,3 +26,8 @@ export interface UIPhoto {
 }
 
 export type { PhotoSlot };
+
+export type PhotoDropTarget =
+  | { kind: 'gallery' }
+  | { kind: 'slot'; slotId: string }
+  | { kind: 'position'; slotId: string; photoId: string };

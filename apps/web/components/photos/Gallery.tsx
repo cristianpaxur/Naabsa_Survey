@@ -1,30 +1,60 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useDraggable } from '@dnd-kit/core';
-import type { UIPhoto } from './types';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import type { PhotoDropTarget, UIPhoto } from './types';
 import { PhotoImage } from './PhotoImage';
 
 interface GalleryProps {
   photos: UIPhoto[];
   picked?: string | null;
+  busy: boolean;
   renderActions?: (photo: UIPhoto) => ReactNode;
+}
+
+export function GalleryPanel({
+  acceptsPhoto,
+  children,
+}: {
+  acceptsPhoto: boolean;
+  children: ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'drop:gallery',
+    data: { kind: 'gallery' } satisfies PhotoDropTarget,
+    disabled: !acceptsPhoto,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="photo-gallery-panel"
+      data-photo-gallery
+      data-photo-drop-area
+      data-drop-state={isOver ? 'over' : acceptsPhoto ? 'available' : undefined}
+    >
+      {children}
+    </div>
+  );
 }
 
 function GalleryItem({
   photo,
   selected,
+  busy,
   actions,
 }: {
   photo: UIPhoto;
   selected: boolean;
+  busy: boolean;
   actions: ReactNode;
 }) {
-  const draggable = photo.status === 'done';
+  const draggable = photo.status === 'done' && !busy;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `photo:${photo.id}`,
     data: { photoId: photo.id },
     disabled: !draggable,
+    attributes: { roleDescription: 'foto arrastável' },
   });
   const analyzing =
     photo.aiStatus === 'pending' || photo.aiStatus === 'running';
@@ -37,28 +67,30 @@ function GalleryItem({
   return (
     <article
       data-photo-id={photo.id}
+      data-drag-source={isDragging || undefined}
       style={{
         minWidth: 0,
         border: selected ? '2px solid #16294d' : '1px solid #e4e0d8',
         borderRadius: 10,
         overflow: 'hidden',
         background: '#fff',
-        opacity: isDragging ? 0.4 : 1,
         boxShadow: selected ? '0 0 0 2px #e7ecf4' : 'none',
       }}
     >
       <div
         ref={setNodeRef}
-        {...(draggable ? listeners : {})}
+        {...listeners}
         {...attributes}
+        className="photo-gallery-image"
+        data-draggable={draggable || undefined}
+        tabIndex={draggable ? 0 : -1}
+        aria-pressed={selected}
         aria-label={`Selecionar ${photo.label}`}
-        title={photo.label}
-        style={{
-          position: 'relative',
-          aspectRatio: '4 / 3',
-          background: '#f4f2ee',
-          cursor: draggable ? 'grab' : 'default',
-        }}
+        title={
+          draggable
+            ? 'Arraste para mover ou clique para selecionar'
+            : photo.label
+        }
       >
         {photo.thumbUrl ? (
           <PhotoImage src={photo.thumbUrl} label={photo.label} />
@@ -77,21 +109,8 @@ function GalleryItem({
               : 'Imagem indisponível'}
           </div>
         )}
-        {photo.slotId && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: '#2f7d52',
-              color: '#fff',
-              borderRadius: 99,
-              padding: '2px 6px',
-              fontSize: 11,
-            }}
-          >
-            ✓
-          </span>
+        {photo.status === 'done' && (
+          <span className="photo-drag-grip" aria-hidden />
         )}
         {(analyzing || photo.aiSuggested) && (
           <span
@@ -150,7 +169,7 @@ function GalleryItem({
   );
 }
 
-export function Gallery({ photos, picked, renderActions }: GalleryProps) {
+export function Gallery({ photos, picked, busy, renderActions }: GalleryProps) {
   return (
     <div>
       <div
@@ -162,14 +181,13 @@ export function Gallery({ photos, picked, renderActions }: GalleryProps) {
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 700 }}>Galeria</div>
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11.5,
-            color: '#9a9185',
-          }}
-        >
-          {photos.length} fotos para alocar
+        <div className="photo-gallery-status">
+          <span className="photo-gallery-count">
+            {photos.length} {photos.length === 1 ? 'foto' : 'fotos'} para alocar
+          </span>
+          <span className="photo-gallery-drop-label">
+            Solte para devolver à galeria
+          </span>
         </div>
       </div>
       {!photos.length ? (
@@ -183,15 +201,14 @@ export function Gallery({ photos, picked, renderActions }: GalleryProps) {
             color: '#7d7468',
           }}
         >
-          Nenhuma foto para alocar. Envie fotos ou use “Desalocar” em um grupo
-          para devolver uma foto à galeria.
+          Envie fotos ou arraste uma foto de volta para a galeria.
         </div>
       ) : (
         <div
           style={{
             display: 'grid',
             gridTemplateColumns:
-              'repeat(auto-fit, minmax(min(150px, 100%), 1fr))',
+              'repeat(auto-fill, minmax(min(150px, 100%), 1fr))',
             gap: 12,
           }}
         >
@@ -200,6 +217,7 @@ export function Gallery({ photos, picked, renderActions }: GalleryProps) {
               key={photo.id}
               photo={photo}
               selected={picked === photo.id}
+              busy={busy}
               actions={renderActions?.(photo)}
             />
           ))}

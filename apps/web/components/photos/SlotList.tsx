@@ -2,7 +2,13 @@
 
 import { PhotoImage } from './PhotoImage';
 import { useDroppable } from '@dnd-kit/core';
-import type { PhotoSlot, UIPhoto } from './types';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { PhotoDropTarget, PhotoSlot, UIPhoto } from './types';
 
 /** Cor do contador have/max: verde se há fotos, neutro se vazio (fotos opcionais). */
 function counterColor(have: number): string {
@@ -11,49 +17,70 @@ function counterColor(have: number): string {
 
 /** Miniatura alocada (clicável para abrir o crop). */
 function AllocatedThumb({
+  slotId,
   photo,
+  index,
+  count,
+  canSort,
   onCrop,
   onUnallocate,
   onRemove,
   onReorder,
-  canMoveBefore,
-  canMoveAfter,
   busy,
 }: {
+  slotId: string;
   photo: UIPhoto;
+  index: number;
+  count: number;
+  canSort: boolean;
   onCrop: (photoId: string) => void;
   onUnallocate: (photoId: string) => void;
   onRemove: (photoId: string) => void;
-  onReorder: (photo: UIPhoto, direction: number) => void;
-  canMoveBefore: boolean;
-  canMoveAfter: boolean;
+  onReorder: (photo: UIPhoto, index: number) => void;
   busy: boolean;
 }) {
+  const draggable = !busy && photo.status === 'done';
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    isDragging,
+    transform,
+    transition,
+  } = useSortable({
+    id: `photo:${photo.id}`,
+    data: {
+      kind: 'position',
+      slotId,
+      photoId: photo.id,
+    } satisfies PhotoDropTarget,
+    disabled: { draggable: !draggable, droppable: !canSort },
+    attributes: { roleDescription: 'foto arrastável' },
+  });
+
   return (
     <div
+      ref={setNodeRef}
+      className="photo-allocated-thumb"
+      data-photo-id={photo.id}
+      data-drag-source={isDragging || undefined}
       style={{
-        position: 'relative',
-        width: 120,
-        aspectRatio: '4 / 3',
-        borderRadius: 8,
-        overflow: 'hidden',
-        background: '#2b3647',
-        flex: 'none',
+        transform: CSS.Transform.toString(transform),
+        transition,
       }}
     >
       <button
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        className="photo-allocated-image"
+        data-draggable={draggable || undefined}
         type="button"
         disabled={busy}
         onClick={() => onCrop(photo.id)}
         title="Recortar"
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          background: 'transparent',
-        }}
+        aria-label={`Recortar ${photo.label}`}
       >
         {photo.thumbUrl && (
           <PhotoImage
@@ -62,30 +89,10 @@ function AllocatedThumb({
             retryable={false}
           />
         )}
+        {photo.status === 'done' && (
+          <span className="photo-drag-grip" aria-hidden />
+        )}
       </button>
-      <span
-        style={{
-          position: 'absolute',
-          right: 6,
-          bottom: 6,
-          width: 22,
-          height: 22,
-          borderRadius: 6,
-          background: 'rgba(255,255,255,.92)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <span
-          style={{
-            width: 11,
-            height: 11,
-            border: '1.5px solid #16294d',
-            borderRadius: 2,
-          }}
-        />
-      </span>
       <div
         style={{
           position: 'absolute',
@@ -114,34 +121,21 @@ function AllocatedThumb({
           Remover
         </button>
       </div>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 5,
-          left: 5,
-          display: 'flex',
-          gap: 4,
-        }}
-      >
-        <button
-          type="button"
-          style={thumbActionStyle}
-          disabled={busy || !canMoveBefore}
-          onClick={() => onReorder(photo, -1)}
-          aria-label={`Mover ${photo.label} para antes`}
+      {count > 1 && (
+        <select
+          className="photo-order-select"
+          aria-label={`Posição de ${photo.label}`}
+          disabled={busy}
+          value={index}
+          onChange={(event) => onReorder(photo, Number(event.target.value))}
         >
-          ↑
-        </button>
-        <button
-          type="button"
-          style={thumbActionStyle}
-          disabled={busy || !canMoveAfter}
-          onClick={() => onReorder(photo, 1)}
-          aria-label={`Mover ${photo.label} para depois`}
-        >
-          ↓
-        </button>
-      </div>
+          {Array.from({ length: count }, (_, position) => (
+            <option key={position} value={position}>
+              Posição {position + 1}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }
@@ -157,67 +151,22 @@ const thumbActionStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-/** Dropzone tracejada "Alocar" — também alvo do drop e do clique fallback. */
-function AllocateDropzone({
-  slotId,
-  onClickAllocate,
-}: {
-  slotId: string;
-  onClickAllocate: (slotId: string) => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `slot:${slotId}`,
-    data: { slotId },
-  });
-  return (
-    <div
-      ref={setNodeRef}
-      onClick={() => onClickAllocate(slotId)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onClickAllocate(slotId);
-        }
-      }}
-      style={{
-        width: 120,
-        aspectRatio: '4 / 3',
-        borderRadius: 8,
-        border: `2px dashed ${isOver ? '#16294d' : '#c9c3b6'}`,
-        background: isOver ? '#f4f6fb' : '#faf8f5',
-        flex: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        cursor: 'pointer',
-      }}
-    >
-      <span style={{ fontSize: 18, color: '#9a9185', lineHeight: 1 }}>＋</span>
-      <span style={{ fontSize: 10.5, color: '#9a9185', fontWeight: 600 }}>
-        Alocar
-      </span>
-    </div>
-  );
-}
-
 interface SlotRowProps {
   slot: PhotoSlot;
   photos: UIPhoto[];
+  draggedPhoto: UIPhoto | null;
   onCrop: (photoId: string) => void;
   onClickAllocate: (slotId: string) => void;
   onUnallocate: (photoId: string) => void;
   onRemove: (photoId: string) => void;
-  onReorder: (photo: UIPhoto, direction: number) => void;
+  onReorder: (photo: UIPhoto, index: number) => void;
   busy: boolean;
 }
 
 function SlotRow({
   slot,
   photos,
+  draggedPhoto,
   onCrop,
   onClickAllocate,
   onUnallocate,
@@ -229,15 +178,30 @@ function SlotRow({
   const max = slot.max ?? '∞';
   const color = counterColor(have);
   const slotFull = typeof slot.max === 'number' && have >= slot.max;
+  const movingHere = draggedPhoto !== null && draggedPhoto.slotId !== slot.id;
+  const canSort = !busy && draggedPhoto?.slotId === slot.id;
+  const { setNodeRef, isOver } = useDroppable({
+    id: `slot:${slot.id}`,
+    data: { kind: 'slot', slotId: slot.id } satisfies PhotoDropTarget,
+    disabled: busy || !movingHere || slotFull,
+  });
 
   return (
     <div
+      ref={setNodeRef}
       className="photo-slot-row"
       data-slot-id={slot.id}
+      data-photo-drop-area
+      data-drop-state={
+        isOver
+          ? 'over'
+          : movingHere
+            ? slotFull
+              ? 'blocked'
+              : 'available'
+            : undefined
+      }
       style={{
-        border: '1px solid #ece8e1',
-        borderRadius: 12,
-        background: '#fff',
         padding: 14,
         display: 'flex',
         flexWrap: 'wrap',
@@ -245,24 +209,36 @@ function SlotRow({
       }}
     >
       <div className="photo-slot-images" style={{ flex: '1 1 100%', order: 1 }}>
-        {photos.map((p, index) => (
-          <AllocatedThumb
-            key={p.id}
-            photo={p}
-            onCrop={onCrop}
-            onUnallocate={onUnallocate}
-            onRemove={onRemove}
-            onReorder={onReorder}
-            canMoveBefore={index > 0}
-            canMoveAfter={index < photos.length - 1}
-            busy={busy}
-          />
-        ))}
+        <SortableContext
+          items={photos.map((p) => `photo:${p.id}`)}
+          strategy={rectSortingStrategy}
+        >
+          {photos.map((p, index) => (
+            <AllocatedThumb
+              key={p.id}
+              slotId={slot.id}
+              photo={p}
+              index={index}
+              count={have}
+              canSort={canSort}
+              onCrop={onCrop}
+              onUnallocate={onUnallocate}
+              onRemove={onRemove}
+              onReorder={onReorder}
+              busy={busy}
+            />
+          ))}
+        </SortableContext>
         {!slotFull && (
-          <AllocateDropzone
-            slotId={slot.id}
-            onClickAllocate={onClickAllocate}
-          />
+          <button
+            type="button"
+            className="photo-slot-allocate"
+            disabled={busy}
+            onClick={() => onClickAllocate(slot.id)}
+          >
+            <span aria-hidden>＋</span>
+            {isOver ? 'Solte aqui' : 'Alocar'}
+          </button>
         )}
       </div>
 
@@ -344,11 +320,13 @@ export interface SlotListProps {
   slots: PhotoSlot[];
   /** Fotos alocadas por slot, já ordenadas por position. */
   photosBySlot: Record<string, UIPhoto[]>;
+  draggedPhoto: UIPhoto | null;
+  savingPlacement: boolean;
   onCrop: (photoId: string) => void;
   onClickAllocate: (slotId: string) => void;
   onUnallocate: (photoId: string) => void;
   onRemove: (photoId: string) => void;
-  onReorder: (photo: UIPhoto, direction: number) => void;
+  onReorder: (photo: UIPhoto, index: number) => void;
   busy: boolean;
 }
 
@@ -359,6 +337,8 @@ export interface SlotListProps {
 export function SlotList({
   slots,
   photosBySlot,
+  draggedPhoto,
+  savingPlacement,
   onCrop,
   onClickAllocate,
   onUnallocate,
@@ -376,8 +356,11 @@ export function SlotList({
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 700 }}>Slots do relatório</div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--rocha)' }}>
-          Fotos opcionais
+        <div
+          role="status"
+          style={{ fontSize: 12, fontWeight: 700, color: 'var(--rocha)' }}
+        >
+          {savingPlacement ? 'Salvando posição…' : 'Fotos opcionais'}
         </div>
       </div>
 
@@ -392,6 +375,7 @@ export function SlotList({
           key={slot.id}
           slot={slot}
           photos={photosBySlot[slot.id] ?? []}
+          draggedPhoto={draggedPhoto}
           onCrop={onCrop}
           onClickAllocate={onClickAllocate}
           onUnallocate={onUnallocate}
