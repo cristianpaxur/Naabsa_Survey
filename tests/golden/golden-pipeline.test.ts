@@ -41,7 +41,7 @@ function paragraphs(zip: PizZip) {
 }
 
 describe('Golden DOCX — planilhas reais e builders atuais', () => {
-  it('extrai horários das abas de origem quando os espelhos da Capa não têm cache', async () => {
+  it.each(['atual', 'legado'])('extrai horários das abas de origem sem cache na Capa com o spec %s', async (version) => {
     const spec = JSON.parse(
       readFileSync(
         new URL('../fixtures/specs/draft_survey.v1.json', import.meta.url),
@@ -57,8 +57,15 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
         ),
       ),
     );
-    for (const cell of ['M7', 'N7', 'M8', 'N8', 'M9', 'N9']) {
+    for (const [field, cell] of Object.entries({
+      initial_start: 'M7', initial_end: 'N7',
+      intermediate_start: 'M8', intermediate_end: 'N8',
+      final_start: 'M9', final_end: 'N9',
+    })) {
       workbook.getWorksheet('Capa')!.getCell(cell).value = null;
+      if (version === 'legado') {
+        Object.assign(spec.source.common.fields[field]!, { sheet: 'Capa', cell });
+      }
     }
     const result = runExtraction(workbook, spec, 'loading');
     expect(result.data['initial_start']).toBe('07:55');

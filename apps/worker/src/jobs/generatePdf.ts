@@ -21,12 +21,11 @@ import {
   resolveDisplayDecimals,
   resolveVariant,
   normalizeCell,
-  coerceField,
+  recoverDraftSurveySourceData,
   DRAFT_SURVEY_SHEET_PHASES,
   DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD,
   draftSurveySheetImagePath,
   hasDraftSurveyIntermediate,
-  isDraftSurveyIntermediateField,
   validateDraftSurveyIntermediate,
   type DraftSurveySheetPhase as SheetPhase,
   type ReportSpec,
@@ -312,7 +311,10 @@ export async function buildWorkingDocx(
     row.type_slug === 'msc' || legacyDraftSurvey
       ? { ...currentExtraction?.data, ...extracted }
       : extracted;
-  const data = resolveReportData(spec, variant, assemblyExtracted, overrides);
+  const sourceData = wb && row.type_slug === 'draft_survey'
+    ? recoverDraftSurveySourceData(wb, spec, variant, assemblyExtracted)
+    : assemblyExtracted;
+  const data = resolveReportData(spec, variant, sourceData, overrides);
   const hasIntermediate = hasDraftSurveyIntermediate(data);
   if (row.type_slug === 'draft_survey') {
     const intermediateIssues = validateDraftSurveyIntermediate(data, spec, variant);
@@ -350,31 +352,6 @@ export async function buildWorkingDocx(
     }
   }
   if (row.type_slug === 'draft_survey' && wb) {
-    // A planilha é a fonte atual dos horários. Relatórios antigos podem ter
-    // valores persistidos incorretos; um override manual explícito continua
-    // tendo prioridade sobre a célula da planilha.
-    const sources = [
-      ['initial_start', 'Inicial', 'G7'],
-      ['initial_end', 'Inicial', 'H7'],
-      ['intermediate_start', 'Intermediario', 'G5'],
-      ['intermediate_end', 'Intermediario', 'H5'],
-      ['final_start', 'final', 'G5'],
-      ['final_end', 'final', 'H5'],
-    ] as const;
-    for (const [name, sheet, cell] of sources) {
-      if (!hasIntermediate && isDraftSurveyIntermediateField(name)) continue;
-      if (Object.hasOwn(overrides, name)) continue;
-      const raw = normalizeCell(
-        wb.getWorksheet(sheet)?.getCell(cell).value ?? null,
-      );
-      const resolved = coerceField(raw, {
-        type: 'time',
-        cell,
-        label: name,
-        section: 'Datas',
-      });
-      if (resolved.value != null) data[name] = resolved.value;
-    }
     if (
       !Object.hasOwn(overrides, 'delivered') &&
       (data['delivered'] == null || data['delivered'] === '')

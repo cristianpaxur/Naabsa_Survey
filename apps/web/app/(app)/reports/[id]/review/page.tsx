@@ -133,9 +133,10 @@ export default async function ReviewPage({ params }: PageProps) {
   }
 
   // Calcular valores efetivos e issues iniciais
-  const extracted = await loadDraftSurveySourceData(id, row.spreadsheet_path, spec, row.extracted_data);
-  const overrides = row.operator_overrides ?? {};
   const variant = row.variant;
+  const original = row.extracted_data ?? {};
+  const extracted = await loadDraftSurveySourceData(id, row.spreadsheet_path, spec, variant, original);
+  const overrides = row.operator_overrides ?? {};
 
   const sections = groupBySectionOrdered(spec, variant, extracted, overrides, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {});
 
@@ -145,7 +146,7 @@ export default async function ReviewPage({ params }: PageProps) {
     validate(effective, spec, variant),
     row.extraction_issues,
     effective,
-    extracted,
+    original,
     row.ai_review,
     resolveEffectiveNumberFormats(
       spec, variant, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {}, overrides,

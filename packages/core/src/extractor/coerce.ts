@@ -24,6 +24,10 @@ export interface CoerceResult {
   error?: string;
 }
 
+export function isTimeValue(value: FieldValue): value is string {
+  return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
 export function isEmptyCell(raw: RawCellValue): boolean {
   if (raw === null) return true;
   if (typeof raw === 'string' && raw.trim() === '') return true;

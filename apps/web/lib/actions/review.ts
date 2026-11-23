@@ -19,6 +19,7 @@ import {
   validate,
   resolveReportData,
   collectFields,
+  isTimeValue,
   type Issue,
   type ReportSpec,
   type FieldValue,
@@ -46,6 +47,7 @@ interface ReportRow {
   status: string;
   variant: string | null;
   extracted_data: Record<string, FieldValue>;
+  source_data: Record<string, FieldValue>;
   operator_overrides: Record<string, FieldValue> | null;
   extracted_number_formats: NumberFormatMap | null;
   operator_number_formats: NumberFormatMap | null;
@@ -98,7 +100,8 @@ async function fetchReport(
     id: raw.id,
     status: raw.status,
     variant: raw.variant,
-    extracted_data: await loadDraftSurveySourceData(raw.id, raw.spreadsheet_path, spec, raw.extracted_data),
+    extracted_data: raw.extracted_data ?? {},
+    source_data: await loadDraftSurveySourceData(raw.id, raw.spreadsheet_path, spec, raw.variant, raw.extracted_data),
     operator_overrides: raw.operator_overrides,
     extracted_number_formats: raw.extracted_number_formats,
     operator_number_formats: raw.operator_number_formats,
@@ -138,7 +141,7 @@ export async function setOverride(
 
   const currentOverrides = report.operator_overrides ?? {};
   const previousValue = currentOverrides[field] ?? null;
-  const extracted = report.extracted_data;
+  const extracted = report.source_data;
 
   const fields = collectFields(report.spec, report.variant, extracted);
   const fieldDef = fields.find(([name]) => name === field);
@@ -150,6 +153,9 @@ export async function setOverride(
   }
   if (fieldDef[1].type === 'number' && value !== null && (typeof value !== 'number' || !Number.isFinite(value))) {
     return { error: 'Informe um número válido para este campo.' };
+  }
+  if (fieldDef[1].type === 'time' && value !== null && !isTimeValue(value)) {
+    return { error: 'Informe um horário válido no formato HH:MM.' };
   }
 
   const newOverrides: Record<string, FieldValue> = {
@@ -199,7 +205,7 @@ export async function setOverride(
   const numberFormats = resolveEffectiveNumberFormats(
     report.spec, report.variant, report.extracted_number_formats ?? {}, newFormats, newOverrides,
   );
-  const issues = mergeReviewIssues(validate(effective, report.spec, report.variant), latest.extraction_issues, effective, extracted, latest.ai_review, numberFormats);
+  const issues = mergeReviewIssues(validate(effective, report.spec, report.variant), latest.extraction_issues, effective, report.extracted_data, latest.ai_review, numberFormats);
 
   return {
     issues, aiReview: latest.ai_review, revision: latest.data_revision,
@@ -218,14 +224,14 @@ export async function getReviewStatus(reportId: string): Promise<SetOverrideResu
   if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
   const report = await fetchReport(supabase, reportId);
   if (!report) return { error: 'Não foi possível atualizar a revisão.' };
-  const extracted = report.extracted_data;
+  const extracted = report.source_data;
   const effective = resolveReportData(report.spec, report.variant, extracted, report.operator_overrides ?? {});
   const numberFormats = resolveEffectiveNumberFormats(
     report.spec, report.variant, report.extracted_number_formats ?? {},
     report.operator_number_formats ?? {}, report.operator_overrides ?? {},
   );
   return {
-    issues: mergeReviewIssues(validate(effective, report.spec, report.variant), report.extraction_issues, effective, extracted, report.ai_review, numberFormats),
+    issues: mergeReviewIssues(validate(effective, report.spec, report.variant), report.extraction_issues, effective, report.extracted_data, report.ai_review, numberFormats),
     aiReview: report.ai_review, revision: report.data_revision,
   };
 }
@@ -264,7 +270,7 @@ export async function confirmData(
   }
 
   // Defesa server-side: revalida com valores efetivos
-  const extracted = report.extracted_data;
+  const extracted = report.source_data;
   const overrides = report.operator_overrides ?? {};
   const effective = resolveReportData(
     report.spec,

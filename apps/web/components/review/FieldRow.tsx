@@ -4,7 +4,7 @@
  * FieldRow — linha de campo na tela de revisão (implementação 006).
  *
  * Exibe: label, chip mono da célula, badge "override" (azul), input
- * adequado ao tipo (text/number/date/enum/boolean) com borda colorida
+ * adequado ao tipo (text/number/date/time/enum/boolean) com borda colorida
  * pelo nível da issue, e issue inline (ERRO vermelho / AVISO âmbar).
  *
  * A edição chama setOverride via Server Action e recebe issues atualizadas
@@ -281,6 +281,29 @@ function FieldInput({
           }}
         />
       );
+
+    case 'time': {
+      const currentValue = typeof value === 'string' ? value : '';
+      return (
+        <input
+          key={currentValue}
+          type="time"
+          aria-label={def.label}
+          style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
+          defaultValue={currentValue}
+          disabled={disabled}
+          onBlur={(event) => {
+            const input = event.currentTarget;
+            if (!input.validity.badInput && input.value !== currentValue) {
+              void onChange(input.value || null);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+          }}
+        />
+      );
+    }
 
     case 'enum':
       return (

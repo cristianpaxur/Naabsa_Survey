@@ -336,7 +336,7 @@ export async function advance(
   if (spec.report_type === 'draft_survey') {
     const variant = report.variant ?? null;
     const extracted = await loadDraftSurveySourceData(
-      reportId, report.spreadsheet_path, spec, report.extracted_data,
+      reportId, report.spreadsheet_path, spec, variant, report.extracted_data,
     );
     const data = resolveReportData(
       spec, variant, extracted, report.operator_overrides ?? {},

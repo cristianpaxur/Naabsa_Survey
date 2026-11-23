@@ -73,6 +73,56 @@ describe('revisão integrada nas server actions', () => {
     expect(await confirmData('r1')).toEqual({ ok: true });
   });
 
+  it.each([true, false])('recupera os horários da planilha de um relatório antigo (snapshot da IA: %s)', async (hasSnapshot) => {
+    const workbook = new ExcelJS.Workbook();
+    const initial = workbook.addWorksheet('Inicial');
+    initial.getCell('G7').value = { formula: 'TIME(0,0,0)', result: 0 };
+    initial.getCell('H7').value = 10 / 24;
+    workbook.addWorksheet('final').getCell('H5').value = 16 / 24;
+    const spreadsheet = await workbook.xlsx.writeBuffer();
+    download.mockResolvedValue({ data: { arrayBuffer: async () => spreadsheet }, error: null });
+
+    const spec = structuredClone(draftSurveySpec);
+    Object.assign(spec.source.common.fields.initial_start, { sheet: 'Capa', cell: 'M7' });
+    Object.assign(spec.source.common.fields.initial_end, { sheet: 'Capa', cell: 'N7' });
+    Object.assign(spec.source.common.fields.final_start, { sheet: 'Capa', cell: 'M9' });
+    Object.assign(spec.source.common.fields.final_end, { sheet: 'Capa', cell: 'N9' });
+    const extracted = {
+      vessel_name: 'MV Alpha', port: 'Santos', cargo: 'Grãos',
+      initial_date: '2026-11-01', final_date: '2026-11-03',
+      initial_start: null, initial_end: '08:50', final_start: null, final_end: '16:00',
+      intermediate_cargo_quantity: null,
+    };
+    const finalWarning = { field: 'final_start', cell: 'M9', level: 'warning', origin: 'ai', message: 'Início final ausente' };
+    memory.row.report_specs.spec = spec;
+    memory.row.spreadsheet_path = 'r1/spreadsheet.xlsx';
+    memory.row.extracted_data = { ...extracted };
+    memory.row.extraction_issues = [
+      { field: 'initial_start', cell: 'M7', level: 'warning', origin: 'ai', message: 'Início inicial ausente' },
+      finalWarning,
+    ];
+    memory.row.ai_review = { status: 'done', ...(hasSnapshot ? { data: extracted } : {}) };
+
+    expect(await getReviewStatus('r1')).toMatchObject({ issues: [finalWarning] });
+    expect(await setOverride('r1', 'initial_end', null)).toMatchObject({
+      savedField: { value: '10:00', isOverride: false },
+    });
+    expect(await setOverride('r1', 'initial_start', '00:25')).toMatchObject({
+      savedField: { value: '00:25', isOverride: true },
+    });
+    expect(memory.row.operator_overrides.initial_start).toBe('00:25');
+    expect(await setOverride('r1', 'initial_start', null)).toMatchObject({
+      savedField: { value: '00:00', isOverride: false },
+    });
+    expect(memory.row.extracted_data).toEqual(extracted);
+  });
+
+  it.each(['24:00', '09:60', '9:00', 0])('rejeita hora fora do formato HH:MM: %s', async (value) => {
+    memory.row.report_specs.spec = draftSurveySpec;
+    expect(await setOverride('r1', 'initial_start', value)).toHaveProperty('error');
+    expect(memory.row.operator_overrides).toEqual({});
+  });
+
   it('bloqueia cronologia inválida com carga intermediária mesmo com a IA desativada', async () => {
     memory.row.report_specs.spec = draftSurveySpec;
     memory.row.extracted_data = {

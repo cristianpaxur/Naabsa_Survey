@@ -8,10 +8,13 @@
  */
 import { getServiceClient } from '../lib/supabase';
 import { randomUUID } from 'node:crypto';
+import ExcelJS from 'exceljs';
 import {
   collectFields,
   formatNumberWithDecimals,
   isCalculatedDifferenceField,
+  needsDraftSurveySourceRecovery,
+  recoverDraftSurveySourceData,
   resolveDisplayDecimals,
   resolveReportData,
   type ReportSpec,
@@ -131,7 +134,7 @@ export async function aiReview(
   const { data: report, error: reportError } = await svc
     .from('reports')
     .select(
-      'spec_id, variant, extracted_data, extracted_number_formats, operator_overrides, operator_number_formats, extraction_issues, status, data_revision, ai_review',
+      'spec_id, variant, spreadsheet_path, extracted_data, extracted_number_formats, operator_overrides, operator_number_formats, extraction_issues, status, data_revision, ai_review',
     )
     .eq('id', reportId)
     .is('deleted_at', null)
@@ -143,6 +146,7 @@ export async function aiReview(
   const r = report as {
     spec_id: string;
     variant: string | null;
+    spreadsheet_path: string | null;
     extracted_data: Record<string, FieldValue> | null;
     extracted_number_formats: NumberFormatMap | null;
     extraction_issues: Issue[] | null;
@@ -264,7 +268,23 @@ export async function aiReview(
     const spec = (specRow as { spec: ReportSpec } | null)?.spec;
     if (!spec) throw new Error('spec_missing');
     const cells = new Map<string, string | null>();
-    const reportData = resolveReportData(spec, r.variant, r.extracted_data, r.operator_overrides ?? {});
+    let extracted = r.extracted_data;
+    if (
+      r.spreadsheet_path === `${reportId}/spreadsheet.xlsx` &&
+      needsDraftSurveySourceRecovery(spec, r.variant, extracted)
+    ) {
+      try {
+        const { data: blob, error } = await svc.storage.from('reports').download(r.spreadsheet_path);
+        if (!error && blob) {
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(await blob.arrayBuffer());
+          extracted = recoverDraftSurveySourceData(workbook, spec, r.variant, extracted);
+        }
+      } catch {
+        // Mantém os dados extraídos se o arquivo original estiver indisponível.
+      }
+    }
+    const reportData = resolveReportData(spec, r.variant, extracted, r.operator_overrides ?? {});
     const effective: Record<string, FieldValue> = {};
     const numberFormats: NumberFormatMap = {};
     for (const [name, def] of collectFields(spec, r.variant, reportData)) {

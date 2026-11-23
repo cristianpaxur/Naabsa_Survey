@@ -28,7 +28,25 @@ import {
   isDraftSurveyIntermediateField,
 } from '../draft-survey-intermediate';
 import { resolveFieldValue } from '../resolveFieldValue';
-import { coerceField, type RawCellValue } from './coerce';
+import { coerceField, isTimeValue, type RawCellValue } from './coerce';
+
+interface DraftSurveyPhaseTimeSource {
+  mirror: string;
+  sheet: string;
+  cell: string;
+}
+
+// Mapeamento da migração 0020. Relatórios antigos mantêm o spec anterior.
+const draftSurveyPhaseTimeSources = new Map<string, DraftSurveyPhaseTimeSource>(
+  Object.entries({
+    initial_start: { mirror: 'M7', sheet: 'Inicial', cell: 'G7' },
+    initial_end: { mirror: 'N7', sheet: 'Inicial', cell: 'H7' },
+    intermediate_start: { mirror: 'M8', sheet: 'Intermediario', cell: 'G5' },
+    intermediate_end: { mirror: 'N8', sheet: 'Intermediario', cell: 'H5' },
+    final_start: { mirror: 'M9', sheet: 'final', cell: 'G5' },
+    final_end: { mirror: 'N9', sheet: 'final', cell: 'H5' },
+  }),
+);
 
 export function extract(
   workbook: ExcelJS.Workbook,
@@ -106,6 +124,16 @@ export function extract(
   const date1904 = Boolean(workbook.properties?.date1904);
 
   for (const [name, field] of activeFields) {
+    const phaseSource = spec.report_type === 'draft_survey'
+      ? draftSurveyPhaseTimeSources.get(name)
+      : undefined;
+    if (phaseSource && usesLegacyPhaseTime(field, phaseSource, spec)) {
+      const time = readDraftSurveyPhaseTime(workbook, field, phaseSource);
+      if (time !== null) {
+        data[name] = time;
+        continue;
+      }
+    }
     const sheet = sheetOf(field.sheet, spec) as string;
     const ws = workbook.getWorksheet(sheet);
     if (!ws) {
@@ -165,6 +193,66 @@ export function readDraftSurveyIntermediateCargo(
   const cell = workbook.getWorksheet(source.sheet)?.getCell(source.cell);
   const cargo = cell ? normalizeWorksheetCell(cell) : null;
   return typeof cargo === 'number' && Number.isFinite(cargo) ? cargo : null;
+}
+
+function usesLegacyPhaseTime(
+  field: FieldDef,
+  source: DraftSurveyPhaseTimeSource,
+  spec: ReportSpec,
+): boolean {
+  return field.type === 'time' && !field.row_anchor &&
+    sheetOf(field.sheet, spec) === 'Capa' && field.cell === source.mirror;
+}
+
+function readDraftSurveyPhaseTime(
+  workbook: ExcelJS.Workbook,
+  field: FieldDef,
+  source: DraftSurveyPhaseTimeSource,
+): string | null {
+  const cell = workbook.getWorksheet(source.sheet)?.getCell(source.cell);
+  if (!cell) return null;
+  const { value } = coerceField(normalizeWorksheetCell(cell), field);
+  return isTimeValue(value) ? value : null;
+}
+
+export function needsDraftSurveySourceRecovery(
+  spec: ReportSpec,
+  variant: string | null,
+  extracted: Record<string, FieldValue>,
+): boolean {
+  if (spec.report_type !== 'draft_survey') return false;
+  if (
+    !Object.hasOwn(extracted, DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD) &&
+    draftSurveyIntermediateCargoSource(spec)
+  ) return true;
+  return collectFields(spec, variant, extracted).some(([name, field]) => {
+    const source = draftSurveyPhaseTimeSources.get(name);
+    return source !== undefined && usesLegacyPhaseTime(field, source, spec);
+  });
+}
+
+/** Recupera os valores da planilha original antes de aplicar as correções do operador. */
+export function recoverDraftSurveySourceData(
+  workbook: ExcelJS.Workbook,
+  spec: ReportSpec,
+  variant: string | null,
+  extracted: Record<string, FieldValue>,
+): Record<string, FieldValue> {
+  if (spec.report_type !== 'draft_survey') return extracted;
+  const data = { ...extracted };
+  if (!Object.hasOwn(data, DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD)) {
+    const cargo = readDraftSurveyIntermediateCargo(workbook, spec);
+    if (cargo !== undefined) data[DRAFT_SURVEY_INTERMEDIATE_CARGO_FIELD] = cargo;
+  }
+  for (const [name, field] of collectFields(spec, variant, data)) {
+    const source = draftSurveyPhaseTimeSources.get(name);
+    if (!source || field.type !== 'time' || field.row_anchor) continue;
+    const matchesSource = sheetOf(field.sheet, spec) === source.sheet && field.cell === source.cell;
+    if (!matchesSource && !usesLegacyPhaseTime(field, source, spec)) continue;
+    const time = readDraftSurveyPhaseTime(workbook, field, source);
+    if (time !== null) data[name] = time;
+  }
+  return data;
 }
 
 function resolveSourceCell(

@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import ExcelJS from 'exceljs';
 import { aiReview } from './aiReview';
 
 const memory = vi.hoisted(() => ({
@@ -10,8 +11,10 @@ const memory = vi.hoisted(() => ({
   persistError: false,
   auditCount: 0,
 }));
+const download = vi.hoisted(() => vi.fn());
 vi.mock('../lib/supabase', () => ({
   getServiceClient: () => ({
+    storage: { from: () => ({ download }) },
     from: (table: string) => {
       const filters: ((row: Record<string, any>) => boolean)[] = [];
       let patch: Record<string, any> | undefined;
@@ -78,6 +81,7 @@ beforeEach(() => {
   memory.specError = false;
   memory.persistError = false;
   memory.auditCount = 0;
+  download.mockReset();
   memory.row = {
     id: 'r1',
     spec_id: 's1',
@@ -116,6 +120,28 @@ const transport =
     } as Response;
   };
 describe('job real aiReview com transporte/banco simulados', () => {
+  it('usa horários recuperados das abas de origem e preserva a correção manual', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const initial = workbook.addWorksheet('Inicial');
+    initial.getCell('G7').value = 0;
+    initial.getCell('H7').value = 10 / 24;
+    const spreadsheet = await workbook.xlsx.writeBuffer();
+    download.mockResolvedValue({ data: { arrayBuffer: async () => spreadsheet }, error: null });
+    memory.spec.source.common.fields.initial_start = { type: 'time', sheet: 'Capa', cell: 'M7', label: 'Início', section: 'Datas' };
+    memory.spec.source.common.fields.initial_end = { type: 'time', sheet: 'Capa', cell: 'N7', label: 'Fim', section: 'Datas' };
+    memory.row.spreadsheet_path = 'r1/spreadsheet.xlsx';
+    memory.row.extracted_data = { initial_start: null, initial_end: '08:50' };
+    memory.row.operator_overrides = { initial_end: '10:20' };
+
+    await aiReview(payload, { fetchFn: transport('[]'), audit: async () => {} });
+
+    expect(memory.row.ai_review).toMatchObject({
+      status: 'done',
+      data: { initial_start: '00:00', initial_end: '10:20' },
+    });
+    expect(memory.row.extracted_data).toEqual({ initial_start: null, initial_end: '08:50' });
+  });
+
   it('resolve a precisão efetiva no prompt e nos snapshots running/done', async () => {
     memory.row.extracted_data = {
       operator_value: 81,

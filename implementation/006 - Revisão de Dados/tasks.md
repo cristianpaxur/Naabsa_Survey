@@ -2,8 +2,8 @@
 
 > **Implementação:** 006 - Revisão de Dados
 > **Spec:** [spec.md](./spec.md)
-> **Progresso:** 8/8 tarefas concluídas (100%)
-> **Última atualização:** 2026-06-12
+> **Progresso:** 10/10 tarefas concluídas (100%)
+> **Última atualização:** 2026-11-23
 
 ---
 
@@ -87,6 +87,11 @@
   - Consultar `Intermediario!O19` para incluir a fase na revisão e no relatório.
   - Bloquear o avanço com carga intermediária e data fora da sequência ou calados todos zerados ou vazios.
 
+- [x] **T-010 — Horários na revisão do Draft Survey**
+  - Exibir controles editáveis para início e fim e salvar correções no formato `HH:MM`.
+  - Recuperar horários das abas de origem para relatórios que ainda apontam para a Capa e aplicar os mesmos valores na análise da IA e na montagem do Word.
+  - Invalidar avisos de IA cujos dados mudaram após a recuperação ou edição.
+
 ---
 
 ## Registro de Progresso
@@ -102,6 +107,7 @@
 | T-007  | ✅ Concluída | 2026-06-12 | `tests/e2e/review.spec.ts` (não executado sem .env) |
 | T-008  | ✅ Concluída | 2026-06-12 | CA-001..006 verdes (14 E2E passando); bugs de date input e field names corrigidos |
 | T-009  | ✅ Concluída | 2026-11-23 | Regressões de extração e revisão, com conferência local do Word e do PDF nas duas situações de O19 |
+| T-010  | ✅ Concluída | 2026-11-23 | Testes de renderização, salvamento, leitura com o spec legado e revisão da IA |
 
 ---
 
