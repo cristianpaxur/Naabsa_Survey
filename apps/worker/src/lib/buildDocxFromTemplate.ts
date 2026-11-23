@@ -263,6 +263,26 @@ function prepareTemplateLayout(zip: PizZip): void {
 
   movePhotographicReportsIntoPhases(parts);
 
+  // The section break now starts Background on its own page. The template's
+  // old padding after Contents can overflow onto an otherwise empty page.
+  const background = requiredPartIndex(
+    parts,
+    (part) => part.includes('w:name="s1"'),
+    'seção Background',
+  );
+  const emptyParagraph = /^<w:p\b[^>]*><w:pPr\b[^>]*>.*?<\/w:pPr><\/w:p>$/s;
+  let firstSpacer = background;
+  while (firstSpacer > 0) {
+    const preceding = parts[firstSpacer - 1]!;
+    if (preceding.trim() && !emptyParagraph.test(preceding)) break;
+    firstSpacer -= 1;
+  }
+  parts.splice(
+    firstSpacer,
+    background - firstSpacer,
+    '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr></w:p>',
+  );
+
   for (let index = 0; index < parts.length - 3; index += 1) {
     if (!/w:name="s[345]_[15]"/.test(parts[index] ?? '')) continue;
     const spacer = parts[index + 2] ?? '';

@@ -124,6 +124,26 @@ describe.each([
 });
 
 describe('buildReportDocxFromTemplate', () => {
+  it('remove a sequência de espaçadores antes da seção numerada após o sumário completo', async () => {
+    const docx = await buildReportDocxFromTemplate({
+      data: { intermediate_date: '2026-11-23' },
+      variant: 'loading',
+      logo: null,
+      sheetImages: {},
+      phasePhotos: {},
+      acting: {},
+    });
+    const xml = new PizZip(docx).file('word/document.xml')!.asText();
+    const heading = xml.indexOf('w:name="s1"');
+    const lastTocEntry = xml.lastIndexOf('w:anchor="s6"', heading);
+    expect(lastTocEntry).toBeGreaterThan(-1);
+    const endOfEntry = xml.indexOf('</w:p>', lastTocEntry) + '</w:p>'.length;
+    const between = xml.slice(endOfEntry, heading);
+    expect(between).toContain('<w:sectPr');
+    // One spacer ends the front section and one paragraph starts Background.
+    expect(between.match(/<w:p\b/g)).toHaveLength(2);
+  });
+
   it('usa só o nome do porto na capa e preserva Delivered textual e os horários das fases', async () => {
     const docx = await buildReportDocxFromTemplate({
       data: {
