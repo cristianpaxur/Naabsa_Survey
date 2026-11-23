@@ -4,12 +4,16 @@ import {
   buildDraftSurvey,
   collectFields,
   resolveFieldValue,
+  resolveDisplayDecimals,
   runExtraction,
+  DRAFT_SURVEY_SHEET_PHASES,
+  draftSurveySheetImagePath,
   type ReportSpec,
   type FieldValue,
   type TipTapDoc,
   type PhotoAlloc,
   type BuilderInput,
+  type NumberFormatMap,
 } from '@naabsa/core';
 import type { ServerClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -58,6 +62,7 @@ async function loadAllocatedPhotos(
     .from('report_photos')
     .select('id,slot_id,processed_path,crop')
     .eq('report_id', reportId)
+    .is('removed_at', null).eq('ai_suggested', false).eq('status', 'done')
     .not('slot_id', 'is', null)
     .order('position', { ascending: true });
 
@@ -79,11 +84,13 @@ export interface AssembleInput {
   variant: string | null;
   extracted: Record<string, FieldValue>;
   overrides: Record<string, FieldValue> | null;
+  extractedNumberFormats?: NumberFormatMap | null;
+  operatorNumberFormats?: NumberFormatMap | null;
 }
 
 /**
  * Caminhos das imagens das abas da planilha (print pixel-perfeito) por fase,
- * geradas pelo worker (`render_sheets`) em `reports/{id}/sheets/{phase}.png`.
+ * geradas pelo worker (`render_sheets`) em `reports/{id}/sheets/`.
  * Retorna null por fase ausente — o builder cai nas grades nativas.
  */
 async function loadSheetImages(
@@ -93,9 +100,9 @@ async function loadSheetImages(
   try {
     const svc = createServiceClient();
     const { data } = await svc.storage.from('reports').list(`${reportId}/sheets`);
-    for (const f of data ?? []) {
-      const phase = f.name.replace(/\.png$/i, '');
-      if (phase in out) out[phase] = `${reportId}/sheets/${f.name}`;
+    for (const phase of DRAFT_SURVEY_SHEET_PHASES) {
+      const path = draftSurveySheetImagePath(reportId, phase);
+      if (data?.some((file) => path.endsWith(`/${file.name}`))) out[phase] = path;
     }
   } catch {
     /* sem imagens — usa grades nativas */
@@ -161,8 +168,16 @@ export async function assembleDocument(
     input.overrides,
   );
   const photos = await loadAllocatedPhotos(supabase, reportId);
+  const numberFormats: NumberFormatMap = {};
+  for (const [name, def] of collectFields(input.spec, input.variant)) {
+    const decimals = resolveDisplayDecimals(
+      name, def, input.extractedNumberFormats ?? {},
+      input.operatorNumberFormats ?? {}, input.overrides ?? {},
+    );
+    if (decimals !== undefined) numberFormats[name] = decimals;
+  }
   const tables = await loadTables(supabase, reportId, input.spec, input.variant);
   const sheetImages = await loadSheetImages(reportId);
 
-  return builder({ spec: input.spec, variant: input.variant, data, tables, photos, sheetImages });
+  return builder({ spec: input.spec, variant: input.variant, data, numberFormats, tables, photos, sheetImages });
 }

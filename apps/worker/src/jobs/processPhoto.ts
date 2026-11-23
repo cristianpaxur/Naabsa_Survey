@@ -12,6 +12,8 @@
  */
 import sharp from 'sharp';
 import { getServiceClient } from '../lib/supabase';
+import { decodeHeic, isHeic } from '../lib/heic';
+import { isAiEnabled } from '../lib/llm';
 
 const BUCKET = 'reports';
 const MAX_EDGE = 2500;
@@ -34,6 +36,7 @@ export interface TransformResult {
  * ampliar imagens menores. Recebe e devolve buffers.
  */
 export async function transformImage(input: Buffer): Promise<TransformResult> {
+  if (isHeic(input)) input = await decodeHeic(input);
   // rotate() sem argumentos aplica a orientação do EXIF e remove o metadado.
   const base = sharp(input).rotate().toColorspace('srgb');
 
@@ -89,15 +92,18 @@ export async function processPhoto(
 
   const { data: row, error: rowErr } = await supabase
     .from('report_photos')
-    .select('id,original_path')
+    .select('id,original_path,status,removed_at')
     .eq('id', photoId)
+    .eq('report_id', reportId)
     .single();
   if (rowErr || !row) {
     throw new Error(
       `report_photos ${photoId} não encontrada: ${rowErr?.message ?? 'sem linha'}`,
     );
   }
-  const originalPath = (row as { original_path: string }).original_path;
+  const photo = row as { original_path: string; status: string; removed_at: string | null };
+  if (photo.removed_at || photo.status === 'done') return;
+  const originalPath = photo.original_path;
 
   // Baixa o original do Storage.
   const { data: blob, error: dlErr } = await supabase.storage
@@ -139,8 +145,11 @@ export async function processPhoto(
       thumb_path: thumbPath,
       status: 'done',
       error_message: null,
+      ai_status: isAiEnabled() ? 'pending' : 'idle',
     } as never)
-    .eq('id', photoId);
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null);
   if (updErr) {
     throw new Error(`Falha ao atualizar linha: ${updErr.message}`);
   }
@@ -162,7 +171,9 @@ export async function markPhotoError(
         status: 'error',
         error_message: message.slice(0, 500),
       } as never)
-      .eq('id', photoId);
+      .eq('id', photoId)
+      .eq('status', 'pending')
+      .is('removed_at', null);
   } catch (err) {
     console.error('[worker][processPhoto] falha ao marcar erro:', err);
   }

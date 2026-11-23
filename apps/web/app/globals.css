@@ -52,3 +52,142 @@ button {
 .naabsa-pulse {
   animation: naabsa-pulse 1.1s ease-in-out infinite;
 }
+
+/* ── Report progress ─────────────────────────────────────────────────────── */
+.report-progress {
+  width: 100%;
+  max-width: 1100px;
+  min-width: 0;
+  margin: 0 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.report-progress__list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: center;
+  min-width: 680px;
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+}
+
+.report-progress__item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.report-progress__link {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  color: inherit;
+  background: var(--papel);
+  text-decoration: none;
+}
+
+.report-progress__dot {
+  display: flex;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #dcd8d0;
+  border-radius: 50%;
+  color: #a39a8d;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.report-progress__dot--current {
+  border-color: var(--navy);
+  color: #fff;
+  background: var(--navy);
+}
+
+.report-progress__dot--done {
+  border-color: #2f6b48;
+  color: #fff;
+  background: #2f6b48;
+}
+
+.report-progress__label {
+  overflow: hidden;
+  color: #a39a8d;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-progress__label--current {
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.report-progress__label--done {
+  color: #2f6b48;
+}
+
+.report-progress__line {
+  position: absolute;
+  z-index: 0;
+  top: 14px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #dcd8d0;
+}
+
+.report-progress__line--done {
+  background: #9bc5a9;
+}
+
+.report-progress__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* ── Full-height PDF preview ─────────────────────────────────────────────── */
+.ed-preview-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--papel);
+}
+
+.ed-preview-shell__progress {
+  flex: none;
+  padding: 24px 28px 0;
+}
+
+.ed-preview-shell__content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ed-preview-shell__content > .ed-preview {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import ExcelJS from 'exceljs';
+import type { ReportSpec } from '../types';
 import { extract, resolveVariant } from './extract';
+import { runExtraction } from './pipeline';
 import {
   sampleSpec,
   buildWorkbook,
@@ -9,6 +12,81 @@ import {
 } from './synthFixtures';
 
 describe('extract — caminho feliz', () => {
+  it('preserva as casas exibidas de números e de fórmula com resultado cacheado', () => {
+    const spec: ReportSpec = {
+      report_type: 'precision',
+      version: 1,
+      variants: [],
+      source: {
+        sheet: 'DADOS',
+        fingerprint: { cell: 'A1', expect: 'PRECISION' },
+        common: {
+          fields: {
+            integer: {
+              cell: 'B2',
+              type: 'number',
+              label: 'Inteiro',
+              section: 'Números',
+            },
+            one_decimal: {
+              cell: 'B3',
+              type: 'number',
+              label: 'Uma casa',
+              section: 'Números',
+            },
+            two_decimals: {
+              cell: 'B4',
+              type: 'number',
+              label: 'Duas casas',
+              section: 'Números',
+            },
+            three_decimals: {
+              cell: 'B5',
+              type: 'number',
+              label: 'Três casas',
+              section: 'Números',
+            },
+            formula_result: {
+              cell: 'B6',
+              type: 'number',
+              label: 'Fórmula',
+              section: 'Números',
+            },
+          },
+        },
+      },
+    };
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('DADOS');
+    worksheet.getCell('A1').value = 'PRECISION';
+    for (const [address, value, numFmt] of [
+      ['B2', 81, '0'],
+      ['B3', 81, '0.0'],
+      ['B4', 81, '0.00'],
+      ['B5', 81, '0.000'],
+    ] as const) {
+      const cell = worksheet.getCell(address);
+      cell.value = value;
+      cell.numFmt = numFmt;
+    }
+    worksheet.getCell('B6').value = { formula: 'B2 * 2', result: 162 };
+    worksheet.getCell('B6').numFmt = '0.000';
+
+    const result = extract(workbook, spec, null);
+
+    expect(result.data.formula_result).toBe(162);
+    expect(result.numberFormats).toEqual({
+      integer: 0,
+      one_decimal: 1,
+      two_decimals: 2,
+      three_decimals: 3,
+      formula_result: 3,
+    });
+    expect(runExtraction(workbook, spec).numberFormats).toEqual(
+      result.numberFormats,
+    );
+  });
+
   it('lê common + by_variant e coage os tipos (discharge)', () => {
     const wb = buildCompleteWorkbook();
     const { data, issues } = extract(wb, sampleSpec, 'discharge');
@@ -112,6 +190,49 @@ describe('extract — contrato v2 multi-aba (CA-009)', () => {
     expect(data.vessel_name).toBe('HG ANTWERP');
     expect(data.init_fwd_mean).toBe(4.78);
   });
+
+  it('aceita fase intermediária ausente quando seus campos e tabelas são opcionais', () => {
+    const specWithOptionalIntermediate = {
+      ...sampleSpecV2,
+      source: {
+        ...sampleSpecV2.source,
+        common: {
+          fields: {
+            ...sampleSpecV2.source.common.fields,
+            intermediate_date: {
+              sheet: 'Intermediario',
+              cell: 'C5',
+              type: 'date' as const,
+              format: 'Month Do, YYYY',
+              label: 'Data — Intermediário',
+              section: 'Datas',
+            },
+          },
+        },
+        tables: [
+          ...(sampleSpecV2.source.tables ?? []),
+          {
+            id: 'int_draft_marks',
+            label: 'Intermediate — Draft marks',
+            sheet: 'Intermediario',
+            range: 'B7:H17',
+            phase: 'intermediate',
+            optional: true,
+          },
+        ],
+      },
+    } as ReportSpec;
+
+    const result = runExtraction(
+      buildV2Workbook(),
+      specWithOptionalIntermediate,
+      'loading',
+    );
+
+    expect(result.issues).toHaveLength(0);
+    expect(result.data.intermediate_date).toBeNull();
+    expect(result.data.vessel_name).toBe('HG ANTWERP');
+  });
 });
 
 describe('resolveVariant — CA-009', () => {
@@ -147,7 +268,11 @@ describe('resolveVariant — CA-009', () => {
       ...sampleSpecV2,
       source: {
         ...sampleSpecV2.source,
-        variant_source: { sheet: 'INEXISTENTE', cell: 'L4', map: { Loading: 'loading' } },
+        variant_source: {
+          sheet: 'INEXISTENTE',
+          cell: 'L4',
+          map: { Loading: 'loading' },
+        },
       },
     } as typeof sampleSpecV2;
     const { variant, issue } = resolveVariant(wbNoCapa, specSemAba);
@@ -158,7 +283,10 @@ describe('resolveVariant — CA-009', () => {
 
   it('spec sem variant_source retorna { variant: null }', () => {
     const wb = buildV2Workbook();
-    const specSemVS = { ...sampleSpecV2, source: { ...sampleSpecV2.source, variant_source: undefined } };
+    const specSemVS = {
+      ...sampleSpecV2,
+      source: { ...sampleSpecV2.source, variant_source: undefined },
+    };
     const result = resolveVariant(wb, specSemVS);
     expect(result.variant).toBeNull();
     expect(result.issue).toBeUndefined();
@@ -178,8 +306,12 @@ describe('extract — tables range-based (CA-010)', () => {
     // Adiciona dados na faixa B8:H12 da aba Inicial
     const wb = buildV2Workbook({
       inicial: {
-        B8: 'PORT',  C8: 4.5,  D8: 4.6,
-        B9: 'STB',   C9: 4.4,  D9: 4.5,
+        B8: 'PORT',
+        C8: 4.5,
+        D8: 4.6,
+        B9: 'STB',
+        C9: 4.4,
+        D9: 4.5,
       },
     });
     const { tables, issues } = extract(wb, sampleSpecV2, 'loading');
@@ -209,7 +341,15 @@ describe('extract — tables range-based (CA-010)', () => {
       ...sampleSpecV2,
       source: {
         ...sampleSpecV2.source,
-        tables: [{ id: 'empty_table', label: 'Vazia', sheet: 'Inicial', range: 'B14:H18', optional: true }],
+        tables: [
+          {
+            id: 'empty_table',
+            label: 'Vazia',
+            sheet: 'Inicial',
+            range: 'B14:H18',
+            optional: true,
+          },
+        ],
       },
     } as typeof sampleSpecV2;
     const wb = buildV2Workbook();

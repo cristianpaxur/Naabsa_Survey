@@ -40,6 +40,9 @@ export default tseslint.config(
       '**/.next/**',
       '**/out/**',
       '**/coverage/**',
+      // Local document previews and diagnostic evidence are not application source.
+      'tmp/**',
+      'output/**',
       '**/*.tsbuildinfo',
       '**/.pnpm-store/**',
       // Arquivo de tipos gerado pelo Next.js (não editar/lintar).

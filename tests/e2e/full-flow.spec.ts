@@ -1,241 +1,53 @@
-import { test, expect, type Page } from '@playwright/test';
-import ExcelJS from 'exceljs';
-import sharp from 'sharp';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { test, expect } from '@playwright/test';
+import { BUCKET, checked, cleanupReports, createDraft, finalDateInput, login, service } from './fixtures';
 
-/**
- * E2E do fluxo feliz COMPLETO (012/T-010, CA-007 — substitui o editor da 008).
- *
- * criar → upload → revisar (corrigir erro) → fotos (alocar) → editar no
- * COLLABORA (working.docx montado pelo worker + iframe WOPI) → aprovar
- * (Action_Save → snapshot → generate_pdf) → PDF gerado e baixável.
- *
- * Requer a stack rodando: web (APP_BASE_URL) + worker (LibreOffice) +
- * Supabase + Collabora (COLLABORA_BASE_URL/WOPI). A foto processada é semeada
- * via service role para isolar este teste do job process_photo (photos.spec).
- */
+// Stack isolada completa: web + worker/LibreOffice + Supabase + Collabora.
+// Cobre abertura e aprovação nativa. Digitação real no canvas e fidelidade visual
+// da edição no PDF continuam como aceite manual; este teste não simula edição.
+const ids: string[] = [];
+test.afterAll(() => cleanupReports(ids));
 
-const OPERATOR = { email: 'operador@naabsa.dev', password: 'naabsa123' };
-const XLSX_MIME =
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const BUCKET = 'reports';
-
-const createdIds: string[] = [];
-
-function service(): SupabaseClient {
-  return createClient(
-    process.env.SUPABASE_URL ?? '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-}
-
-async function login(page: Page) {
-  await page.goto('/login');
-  await page.getByPlaceholder('voce@naabsa.com.br').fill(OPERATOR.email);
-  await page.getByPlaceholder('••••••••').fill(OPERATOR.password);
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 25_000 });
-}
-
-/** Planilha draft_survey/discharge SEM B6 (survey_date) → erro a corrigir. */
-async function buildDraftXlsxMissingDate(vessel: string): Promise<Buffer> {
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('DADOS');
-  ws.getCell('A1').value = 'NAABSA-DRAFT';
-  ws.getCell('B4').value = vessel;
-  ws.getCell('B5').value = 150000;
-  // B6 (survey_date) intencionalmente vazio → erro bloqueante na revisão.
-  ws.getCell('B7').value = 'sim';
-  ws.getCell('B8').value = 'Santos';
-  return (await wb.xlsx.writeBuffer()) as Buffer;
-}
-
-async function jpeg(w: number, h: number): Promise<Buffer> {
-  return sharp({
-    create: { width: w, height: h, channels: 3, background: { r: 40, g: 70, b: 120 } },
-  })
-    .jpeg()
-    .toBuffer();
-}
-
-/** Semeia 1 foto "processada" alocável para o relatório (status done). */
-async function seedProcessedPhoto(svc: SupabaseClient, reportId: string) {
-  const uuid = crypto.randomUUID();
-  const processedPath = `${reportId}/photos/processed/${uuid}.jpg`;
-  const thumbPath = `${reportId}/photos/thumbs/${uuid}.jpg`;
-  const buf = await jpeg(1200, 900);
-  await svc.storage.from(BUCKET).upload(processedPath, buf, {
-    contentType: 'image/jpeg',
-    upsert: true,
-  });
-  await svc.storage.from(BUCKET).upload(thumbPath, buf, {
-    contentType: 'image/jpeg',
-    upsert: true,
-  });
-  await svc.from('report_photos').insert({
-    report_id: reportId,
-    original_path: `${reportId}/photos/original/${uuid}.jpg`,
-    processed_path: processedPath,
-    thumb_path: thumbPath,
-    status: 'done',
-    slot_id: null,
-  } as never);
-}
-
-test.afterAll(async () => {
+test('planilha real → corrigir data → sem fotos → abrir Collabora → aprovar → baixar PDF', async ({ page }) => {
+  test.setTimeout(300_000);
   const svc = service();
-  for (const id of createdIds) {
-    await svc.storage.from(BUCKET).list(`${id}/photos/processed`).then(async ({ data }) => {
-      if (data && data.length > 0) {
-        await svc.storage
-          .from(BUCKET)
-          .remove(data.map((f) => `${id}/photos/processed/${f.name}`));
-      }
-    });
-    await svc.storage.from(BUCKET).list(`${id}/snapshots`).then(async ({ data }) => {
-      if (data && data.length > 0) {
-        await svc.storage.from(BUCKET).remove(data.map((f) => `${id}/snapshots/${f.name}`));
-      }
-    });
-    await svc.storage
-      .from(BUCKET)
-      .remove([
-        `${id}/final.pdf`,
-        `${id}/final-v1.pdf`,
-        `${id}/final.docx`,
-        `${id}/working.docx`,
-        `${id}/preview.pdf`,
-        `${id}/spreadsheet.xlsx`,
-      ]);
-    await svc.from('report_photos').delete().eq('report_id', id);
-    await svc.from('audit_log').delete().eq('report_id', id);
-    await svc.from('reports').delete().eq('id', id);
-  }
-});
+  await login(page);
+  const { reportId, vessel } = await createDraft(page, ids, true);
+  await expect(page.getByText('Revisão de dados', { exact: true })).toBeVisible();
+  const confirm = page.getByRole('button', { name: /Confirmar dados/ });
+  await expect(confirm).toBeDisabled();
+  await finalDateInput(page).fill('2026-06-01');
+  await finalDateInput(page).blur();
+  await expect(confirm).toBeEnabled({ timeout: 15_000 });
+  await confirm.click();
+  await expect(page).toHaveURL(new RegExp(`/reports/${reportId}/photos$`));
+  const advance = page.getByRole('button', { name: /Avançar para edição/ });
+  await expect(advance).toBeEnabled();
+  await advance.click();
+  await expect(page).toHaveURL(new RegExp(`/reports/${reportId}/edit$`));
+  await expect(page.getByRole('heading', { name: vessel, exact: true })).toBeVisible();
+  await expect(page.getByTitle('Editor do relatório (Collabora)', { exact: true })).toBeVisible({ timeout: 120_000 });
 
-test.describe('Fluxo feliz completo com Collabora (012/T-010, CA-007)', () => {
-  test('criar → revisar → fotos → editar no Collabora → aprovar → PDF gerado e baixável', async ({
-    page,
-  }) => {
-    test.setTimeout(180_000);
-    const svc = service();
-    await login(page);
+  const working = checked(await svc.from('reports').select('working_docx_path,working_docx_revision').eq('id', reportId).single(), 'documento de trabalho');
+  expect(working?.working_docx_path).toMatch(new RegExp(`^${reportId}/working/[0-9a-f-]+\\.docx$`));
+  const original = checked(await svc.storage.from(BUCKET).download(working.working_docx_path), 'download working DOCX');
+  expect(original?.size).toBeGreaterThan(0);
 
-    // ── 1. Criar relatório + upload da planilha ───────────────────────────
-    await page.goto('/reports/new');
-    await page.getByRole('button').filter({ hasText: 'Draft Survey' }).click();
-    await page.getByRole('button', { name: 'Descarga', exact: true }).click();
-    await page.getByRole('button', { name: /Continuar para planilha/ }).click();
-
-    const vessel = `MV FULLFLOW ${Date.now()}`;
-    const buffer = await buildDraftXlsxMissingDate(vessel);
-    await page.locator('input[type=file]').setInputFiles({
-      name: 'draft.xlsx',
-      mimeType: XLSX_MIME,
-      buffer,
-    });
-    await page.getByRole('button', { name: 'Extrair dados' }).click();
-
-    await expect(page).toHaveURL(/\/reports\/[0-9a-f-]+\/review$/, {
-      timeout: 45_000,
-    });
-    const reportId = /reports\/([^/]+)\/review/.exec(page.url())?.[1] ?? '';
-    expect(reportId).toBeTruthy();
-    createdIds.push(reportId);
-
-    // ── 2. Revisão: corrigir o erro (survey_date vazio) ───────────────────
-    await expect(page.getByText('Revisão de dados')).toBeVisible({ timeout: 15_000 });
-    const confirmBtn = page.getByRole('button', { name: /Confirmar dados/ });
-    await expect(confirmBtn).toBeDisabled();
-
-    const dateInput = page.locator('input[type="date"]').first();
-    await dateInput.fill('2026-06-01');
-    await dateInput.blur();
-    await expect(confirmBtn).toBeEnabled({ timeout: 10_000 });
-    await confirmBtn.click();
-
-    await expect(page).toHaveURL(/\/reports\/.+\/photos$/, { timeout: 15_000 });
-
-    // ── 3. Fotos: semear foto processada, alocar e avançar ────────────────
-    await expect(page.getByRole('heading', { name: 'Fotos' })).toBeVisible({
-      timeout: 20_000,
-    });
-    await seedProcessedPhoto(svc, reportId);
-    await page.reload();
-    await expect(page.locator('[data-photo-id]').first()).toBeVisible({
-      timeout: 20_000,
-    });
-
-    // Seleciona a foto e aloca no slot obrigatório.
-    await page.locator('[data-photo-id]').first().click();
-    await page.getByText('Alocar', { exact: true }).first().click();
-    await page.waitForTimeout(800);
-
-    const advance = page.getByRole('button', { name: /Avançar para edição/ });
-    await expect(advance).toBeEnabled({ timeout: 15_000 });
-    await advance.click();
-    await expect(page).toHaveURL(new RegExp(`/reports/${reportId}/edit$`), {
-      timeout: 20_000,
-    });
-
-    // ── 4. Editor nativo Collabora (012): build do working.docx + iframe ──
-    await expect(page.getByRole('heading', { name: vessel })).toBeVisible({
-      timeout: 20_000,
-    });
-    // O worker monta o working.docx (build_working_docx, com LibreOffice no
-    // 2º passe) e o CollaboraEditor abre o iframe WOPI quando ele existe.
-    await expect(page.locator('iframe.ed-collabora')).toBeVisible({
-      timeout: 120_000,
-    });
-    await expect(page.getByText(/Edição nativa/)).toBeVisible();
-
-    // working.docx persistido no Storage (012 RF-001).
-    const { data: wdFiles } = await svc.storage
-      .from(BUCKET)
-      .list(reportId, { search: 'working.docx' });
-    expect((wdFiles ?? []).some((f) => f.name === 'working.docx')).toBe(true);
-
-    // ── 5. Aprovar: Action_Save → editing→approved → snapshot → generate_pdf ──
-    await page.getByRole('button', { name: 'Aprovar e gerar PDF' }).click();
-    // Preview com badge de geração (o Action_Save pode levar alguns segundos).
-    await expect(page.getByText(/Gerando PDF|PDF pronto/)).toBeVisible({
-      timeout: 30_000,
-    });
-    // Worker converte o working.docx EDITADO (generate_pdf) → badge "PDF pronto".
-    await expect(page.getByText(/PDF pronto/)).toBeVisible({ timeout: 120_000 });
-
-    // Snapshot binário da aprovação no Storage (012/T-007).
-    const { data: snaps } = await svc.storage.from(BUCKET).list(`${reportId}/snapshots`);
-    expect((snaps ?? []).some((f) => /^aprovacao-v\d+\.docx$/.test(f.name))).toBe(true);
-
-    const baixar = page.getByRole('button', { name: /Baixar PDF/ });
-    await expect(baixar).toBeEnabled();
-
-    // ── 6. Verificação no banco ───────────────────────────────────────────
-    const { data: report } = await svc
-      .from('reports')
-      .select('status, document_hash, pdf_paths')
-      .eq('id', reportId)
-      .single();
-    const r = report as {
-      status: string;
-      document_hash: string | null;
-      pdf_paths: string[] | null;
-    };
-    expect(r.status).toBe('generated');
-    expect(r.document_hash).toBeTruthy();
-    expect((r.pdf_paths ?? []).length).toBeGreaterThanOrEqual(1);
-
-    const { data: logs } = await svc
-      .from('audit_log')
-      .select('action')
-      .eq('report_id', reportId);
-    const actions = (logs ?? []).map((l: { action: string }) => l.action);
-    expect(actions).toContain('working_docx_enqueued');
-    expect(actions).toContain('document_snapshot');
-    expect(actions).toContain('pdf_enqueued');
-    expect(actions).toContain('transition');
-    expect(actions).toContain('pdf_generated');
-  });
+  const approve = page.getByRole('button', { name: 'Aprovar e gerar PDF', exact: true });
+  await expect(approve).toBeEnabled();
+  await approve.click();
+  await expect(page.getByText(/PDF pronto/)).toBeVisible({ timeout: 120_000 });
+  const report = checked(await svc.from('reports').select('status,document_hash,pdf_paths,approved_docx_path,approved_docx_revision,working_docx_path').eq('id', reportId).single(), 'relatório gerado');
+  expect(report?.status).toBe('generated');
+  expect(report?.document_hash).toBeTruthy();
+  expect(report?.approved_docx_path).toBe(report?.working_docx_path);
+  expect(report?.approved_docx_revision).toBeGreaterThanOrEqual(working.working_docx_revision);
+  const approved = checked(await svc.storage.from(BUCKET).download(report.approved_docx_path), 'snapshot aprovado');
+  expect(approved?.size).toBeGreaterThan(0);
+  expect(report.pdf_paths).toHaveLength(1);
+  expect(report.pdf_paths[0]).toMatch(new RegExp(`^${reportId}/final-v\\d+-r${report.approved_docx_revision}\\.pdf$`));
+  const pdf = checked(await svc.storage.from(BUCKET).download(report.pdf_paths[0]), 'download PDF persistido');
+  expect(Buffer.from(await pdf.arrayBuffer()).subarray(0, 5).toString()).toBe('%PDF-');
+  await expect(page.getByRole('button', { name: /Baixar PDF/ })).toBeEnabled();
+  const actions = checked(await svc.from('audit_log').select('action').eq('report_id', reportId), 'auditoria')?.map(row => row.action);
+  expect(actions).toEqual(expect.arrayContaining(['working_docx_enqueued', 'document_snapshot', 'pdf_enqueued', 'transition', 'pdf_generated']));
 });

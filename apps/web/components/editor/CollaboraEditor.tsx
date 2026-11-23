@@ -2,9 +2,15 @@
 
 import './editor.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getEditorUrl, retryBuildWorkingDocx } from '@/lib/actions/editor';
+import { useRouter } from 'next/navigation';
+import { beginDocumentSave, confirmDocumentSave, getEditorUrl, reopenDocumentEditor, retryBuildWorkingDocx } from '@/lib/actions/editor';
+import { returnToPhotos } from '@/lib/actions/photos';
 import type { ReportStatus } from '@/lib/state-machine';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 import { PreviewPanel } from './PreviewPanel';
+import { PreviewShell } from './PreviewShell';
+import { isCollaboraSaveSessionInvalid, requestCollaboraSave } from './collabora-save';
+import { waitForCollaboraReady } from './collabora-ready';
 
 /**
  * Tela 06 — Editor nativo Collabora (012/T-003). O canvas é o LibreOffice no
@@ -28,25 +34,38 @@ export function CollaboraEditor({
   initialStatus: ReportStatus;
   initialView?: 'edit' | 'preview';
 }) {
+  const router = useRouter();
   const [view, setView] = useState<'edit' | 'preview'>(initialView);
   const [autoApprove, setAutoApprove] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveReceipt, setSaveReceipt] = useState<string>();
+  const savingRef = useRef(false);
+  const saveAbort = useRef<AbortController | null>(null);
+  const readyAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => { saveAbort.current?.abort(); readyAbort.current?.abort(); }, []);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [needsReopen, setNeedsReopen] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const [returningToPhotos, setReturningToPhotos] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+  const [iframeReady, setIframeReady] = useState(false);
   const [buildFailed, setBuildFailed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const load = useCallback(() => {
+    readyAbort.current?.abort();
     if (pollRef.current) clearTimeout(pollRef.current);
     setState('loading');
+    setIframeReady(false);
     setError(null);
     setBuildFailed(false);
     let attempts = 0;
     const tick = async (): Promise<void> => {
-      const res = await getEditorUrl(reportId);
+      const res = await getEditorUrl(reportId).catch(() => ({ error: 'Falha de conexão ao preparar o documento.', canRetry: true }));
       if ('url' in res) {
         setUrl(res.url);
         setState('ready');
@@ -62,6 +81,7 @@ export function CollaboraEditor({
       }
       // pending: o worker ainda monta o working.docx — aguarda e tenta de novo.
       if (++attempts > 60) {
+        setBuildFailed(true);
         setError('Tempo esgotado ao preparar o documento.');
         setState('error');
         return;
@@ -76,94 +96,120 @@ export function CollaboraEditor({
     load();
     return () => {
       if (pollRef.current) clearTimeout(pollRef.current);
+      readyAbort.current?.abort();
     };
   }, [view, load]);
 
   // Habilita a comunicação postMessage com o Collabora (necessário p/ confirmar o save).
   const onIframeLoad = useCallback(() => {
     const win = iframeRef.current?.contentWindow;
-    if (url && win) win.postMessage(JSON.stringify({ MessageId: 'Host_PostmessageReady' }), new URL(url).origin);
-  }, [url]);
-
-  // Manda o Collabora SALVAR (Action_Save → WOPI PutFile) e só então segue.
-  // Aborta se o Collabora reportar falha no save (success=false) — seguir
-  // adiante geraria o PDF de um .docx SEM a última edição do operador.
-  const saveAndThen = useCallback(
-    (next: () => void) => {
-      const win = iframeRef.current?.contentWindow;
-      if (!url || !win) {
-        next();
+    if (!url || !win) return;
+    readyAbort.current?.abort();
+    const controller = new AbortController();
+    readyAbort.current = controller;
+    setIframeReady(false);
+    setSaveError(null);
+    void waitForCollaboraReady(window, win, new URL(url).origin, controller.signal).then((permission) => {
+      if (controller.signal.aborted) return;
+      if (permission === 'readonly' && initialStatus === 'editing') {
+        setSaveError('O editor abriu em modo somente leitura. Reabra o editor para recuperar a edição.');
+        setNeedsReopen(true);
         return;
       }
-      const origin = new URL(url).origin;
-      let done = false;
-      const finish = (ok: boolean): void => {
-        if (done) return;
-        done = true;
-        window.removeEventListener('message', onResp);
-        setSaving(false);
-        if (ok) {
-          next();
-        } else {
-          setSaveError('Não foi possível salvar a edição. Verifique o documento e tente de novo.');
-        }
-      };
-      const onResp = (e: MessageEvent): void => {
-        if (e.origin !== origin) return;
-        try {
-          const m = JSON.parse(e.data as string) as {
-            MessageId?: string;
-            Values?: { success?: boolean };
-          };
-          if (m?.MessageId === 'Action_Save_Resp') finish(m.Values?.success !== false);
-        } catch {
-          /* ignora mensagens não-JSON */
-        }
-      };
-      setSaving(true);
-      setSaveError(null);
-      window.addEventListener('message', onResp);
-      win.postMessage(
-        JSON.stringify({ MessageId: 'Action_Save', Values: { Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: false } }),
-        origin,
-      );
-      // Fallback: sem confirmação em 8s, segue (o save já foi disparado e o
-      // Collabora nem sempre responde quando o doc não tem mudanças pendentes).
-      setTimeout(() => finish(true), 8000);
-    },
-    [url],
-  );
+      setIframeReady(true);
+    }).catch((err: unknown) => {
+      if (controller.signal.aborted) return;
+      setSaveError(err instanceof Error ? err.message : 'Não foi possível comunicar com o editor.');
+    });
+  }, [url, initialStatus]);
+
+  const saveAndThen = useCallback(async (next: () => void) => {
+    if (savingRef.current || needsReopen) return;
+    const win = iframeRef.current?.contentWindow;
+    if (!url || !win || !iframeReady) { setSaveError('O editor ainda não está disponível.'); return; }
+    if (initialStatus !== 'editing') { next(); return; }
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(null);
+    setSaveReceipt(undefined);
+    const controller = new AbortController();
+    saveAbort.current = controller;
+    try {
+      const request = await beginDocumentSave(reportId);
+      if ('error' in request) throw new Error(request.error);
+      const outcome = await requestCollaboraSave(window, win, new URL(url).origin, controller.signal);
+      const saved = await confirmDocumentSave(reportId, request.token, outcome);
+      if ('error' in saved) throw new Error(saved.error);
+      if (!controller.signal.aborted) { setSaveReceipt(saved.receipt); next(); }
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        setSaveError(err instanceof Error ? err.message : 'Não foi possível salvar. Tente novamente.');
+        setNeedsReopen(isCollaboraSaveSessionInvalid(win));
+      }
+    } finally {
+      savingRef.current = false;
+      if (!controller.signal.aborted) setSaving(false);
+    }
+  }, [url, reportId, initialStatus, needsReopen, iframeReady]);
+
+  const goBackToPhotos = useCallback(() => {
+    setReturningToPhotos(true);
+    void returnToPhotos(reportId).then((result) => {
+      if ('error' in result) {
+        setSaveError(result.error);
+        setReturningToPhotos(false);
+        return;
+      }
+      router.push(`/reports/${reportId}/photos`);
+    });
+  }, [reportId, router]);
 
   if (view === 'preview') {
     return (
-      <PreviewPanel
-        reportId={reportId}
-        initialStatus={initialStatus}
-        autoApprove={autoApprove}
-        onBackToEdit={() => {
-          setAutoApprove(false);
-          setView('edit');
-        }}
-      />
+      <PreviewShell progress={<ReportProgress current="pdf" />}>
+        <PreviewPanel
+          reportId={reportId}
+          initialStatus={initialStatus}
+          autoApprove={autoApprove}
+          saveReceipt={saveReceipt}
+          onBackToEdit={() => {
+            setAutoApprove(false);
+            setIframeReady(false);
+            setView('edit');
+          }}
+        />
+      </PreviewShell>
     );
   }
 
   const readOnly = initialStatus !== 'editing';
-  const busy = saving || state !== 'ready';
+  const busy = saving || reopening || returningToPhotos || needsReopen || !iframeReady || state !== 'ready';
 
   return (
     <div className="ed-shell">
+      <div style={{ padding: '24px 28px 0' }}>
+        <ReportProgress current="edit" />
+      </div>
       <header className="ed-header">
         <div className="ed-header__title">
           <h1>{vesselName ?? 'Relatório'}</h1>
           <span className="ed-header__spec">{specLabel}</span>
         </div>
         <div className="ed-header__actions">
+          {!readOnly && (
+            <button
+              className="ed-btn"
+              disabled={busy || returningToPhotos}
+              onClick={() => saveAndThen(goBackToPhotos)}
+            >
+              {returningToPhotos ? 'Voltando…' : '← Voltar para fotos'}
+            </button>
+          )}
           {saving ? (
             <span className="ed-savechip ed-savechip--saving">
               <span className="ed-spinner" /> Salvando…
             </span>
-          ) : state === 'ready' ? (
+          ) : state === 'ready' && !needsReopen && iframeReady ? (
             <span className="ed-savechip ed-savechip--saved">✓ Edição nativa · salva automaticamente</span>
           ) : null}
           <button
@@ -191,12 +237,54 @@ export function CollaboraEditor({
           style={{ background: '#fbeceb', color: '#9b2a2c', padding: '8px 24px', fontSize: 13 }}
         >
           {saveError}
+          {!iframeReady && !needsReopen && (
+            <button className="ed-btn" style={{ marginLeft: 12 }} onClick={onIframeLoad}>
+              Tentar conexão
+            </button>
+          )}
+          {needsReopen && (
+            <>
+              {' '}Antes de reabrir, copie qualquer texto que queira preservar. Alterações sem confirmação podem não ter sido gravadas.
+              <button
+                className="ed-btn"
+                style={{ marginLeft: 12 }}
+                disabled={reopening}
+                onClick={async () => {
+                  // A ação é explícita: fechar o iframe pode descartar texto
+                  // ainda não salvo. Desmonta primeiro para impedir que a
+                  // sessão antiga renove o lock enquanto o servidor o libera.
+                  setReopening(true);
+                  setSaveReceipt(undefined);
+                  setIframeReady(false);
+                  setUrl(null);
+                  setState('loading');
+                  const result = await reopenDocumentEditor(reportId).catch(() => ({
+                    error: 'Falha de conexão ao liberar a sessão anterior do editor.',
+                  }));
+                  if ('error' in result) {
+                    setSaveError(result.error);
+                    setState('error');
+                    setReopening(false);
+                    return;
+                  }
+                  setNeedsReopen(false);
+                  setIframeKey((key) => key + 1);
+                  setSaveError('Editor reaberto. Confira o texto antes de salvar e aprovar.');
+                  setReopening(false);
+                  load();
+                }}
+              >
+                {reopening ? 'Reabrindo…' : 'Reabrir editor'}
+              </button>
+            </>
+          )}
         </div>
       )}
 
       {state === 'ready' && url ? (
-        <div className="ed-collabora-area">
+        <div className="ed-collabora-area" inert={saving} aria-busy={saving}>
           <iframe
+            key={iframeKey}
             ref={iframeRef}
             className="ed-collabora"
             title="Editor do relatório (Collabora)"
@@ -214,7 +302,7 @@ export function CollaboraEditor({
                 onClick={() => {
                   // Falha definitiva do build: re-enfileira antes de voltar ao polling.
                   if (buildFailed) {
-                    void retryBuildWorkingDocx(reportId).then((r) => {
+                    void retryBuildWorkingDocx(reportId).catch(() => ({ error: 'Falha de conexão. Tente novamente.' })).then((r) => {
                       if ('error' in r) setError(r.error);
                       else load();
                     });

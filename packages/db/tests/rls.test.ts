@@ -1,274 +1,157 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import {
-  createClient,
-  type SupabaseClient,
-  type User,
-} from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { loadRootEnv } from '../src/env';
 
-// Testes de RLS contra o projeto Supabase hosted (002 — CA-003/CA-004 + bordas).
-// Gatilho explícito para não bater no banco no `pnpm test` comum:
-//   RUN_DB_TESTS=1 pnpm --filter @naabsa/db test
+// Executado apenas pelo config de integração, em Supabase exclusivo de testes.
 loadRootEnv();
-
-const URL = process.env.SUPABASE_URL;
-const ANON = process.env.SUPABASE_ANON_KEY;
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const ENABLED =
-  process.env.RUN_DB_TESTS === '1' && !!URL && !!ANON && !!SERVICE;
-
-const PASSWORD = 'Rls-Test-Pass-123!';
-const SUFFIX = `${Date.now()}`;
-const emailFor = (role: string): string =>
-  `rls-test-${role}-${SUFFIX}@example.com`;
-
-function makeClient(key: string): SupabaseClient {
-  return createClient(URL ?? '', key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+if (process.env.RUN_DB_TESTS !== '1' || process.env.NAABSA_TEST_DATABASE !== 'isolated') {
+  throw new Error('RLS externo exige RUN_DB_TESTS=1 e NAABSA_TEST_DATABASE=isolated.');
 }
-
-let service: SupabaseClient;
-let anon: SupabaseClient;
-let operatorClient: SupabaseClient;
-let adminClient: SupabaseClient;
-let noRoleClient: SupabaseClient;
-
-let operatorId = '';
-let adminId = '';
-let noRoleId = '';
-let draftTypeId = '';
-let baseSpecId = '';
-
+for (const key of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
+  if (!process.env[key]) throw new Error(`RLS externo: ${key} ausente.`);
+}
+const PASSWORD = 'Rls-Test-Pass-123!';
+const SUFFIX = crypto.randomUUID();
 const createdUserIds: string[] = [];
 const createdSpecIds: string[] = [];
 const createdReportIds: string[] = [];
-
-async function createUser(role: 'operator' | 'admin' | 'none'): Promise<{
-  id: string;
-  client: SupabaseClient;
-}> {
-  const { data, error } = await service.auth.admin.createUser({
-    email: emailFor(role),
-    password: PASSWORD,
-    email_confirm: true,
+const createdAuditIds: number[] = [];
+let typeId = '';
+let specId = '';
+let operatorId = '';
+let adminId = '';
+let noRoleId = '';
+let operatorClient: SupabaseClient;
+let adminClient: SupabaseClient;
+let noRoleClient: SupabaseClient;
+function client(key: string) {
+  return createClient(process.env.SUPABASE_URL!, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
-  if (error) throw error;
-  const user: User | null = data.user;
-  if (!user) throw new Error('createUser não retornou usuário');
-  createdUserIds.push(user.id);
-
+}
+const service = client(process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const anon = client(process.env.SUPABASE_ANON_KEY!);
+function checked<T extends { data: unknown; error: { message: string } | null }>(result: T, context: string): NonNullable<T['data']> {
+  if (result.error) throw new Error(`${context}: ${result.error.message}`);
+  return result.data as NonNullable<T['data']>;
+}
+async function createUser(role: 'operator' | 'admin' | 'none') {
+  const email = `rls-${role}-${SUFFIX}@example.com`;
+  const data = checked(await service.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true }), 'createUser');
+  if (!data.user) throw new Error('createUser não retornou usuário');
+  const id = data.user.id;
+  createdUserIds.push(id);
   if (role !== 'none') {
-    const { error: pErr } = await service
-      .from('profiles')
-      .insert({ user_id: user.id, role, display_name: `RLS ${role}` });
-    if (pErr) throw pErr;
+    checked(await service.from('profiles').insert({ user_id: id, role, status: 'active', email, display_name: `RLS ${role}` }), 'profile');
   }
-
-  const client = makeClient(ANON ?? '');
-  const { error: sErr } = await client.auth.signInWithPassword({
-    email: emailFor(role),
-    password: PASSWORD,
-  });
-  if (sErr) throw sErr;
-  return { id: user.id, client };
+  // O login cria auth.sessions real, exigida por current_has_role (0009).
+  const signedIn = client(process.env.SUPABASE_ANON_KEY!);
+  const login = checked(await signedIn.auth.signInWithPassword({ email, password: PASSWORD }), 'signIn');
+  expect(login.session?.access_token).toBeTruthy();
+  const allowed = checked(await signedIn.rpc('current_has_role'), 'current_has_role');
+  expect(allowed).toBe(role !== 'none');
+  return { id, client: signedIn };
+}
+async function createReport() {
+  const row = checked(await service.from('reports').insert({
+    report_type_id: typeId, spec_id: specId, created_by: adminId, status: 'in_review',
+  }).select('id').single(), 'create report');
+  if (!row) throw new Error('Relatório ausente');
+  createdReportIds.push(row.id);
+  return row.id as string;
 }
 
-describe.skipIf(!ENABLED)('RLS — matriz de acesso por papel (002)', () => {
+describe('RLS — acesso ativo, sessões reais e imutabilidade', () => {
   beforeAll(async () => {
-    service = makeClient(SERVICE ?? '');
-    anon = makeClient(ANON ?? '');
-
-    const op = await createUser('operator');
-    operatorId = op.id;
-    operatorClient = op.client;
-    const ad = await createUser('admin');
-    adminId = ad.id;
-    adminClient = ad.client;
-    const nr = await createUser('none');
-    noRoleId = nr.id;
-    noRoleClient = nr.client;
-
-    // Fixtures: tipo seedado + spec base (para FKs de reports).
-    const { data: types, error: tErr } = await service
-      .from('report_types')
-      .select('id')
-      .eq('slug', 'draft_survey')
-      .single();
-    if (tErr) throw tErr;
-    draftTypeId = types.id as string;
-
-    const { data: spec, error: spErr } = await service
-      .from('report_specs')
-      .insert({
-        report_type_id: draftTypeId,
-        version: 1,
-        spec: { report_type: 'draft_survey', version: 1 },
-        created_by: adminId,
-      })
-      .select('id')
-      .single();
-    if (spErr) throw spErr;
-    baseSpecId = spec.id as string;
-    createdSpecIds.push(baseSpecId);
+    ({ id: operatorId, client: operatorClient } = await createUser('operator'));
+    ({ id: adminId, client: adminClient } = await createUser('admin'));
+    ({ id: noRoleId, client: noRoleClient } = await createUser('none'));
+    // Tipo exclusivo evita colisões com versões publicadas e não muda active_spec_id.
+    const type = checked(await service.from('report_types').insert({ slug: `rls_${SUFFIX}`, name: 'Fixture RLS' }).select('id').single(), 'create type');
+    typeId = type.id;
+    const spec = checked(await service.from('report_specs').insert({
+      report_type_id: typeId, version: 1, spec: { fixture: SUFFIX, photo_slots: [] }, created_by: adminId,
+    }).select('id').single(), 'create spec');
+    specId = spec.id;
+    createdSpecIds.push(specId);
   }, 90_000);
 
   afterAll(async () => {
+    // Todas as exclusões usam apenas IDs criados por esta execução.
+    const errors: string[] = [];
+    async function clean(operation: PromiseLike<{ error: { message: string } | null }>) {
+      const { error } = await operation;
+      if (error) errors.push(error.message);
+    }
+    for (const id of createdAuditIds) await clean(service.from('audit_log').delete().eq('id', id));
     for (const id of createdReportIds) {
-      await service.from('reports').delete().eq('id', id);
+      await clean(service.from('audit_log').delete().eq('report_id', id));
+      await clean(service.from('reports').delete().eq('id', id));
     }
-    for (const id of createdSpecIds) {
-      await service.from('report_specs').delete().eq('id', id);
-    }
+    for (const id of createdSpecIds) await clean(service.from('report_specs').delete().eq('id', id));
+    if (typeId) await clean(service.from('report_types').delete().eq('id', typeId));
     for (const id of createdUserIds) {
-      await service.from('profiles').delete().eq('user_id', id);
-      await service.auth.admin.deleteUser(id);
+      await clean(service.from('user_access').delete().eq('linked_user_id', id));
+      await clean(service.from('profiles').delete().eq('user_id', id));
+      await clean(service.auth.admin.deleteUser(id));
     }
+    if (errors.length) throw new Error(`Cleanup RLS falhou: ${errors.join('; ')}`);
   }, 90_000);
 
-  it('anônimo não lê report_types', async () => {
-    const { data } = await anon.from('report_types').select('*');
-    expect(data ?? []).toHaveLength(0);
-  });
-
-  it('anônimo não lê reports', async () => {
-    const { data } = await anon.from('reports').select('*');
-    expect(data ?? []).toHaveLength(0);
-  });
-
-  it('operator lê os 5 report_types (autenticado)', async () => {
-    const { data, error } = await operatorClient
-      .from('report_types')
-      .select('*');
-    expect(error).toBeNull();
-    expect((data ?? []).length).toBeGreaterThanOrEqual(5);
-  });
-
-  it('operator NÃO insere report_specs (não é admin)', async () => {
-    const { error } = await operatorClient.from('report_specs').insert({
-      report_type_id: draftTypeId,
-      version: 50,
-      spec: { x: 1 },
-      created_by: operatorId,
-    });
-    expect(error).not.toBeNull();
-  });
-
-  it('admin insere report_specs', async () => {
-    const { data, error } = await adminClient
-      .from('report_specs')
-      .insert({
-        report_type_id: draftTypeId,
-        version: 2,
-        spec: { report_type: 'draft_survey', version: 2 },
-        created_by: adminId,
-      })
-      .select('id')
-      .single();
-    expect(error).toBeNull();
-    if (data) createdSpecIds.push(data.id as string);
-  });
-
-  it('report_specs é imutável — admin não consegue alterar (RLS sem UPDATE)', async () => {
-    // Sem política de UPDATE, a RLS filtra a linha: 0 linhas afetadas, sem erro.
-    // O efetivo é o que importa — o spec NÃO pode mudar.
-    await adminClient
-      .from('report_specs')
-      .update({ spec: { hacked: true } })
-      .eq('id', baseSpecId);
-    const { data } = await service
-      .from('report_specs')
-      .select('spec')
-      .eq('id', baseSpecId)
-      .single();
-    expect(data?.spec).toEqual({ report_type: 'draft_survey', version: 1 });
-  });
-
-  it('report_specs é imutável — nem o service role atualiza (trigger)', async () => {
-    const { error } = await service
-      .from('report_specs')
-      .update({ spec: { hacked: true } })
-      .eq('id', baseSpecId);
-    expect(error).not.toBeNull();
-  });
-
-  it('operator insere e lê reports', async () => {
-    const { data, error } = await operatorClient
-      .from('reports')
-      .insert({
-        report_type_id: draftTypeId,
-        spec_id: baseSpecId,
-        created_by: operatorId,
-        vessel_name: 'RLS Test Vessel',
-      })
-      .select('id')
-      .single();
-    expect(error).toBeNull();
-    if (data) {
-      createdReportIds.push(data.id as string);
-      const { data: read } = await operatorClient
-        .from('reports')
-        .select('id')
-        .eq('id', data.id);
-      expect((read ?? []).length).toBe(1);
+  it('anônimo não lê tipos nem relatórios', async () => {
+    for (const table of ['report_types', 'reports']) {
+      expect(checked(await anon.from(table).select('id'), `anon ${table}`)).toHaveLength(0);
     }
   });
-
-  it('usuário SEM papel não lê nem insere reports', async () => {
-    const { data } = await noRoleClient.from('reports').select('*');
-    expect(data ?? []).toHaveLength(0);
-    const { error } = await noRoleClient.from('reports').insert({
-      report_type_id: draftTypeId,
-      spec_id: baseSpecId,
-      created_by: noRoleId,
-    });
-    expect(error).not.toBeNull();
+  it('operator ativo lê o tipo exclusivo', async () => {
+    expect(checked(await operatorClient.from('report_types').select('id').eq('id', typeId), 'operator type')).toHaveLength(1);
   });
-
-  it('operator só enxerga o próprio profile', async () => {
-    const { data } = await operatorClient.from('profiles').select('*');
-    const rows = data ?? [];
-    expect(rows.length).toBe(1);
-    expect(rows[0]?.user_id).toBe(operatorId);
+  it('operator não publica spec; admin publica versão livre', async () => {
+    const denied = await operatorClient.from('report_specs').insert({ report_type_id: typeId, version: 2, spec: {}, created_by: operatorId });
+    expect(denied.error?.code).toBe('42501');
+    const published = checked(await adminClient.from('report_specs').insert({ report_type_id: typeId, version: 2, spec: { fixture: SUFFIX }, created_by: adminId }).select('id').single(), 'admin spec');
+    expect(published?.id).toBeTruthy();
+    createdSpecIds.push(published.id);
   });
-
-  it('admin enxerga vários profiles', async () => {
-    const { data } = await adminClient.from('profiles').select('*');
-    expect((data ?? []).length).toBeGreaterThanOrEqual(2);
+  it('spec permanece imutável para admin e service role', async () => {
+    const update = await adminClient.from('report_specs').update({ spec: { hacked: true } }).eq('id', specId).select('id');
+    expect(update.error).toBeNull();
+    expect(update.data).toHaveLength(0);
+    expect(checked(await service.from('report_specs').select('spec').eq('id', specId).single(), 'read immutable spec')?.spec).toEqual({ fixture: SUFFIX, photo_slots: [] });
+    expect((await service.from('report_specs').update({ spec: {} }).eq('id', specId)).error).not.toBeNull();
   });
-
-  // ── Bordas (T-008) ──
-
-  it('borda: delete de report faz cascade nas report_photos', async () => {
-    const { data: rep } = await service
-      .from('reports')
-      .insert({
-        report_type_id: draftTypeId,
-        spec_id: baseSpecId,
-        created_by: adminId,
-      })
-      .select('id')
-      .single();
-    const reportId = rep?.id as string;
-    const { data: photo } = await service
-      .from('report_photos')
-      .insert({ report_id: reportId, original_path: 'orig/x.jpg' })
-      .select('id')
-      .single();
-    expect(photo?.id).toBeTruthy();
-
-    await service.from('reports').delete().eq('id', reportId);
-    const { data: orphan } = await service
-      .from('report_photos')
-      .select('id')
-      .eq('id', photo?.id as string);
-    expect(orphan ?? []).toHaveLength(0);
+  it('operator insere e lê relatório', async () => {
+    const row = checked(await operatorClient.from('reports').insert({ report_type_id: typeId, spec_id: specId, created_by: operatorId }).select('id').single(), 'operator insert');
+    expect(row?.id).toBeTruthy();
+    createdReportIds.push(row.id);
+    expect(checked(await operatorClient.from('reports').select('id').eq('id', row.id), 'operator read')).toHaveLength(1);
   });
-
-  it('borda: audit_log aceita actor null via service role (worker)', async () => {
-    const { error } = await service
-      .from('audit_log')
-      .insert({ actor: null, action: 'rls_test', payload: { ok: true } });
-    expect(error).toBeNull();
+  it('usuário sem papel não lê nem insere relatório', async () => {
+    expect(checked(await noRoleClient.from('reports').select('id'), 'no role read')).toHaveLength(0);
+    expect((await noRoleClient.from('reports').insert({ report_type_id: typeId, spec_id: specId, created_by: noRoleId })).error?.code).toBe('42501');
+  });
+  it('operator vê o próprio profile; admin vê os profiles da execução', async () => {
+    const rows = checked(await operatorClient.from('profiles').select('user_id'), 'operator profiles');
+    expect(rows).toEqual([{ user_id: operatorId }]);
+    expect(checked(await adminClient.from('profiles').select('user_id').in('user_id', [operatorId, adminId]), 'admin profiles')).toHaveLength(2);
+  });
+  it('excluir relatório remove suas fotos em cascade', async () => {
+    const id = await createReport();
+    const photo = checked(await service.from('report_photos').insert({ report_id: id, original_path: `${id}/photos/original/test.jpg` }).select('id').single(), 'photo');
+    checked(await service.from('reports').delete().eq('id', id), 'delete report');
+    expect(checked(await service.from('report_photos').select('id').eq('id', photo.id), 'cascade')).toHaveLength(0);
+  });
+  it('audit_log aceita actor null e registra ID para cleanup', async () => {
+    const row = checked(await service.from('audit_log').insert({ actor: null, action: 'rls_test', payload: { fixture: SUFFIX } }).select('id').single(), 'worker audit');
+    createdAuditIds.push(row.id);
+  });
+  it('desativar revoga sessão; reativar exige um novo login', async () => {
+    checked(await service.from('profiles').update({ status: 'inactive' }).eq('user_id', operatorId), 'deactivate');
+    expect(checked(await operatorClient.rpc('current_has_role'), 'inactive role')).toBe(false);
+    expect(checked(await operatorClient.from('report_types').select('id'), 'inactive types')).toHaveLength(0);
+    checked(await service.from('profiles').update({ status: 'active' }).eq('user_id', operatorId), 'reactivate');
+    expect(checked(await operatorClient.rpc('current_has_role'), 'old session')).toBe(false);
+    checked(await operatorClient.auth.signInWithPassword({ email: `rls-operator-${SUFFIX}@example.com`, password: PASSWORD }), 'new login');
+    expect(checked(await operatorClient.rpc('current_has_role'), 'new session')).toBe(true);
   });
 });

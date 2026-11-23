@@ -33,7 +33,7 @@ export function AiBanner({
           {count} foto{count !== 1 ? 's' : ''} pré-alocada{count !== 1 ? 's' : ''} pela IA
         </div>
         <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
-          Confirme ou mova — a confirmação zera a flag. Nada é decidido sem você.
+          Confirme ou ajuste a alocação. Sugestões não confirmadas ficam fora do documento.
         </div>
       </div>
       <button

@@ -56,8 +56,16 @@ describe('coerceField — number (pt-BR)', () => {
   it('decimal "12,5" → 12.5', () => {
     expect(coerceField('12,5', numField).value).toBe(12.5);
   });
-  it('arredonda a decimals', () => {
-    expect(coerceField('1,239', num2).value).toBe(1.24);
+  it.each([
+    ['24,158.9', 24158.9],
+    ['1,234,567.89', 1234567.89],
+    ['-24,158.90', -24158.9],
+    ['24.158,90', 24158.9],
+  ])('aceita milhar e decimal sem perder a escala: %s', (raw, expected) => {
+    expect(coerceField(raw, numField)).toEqual({ value: expected });
+  });
+  it('preserva o valor mesmo quando o spec define precisão de exibição', () => {
+    expect(coerceField(81.2345, num2).value).toBe(81.2345);
   });
   it('texto não numérico → erro', () => {
     const r = coerceField('abc', numField);
@@ -172,4 +180,33 @@ describe('coerceField — time (RF-011)', () => {
   it('null → null (célula vazia)', () => {
     expect(coerceField(null, timeField).value).toBeNull();
   });
+});
+
+describe('coerceField — datas textuais e ausências explícitas', () => {
+  it.each([
+    ['May 10, 2026', '2026-05-10'],
+    ['February 29, 2024', '2024-02-29'],
+    ['december 1, 2026', '2026-12-01'],
+  ])('interpreta mês inglês sem locale: %s', (raw, iso) => {
+    expect(coerceField(raw, dateField)).toEqual({ value: iso });
+  });
+  it.each(['February 29, 2026', 'April 31, 2026', 'Unknown 1, 2026'])(
+    'rejeita data textual impossível: %s',
+    (raw) => {
+      expect(coerceField(raw, dateField).error).toBeDefined();
+    },
+  );
+  it.each(['-', 'N/A', 'n/a'])(
+    'ausência em data/hora opcional preserva null: %s',
+    (raw) => {
+      expect(coerceField(raw, dateField)).toEqual({ value: null });
+      expect(coerceField(raw, { ...base, type: 'time' })).toEqual({
+        value: null,
+      });
+      expect(
+        coerceField(raw, { ...dateField, required: true }).error,
+      ).toBeDefined();
+      expect(coerceField(raw, strField)).toEqual({ value: raw });
+    },
+  );
 });

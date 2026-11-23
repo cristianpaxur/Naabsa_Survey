@@ -1,9 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import type { ReportSpec } from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/service';
 import { loadUIPhotos } from '@/lib/photos';
 import { PhotosClient } from '@/components/photos/PhotosClient';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 
 /**
  * Tela 05 — Fotos (RF-15..RF-19). Carrega o relatório, os slots do spec
@@ -26,6 +26,7 @@ export default async function PhotosPage({
     .from('reports')
     .select('id,status,spec_id,vessel_name,variant')
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
   const report = reportRow as {
     id: string;
@@ -52,7 +53,7 @@ export default async function PhotosPage({
   const spec = (specRow as { spec: ReportSpec } | null)?.spec;
   const slots = spec?.photo_slots ?? [];
 
-  const photos = await loadUIPhotos(supabase, createServiceClient(), id);
+  const photos = await loadUIPhotos(supabase, id);
 
   const metaLabel = report.variant ? report.variant : 'sem variante';
 
@@ -63,6 +64,7 @@ export default async function PhotosPage({
       metaLabel={metaLabel}
       slots={slots}
       initialPhotos={photos}
+      progress={<ReportProgress current="photos" links={{ review: `/reports/${id}/review` }} />}
     />
   );
 }

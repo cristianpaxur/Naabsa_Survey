@@ -37,6 +37,11 @@ services:
         required: false
     environment:
       NODE_ENV: production
+      # Mesmo motor do editor: evita divergência de paginação entre o Collabora
+      # e o LibreOffice instalado no container do worker.
+      COLLABORA_CONVERSION_URL: ${COLLABORA_CONVERSION_URL:-http://collabora:9980}
+    depends_on:
+      - collabora
     restart: unless-stopped
 
   caddy:

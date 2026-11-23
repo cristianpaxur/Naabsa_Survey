@@ -4,7 +4,8 @@
  * para o tipo do campo. Determinístico (RNF-01): sem `Date` local nem locale.
  *
  * Política de números-como-texto (pt-BR): `.` é separador de milhar e `,` é
- * decimal — "208.450" → 208450; "1.025,50" → 1025.50.
+ * decimal — "208.450" → 208450; "1.025,50" → 1025.50. Texto inequivocamente
+ * inglês, com grupos de milhar e ponto decimal ("24,158.9"), também é aceito.
  * Datas saem em ISO `YYYY-MM-DD` (o `format` do spec é só para exibição).
  */
 import type { FieldDef, FieldValue } from '../types';
@@ -37,11 +38,18 @@ export function coerceField(
   opts: CoerceOptions = {},
 ): CoerceResult {
   if (isEmptyCell(raw)) return { value: null };
+  if (
+    !field.required &&
+    (field.type === 'date' || field.type === 'time') &&
+    typeof raw === 'string' &&
+    /^(?:-|n\/a)$/i.test(raw.trim())
+  )
+    return { value: null };
   switch (field.type) {
     case 'string':
       return coerceString(raw);
     case 'number':
-      return coerceNumber(raw, field.decimals);
+      return coerceNumber(raw);
     case 'date':
       return coerceDate(raw, opts.date1904 ?? false);
     case 'enum':
@@ -58,18 +66,17 @@ function coerceString(raw: RawCellValue): CoerceResult {
   return { value: String(raw).trim() };
 }
 
-function coerceNumber(raw: RawCellValue, decimals?: number): CoerceResult {
+function coerceNumber(raw: RawCellValue): CoerceResult {
   let n: number;
   if (typeof raw === 'number') {
     n = raw;
   } else if (typeof raw === 'boolean' || raw instanceof Date) {
     return { value: null, error: `Valor não numérico: '${describe(raw)}'.` };
   } else {
-    const cleaned = String(raw)
-      .trim()
-      .replace(/\s/g, '')
-      .replace(/\./g, '')
-      .replace(',', '.');
+    const text = String(raw).trim().replace(/\s/g, '');
+    const cleaned = /^[+-]?\d{1,3}(?:,\d{3})+\.\d+$/.test(text)
+      ? text.replace(/,/g, '')
+      : text.replace(/\./g, '').replace(',', '.');
     n = Number(cleaned);
     if (!Number.isFinite(n)) {
       return {
@@ -78,7 +85,6 @@ function coerceNumber(raw: RawCellValue, decimals?: number): CoerceResult {
       };
     }
   }
-  if (decimals !== undefined) n = roundTo(n, decimals);
   return { value: n };
 }
 
@@ -134,11 +140,6 @@ function coerceBoolean(raw: RawCellValue): CoerceResult {
 
 // ── Helpers ──
 
-function roundTo(n: number, decimals: number): number {
-  const f = 10 ** decimals;
-  return Math.round(n * f) / f;
-}
-
 function dateToISO(d: Date): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -157,6 +158,31 @@ export function excelSerialToISO(serial: number, date1904 = false): string {
 }
 
 function parseDateString(s: string): string | null {
+  const english =
+    /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})$/i.exec(
+      s,
+    );
+  if (english) {
+    const months = [
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december',
+    ];
+    const month = months.indexOf(english[1]!.toLowerCase()) + 1;
+    const day = Number(english[2]),
+      year = Number(english[3]);
+    if (!isValidYMD(year, month, day)) return null;
+    return `${english[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (iso) {
     const [, y, m, d] = iso;

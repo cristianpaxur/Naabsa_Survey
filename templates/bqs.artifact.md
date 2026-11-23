@@ -1,0 +1,127 @@
+# BQS — contrato do modelo
+
+## Padrão visual vigente do BQS v2 — 16/11/2026
+
+O usuário determinou que o BQS use o design dos demais relatórios. O conteúdo
+continua derivado do Word BQS, mas os componentes visuais compartilhados vêm
+de `msc.clean.docx`, com a tabela de contatos também presente no Draft Survey.
+`scripts/build_bqs_template_v2.py` aplica `scripts/bqs_naabsa_layout.py` depois
+de parametrizar o Word BQS. Originais, mapeamento, cálculos e revisões salvas
+permanecem preservados. O novo layout é aplicado na montagem de documentos.
+
+- Capa: Tahoma 18 pt (Survey Report), 11 pt (serviço), 20 pt (navio),
+  10/10,5 pt (referência e metadados). Blocos e espaçadores nativos do MSC.
+- Contatos: título 12 pt com faixa DEEAF6; grid 2694/6281 twips, divisórias
+  internas de 0,5 pt; Tahoma 10 pt, empresa em negrito e pessoa em parágrafo
+  separado. Quatro linhas BQS, incluindo fornecedores.
+- Corpo: Calibri 11 pt, títulos principais 12 pt e subtítulos 11 pt. Espaço
+  de 11 pt antes/5 pt depois corresponde à separação de blocos do MSC.
+- Cabeçalhos e rodapé: partes nativas do MSC, logo e campo PAGE preservados.
+  A4; top 1418/right 849/bottom 567 twips; left 1134 na primeira seção e
+  993 nas seguintes; distâncias de cabeçalho/rodapé 709 twips.
+- Tabelas de sondagens: dados e 13 colunas preservados, Calibri 7 pt, largura
+  máxima 9923 twips. Demais tabelas Calibri 10 pt. As duas tabelas compactas
+  de densidade permanecem com sua introdução e cabeçalho na mesma página.
+  Seções usam uma coluna.
+- Tahoma, Calibri, Times New Roman, Cambria e a fonte original do cabeçalho
+  (GeoSlab703/Sitka Small) incorporadas a partir das fontes
+  já presentes no template MSC, evitando substituição no Collabora.
+- PutFile conserva essas fontes da revisão BQS anterior quando o CODE as
+  omite ao salvar. Conteúdo e formatação recebidos do editor permanecem
+  intactos; publicação continua imutável e protegida por CAS. BQS anteriores
+  sem fontes incorporadas e outros tipos mantêm o comportamento existente.
+- 21 âncoras de navegação, cinco áreas de fotografia e controles manuais BQS
+  preservados. Troca de fotos não aplica retrospectivamente novos estilos.
+  Estilos renomeados pelo CODE são associados pelo nome e tipo aos estilos
+  já salvos, apenas nos blocos de fotos importados, preservando a centralização
+  da capa e as definições editadas do documento.
+
+Regressão do padrão: `tests/templates/test_bqs_layout.py`, testes BQS do worker
+e `scripts/validate-bqs-layout.mts` no conversor de destino. O último usa
+somente dados sintéticos e testa fotos, ausência de fotos, duas gravações
+nativas, troca de fotos e preservação de edição. Estado de publicação em
+`implementation/019-bqs/deployment.md`.
+
+## Contrato histórico do BQS v1
+
+Versão 1, slug explícito `bqs`, contrato de extração 2, sem variantes.
+
+## Autoridade e origem
+
+O modelo foi reconstruído de um PDF fornecido pelo cliente, com autorização,
+pois o DOCX original não estava disponível. Não há alegação de identidade de
+pixels. Foram preservados idioma inglês, identidade visual NAABSA, capa,
+sumário, sondagens, figuras finais, áreas de fotografia e anexos editáveis.
+
+Insumos originais, hashes e mapa com valores reais ficam no diretório privado
+de evidências. Este repositório público distribui apenas o contrato de células,
+o template sem dados e a fixture inteiramente sintética
+`tests/fixtures/planilhas/bqs/synthetic.xlsx`, reproduzida sem ler arquivos de
+cliente por `scripts/build_bqs_synthetic_fixture.mjs`.
+
+## Contrato dos dados
+
+- 95 campos escalares, quatro tabelas (12/12 linhas de navio e 10/10 de barcaça),
+  17 eventos no Time Log e dados de amostragem. Sem descarte de linhas zeradas.
+- Toda célula e âncora de campo reside no spec. A leitura dinâmica adicional
+  do Time Log está documentada no mapa; o motor compartilhado não contém células BQS.
+- Override confirmado: `vessel_close_start=19:10`, pois `Time Log!E28=19;10`.
+  O arquivo original não foi corrigido silenciosamente.
+- Cache ausente não vira zero. Fórmulas com resultado zero/false preservam o cache.
+- Totais IN AIR e IN VAC reconciliados com as linhas; diferenças de recebimento,
+  entrega, BDN e logbook reconciliadas sem arredondamento intermediário.
+- `delivery_difference_pct` já está em pontos percentuais. Formatar uma vez.
+- O adapter não recalcula tabelas físicas de calibração nem valida independentemente
+  o VCF. Preserva os resultados calculados da planilha e confere suas agregações.
+- Por padrão: massas/volumes 3 casas, densidades/VCF 4, calados 2, temperatura 1
+  nas tabelas; datas DD/MM/YYYY e horários HH:mm. Precisões escalares revisadas
+  seguem o contrato existente de precedência do sistema.
+
+## Word e fotografias
+
+O template `bqs.clean.docx` é reproduzido por `scripts/build_bqs_template.py`
+com python-docx. A4; Arial; logo do repositório; tabelas nativas com cabeçalhos
+repetidos, linhas não divisíveis e margens compactas; sumário com hyperlinks,
+bookmarks e campos PAGEREF. Rodapé com campo PAGE. Não contém macros.
+
+Os dados ausentes usam 17 controles `bqs_manual_*`, inicialmente “—”. O usuário
+confirmou que serão preenchidos posteriormente. Nomes e destinos estão no mapa.
+Não inventar cliente, bandeira, IMO, dimensões, contatos ou protestos.
+
+| Controle de fotografia | Destino | Regra |
+|---|---|---|
+| `bqs_photos_cover` | Capa | zero ou uma foto |
+| `bqs_photos_sounding_tables` | 4.2 | galeria em duas colunas |
+| `bqs_photos_vessel_tanks` | 7.1 | galeria em duas colunas |
+| `bqs_photos_barge_tanks` | 7.2 | galeria em duas colunas |
+| `bqs_photos_sampling` | 7.3 | galeria em duas colunas |
+
+Ordem da alocação preservada, orientação normalizada e proporção preservada;
+crop explícito do operador aplicado antes. Galeria ímpar mantém a última foto.
+Foto opcional não alocada difere de download/decodificação de foto alocada com falha.
+Falha, slot desconhecido ou foto pendente bloqueiam a montagem.
+
+Atualizar fotos substitui apenas os cinco controles identificados, preservando
+as demais edições, e elimina relações e bytes antigos sem referência no pacote.
+Ausência/duplicação de controle bloqueia a atualização para preservar o documento.
+As verificações existentes de lock, revisão, geração e alocação continuam em uso.
+
+O sumário é medido no PDF real pelo mesmo motor usado para conversão, em até
+três passagens. Capa maior que uma página ou páginas ambíguas bloqueiam a saída.
+Depois da aprovação, o snapshot salvo é convertido sem reconstrução. Uma guarda
+BQS confere o sumário no PDF e solicita correção no editor se ele ficou desatualizado.
+
+## Reprodução e aceite
+
+Recrie o contrato com `python scripts/build_bqs_spec.py`, o template com
+`python scripts/build_bqs_template.py` e a fixture com
+`node scripts/build_bqs_synthetic_fixture.mjs`.
+
+Os testes cobrem extração, diferenças aritméticas, cache zero/false, campos
+manuais, fotos, atualização preservando edição, paginação e cadastro inativo.
+A fixture contém intencionalmente um horário inválido para verificar o override.
+
+A validação local de Word e PDF não substitui a homologação no Collabora/WOPI.
+Consulte `implementation/019-bqs/deployment.md` para o estado no destino.
+A migration 0029 cadastra tipo/spec sem ativação. O cadastro legado
+`bunker_surveyor` permanece independente.

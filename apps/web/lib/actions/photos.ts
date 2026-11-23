@@ -5,7 +5,15 @@ import { createClient } from '@/lib/supabase/server';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
-import { pendingRequiredSlots } from '@/lib/photo-gate';
+import {
+  pendingRequiredSlots,
+  photoAdvanceBlockReason,
+  type AssignedPhotoState,
+} from '@/lib/photo-gate';
+import { enqueueProcessPhoto } from '@/lib/queue';
+import { enqueueBuildWorkingDocx } from '@/lib/queue';
+import { createHash } from 'node:crypto';
+import { serializePhotoAssignments, type PhotoAssignment } from '@naabsa/core';
 
 export interface Crop {
   x: number;
@@ -20,6 +28,10 @@ interface ReportRow {
   id: string;
   status: string;
   spec_id: string;
+  working_docx_path?: string | null;
+  working_docx_revision?: number;
+  working_docx_generation?: string;
+  photo_assignment_revision?: number;
 }
 
 interface PhotoRow {
@@ -28,6 +40,7 @@ interface PhotoRow {
   slot_id: string | null;
   position: number;
   crop: Crop | null;
+  status: string;
 }
 
 async function loadReport(
@@ -36,8 +49,11 @@ async function loadReport(
 ): Promise<ReportRow | null> {
   const { data } = await supabase
     .from('reports')
-    .select('id,status,spec_id')
+    .select(
+      'id,status,spec_id,working_docx_path,working_docx_revision,working_docx_generation,photo_assignment_revision',
+    )
     .eq('id', reportId)
+    .is('deleted_at', null)
     .maybeSingle();
   return (data as ReportRow | null) ?? null;
 }
@@ -88,13 +104,18 @@ export async function allocate(
 
   const { data: photoRow } = await supabase
     .from('report_photos')
-    .select('id,report_id,slot_id,position,crop')
+    .select('id,report_id,slot_id,position,crop,status')
     .eq('id', photoId)
+    .is('removed_at', null)
     .maybeSingle();
   const photo = photoRow as PhotoRow | null;
   if (!photo || photo.report_id !== reportId) {
     return { error: 'Foto não encontrada.' };
   }
+  if (photo.status !== 'done')
+    return { error: 'Aguarde o processamento da foto.' };
+  if (!Number.isInteger(position) || position < 0)
+    return { error: 'Posição inválida.' };
 
   // Valida `max`: conta as já alocadas nesse slot (excluindo a própria foto).
   if (typeof slot.max === 'number') {
@@ -103,6 +124,7 @@ export async function allocate(
       .select('id', { count: 'exact', head: true })
       .eq('report_id', reportId)
       .eq('slot_id', slotId)
+      .is('removed_at', null)
       .neq('id', photoId);
     if ((count ?? 0) >= slot.max) {
       return { error: `Slot cheio (máx. ${slot.max}).` };
@@ -115,10 +137,16 @@ export async function allocate(
     .update({
       slot_id: slotId,
       position,
+      ai_suggested: false,
+      confirmed_by: user.id,
+      ai_status: 'done',
+      ai_request_id: null,
+      ai_error: null,
       // Crop é por alocação: ao mover de slot, reseta (RF-18 / decisão do spec).
       crop: movedSlot ? null : photo.crop,
     } as never)
-    .eq('id', photoId);
+    .eq('id', photoId)
+    .is('removed_at', null);
   if (error) return { error: 'Falha ao alocar a foto.' };
 
   await audit(supabase, {
@@ -151,12 +179,35 @@ export async function reorder(
     return { error: 'A reordenação só é permitida durante a revisão.' };
   }
 
+  const { data: current, error: loadError } = await supabase
+    .from('report_photos')
+    .select('id')
+    .eq('report_id', reportId)
+    .eq('slot_id', slotId)
+    .is('removed_at', null);
+  const currentIds = (current ?? []) as { id: string }[];
+  if (
+    loadError ||
+    new Set(photoIds).size !== photoIds.length ||
+    currentIds.length !== photoIds.length ||
+    currentIds.some((p) => !photoIds.includes(p.id))
+  )
+    return {
+      error: 'As fotos mudaram. Atualize a galeria antes de reordenar.',
+    };
+
   for (let i = 0; i < photoIds.length; i++) {
     const pid = photoIds[i];
     if (!pid) continue;
     const { error } = await supabase
       .from('report_photos')
-      .update({ position: i } as never)
+      .update({
+        position: i,
+        ai_suggested: false,
+        confirmed_by: user.id,
+        ai_status: 'done',
+        ai_request_id: null,
+      } as never)
       .eq('id', pid)
       .eq('report_id', reportId)
       .eq('slot_id', slotId);
@@ -196,7 +247,14 @@ export async function saveCrop(
   const valid = [crop.x, crop.y, crop.width, crop.height].every(
     (n) => typeof n === 'number' && n >= 0 && n <= 1,
   );
-  if (!valid) return { error: 'Coordenadas de recorte inválidas.' };
+  if (
+    !valid ||
+    crop.width <= 0 ||
+    crop.height <= 0 ||
+    crop.x + crop.width > 1.000001 ||
+    crop.y + crop.height > 1.000001
+  )
+    return { error: 'Coordenadas de recorte inválidas.' };
 
   const { data: photoRow } = await supabase
     .from('report_photos')
@@ -217,7 +275,13 @@ export async function saveCrop(
 
   const { error } = await supabase
     .from('report_photos')
-    .update({ crop } as never)
+    .update({
+      crop,
+      ai_suggested: false,
+      confirmed_by: user.id,
+      ai_status: 'done',
+      ai_request_id: null,
+    } as never)
     .eq('id', photoId);
   if (error) return { error: 'Falha ao salvar o recorte.' };
 
@@ -235,7 +299,10 @@ export async function saveCrop(
  * slots `required`/`min` estão satisfeitos (defesa dupla com a UI), transiciona
  * in_review→editing e audita.
  */
-export async function advance(reportId: string): Promise<ActionResult> {
+export async function advance(
+  reportId: string,
+  retrySync = false,
+): Promise<ActionResult | { pending: true }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -252,14 +319,23 @@ export async function advance(reportId: string): Promise<ActionResult> {
   if (!spec) return { error: 'Spec não encontrado.' };
   const slots = spec.photo_slots ?? [];
 
-  // Conta alocações por slot.
-  const { data: rows } = await supabase
+  // Só permite montar o Word quando as fotos que entrarão nele já estiverem
+  // processadas e as sugestões da IA tiverem sido confirmadas ou removidas.
+  const { data: rows, error: photoLoadError } = await supabase
     .from('report_photos')
-    .select('slot_id')
+    .select('id,slot_id,position,crop,status,processed_path,ai_suggested')
     .eq('report_id', reportId)
+    .is('removed_at', null)
     .not('slot_id', 'is', null);
+  if (photoLoadError)
+    return { error: 'Não foi possível verificar as fotos. Tente novamente.' };
+  const assigned = (rows as AssignedPhotoState[] | null) ?? [];
+  const blockReason = photoAdvanceBlockReason(assigned);
+  if (blockReason) return { error: blockReason };
+
+  // Conta apenas as alocações que realmente estarão disponíveis no documento.
   const counts: Record<string, number> = {};
-  for (const r of (rows as { slot_id: string }[] | null) ?? []) {
+  for (const r of assigned) {
     counts[r.slot_id] = (counts[r.slot_id] ?? 0) + 1;
   }
 
@@ -270,11 +346,143 @@ export async function advance(reportId: string): Promise<ActionResult> {
     };
   }
 
+  if (['msc', 'bqs'].includes(spec.report_type) && report.working_docx_path) {
+    const assignmentKey = createHash('sha256')
+      .update(serializePhotoAssignments((rows ?? []) as PhotoAssignment[]))
+      .digest('hex');
+    const { data: events, error: eventError } = await supabase
+      .from('audit_log')
+      .select('action,payload,created_at')
+      .eq('report_id', reportId)
+      .in('action', [
+        'photos_docx_sync_enqueued',
+        'photos_docx_synced',
+        'photos_docx_sync_failed',
+      ])
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (eventError)
+      return {
+        error: 'Não foi possível conferir a atualização das fotos no Word.',
+      };
+    type SyncEvent = {
+      action: string;
+      payload: {
+        assignmentKey?: string;
+        path?: string;
+        photoRevision?: number;
+        revision?: number;
+        message?: string;
+      };
+      created_at: string;
+    };
+    const last = (events as SyncEvent[] | null)?.find(
+      (event) =>
+        event.payload.assignmentKey === assignmentKey &&
+        event.payload.photoRevision === report.photo_assignment_revision &&
+        event.payload.path === report.working_docx_path &&
+        (event.action === 'photos_docx_synced' ||
+          event.payload.revision === report.working_docx_revision),
+    );
+    const samePhotos =
+      last?.payload.assignmentKey === assignmentKey &&
+      last.payload.photoRevision === report.photo_assignment_revision;
+    const synced =
+      samePhotos &&
+      last?.action === 'photos_docx_synced' &&
+      last.payload.path === report.working_docx_path;
+    if (!synced) {
+      if (
+        samePhotos &&
+        last?.action === 'photos_docx_sync_enqueued' &&
+        Date.now() - Date.parse(last.created_at) < 300_000
+      )
+        return { pending: true };
+      if (
+        samePhotos &&
+        last?.action === 'photos_docx_sync_failed' &&
+        !retrySync
+      )
+        return {
+          error:
+            last.payload.message ??
+            'Falha ao atualizar as fotos no Word. Tente novamente.',
+        };
+      const refreshPhotos = {
+        path: report.working_docx_path,
+        revision: report.working_docx_revision!,
+        assignmentKey,
+        photoRevision: report.photo_assignment_revision!,
+      };
+      await audit(supabase, {
+        reportId,
+        actor: user.id,
+        action: 'photos_docx_sync_enqueued',
+        payload: refreshPhotos,
+      });
+      try {
+        await enqueueBuildWorkingDocx(
+          {
+            reportId,
+            generation: report.working_docx_generation!,
+            refreshPhotos,
+          },
+          {
+            dedupe: !(samePhotos && last?.action === 'photos_docx_sync_failed'),
+          },
+        );
+      } catch {
+        await audit(supabase, {
+          reportId,
+          actor: user.id,
+          action: 'photos_docx_sync_failed',
+          payload: {
+            ...refreshPhotos,
+            message:
+              'A fila de atualização está indisponível. Tente novamente.',
+          },
+        });
+        return {
+          error: 'Não foi possível iniciar a atualização das fotos no Word.',
+        };
+      }
+      return { pending: true };
+    }
+  }
+
   try {
-    await transition(supabase, reportId, 'in_review', 'editing', user.id);
+    await transition(supabase, reportId, 'in_review', 'editing', user.id, {
+      expectedPhotoRevision: report.photo_assignment_revision,
+    });
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : 'Falha ao avançar.',
+    };
+  }
+  return { ok: true };
+}
+
+/** Volta da edição para as fotos sem remover fotos ou documento de trabalho. */
+export async function returnToPhotos(reportId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (!report) return { error: 'Relatório não encontrado.' };
+  if (report.status !== 'editing') {
+    return { error: 'O relatório não está em edição.' };
+  }
+
+  try {
+    await transition(supabase, reportId, 'editing', 'in_review', user.id, {
+      clearWopiLock: true,
+    });
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Falha ao voltar para fotos.',
     };
   }
   return { ok: true };
@@ -308,12 +516,19 @@ export async function confirmSuggestion(
     .eq('ai_suggested', true);
   if (error) return { error: 'Falha ao confirmar a sugestão.' };
 
-  await audit(supabase, { reportId, actor: user.id, action: 'photo_confirmed', payload: { photoId } });
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'photo_confirmed',
+    payload: { photoId },
+  });
   return { ok: true };
 }
 
 /** Confirma TODAS as sugestões de IA pendentes do relatório (010/T-009). */
-export async function confirmAllSuggestions(reportId: string): Promise<ActionResult> {
+export async function confirmAllSuggestions(
+  reportId: string,
+): Promise<ActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -335,6 +550,142 @@ export async function confirmAllSuggestions(reportId: string): Promise<ActionRes
   if (error) return { error: 'Falha ao confirmar as sugestões.' };
 
   const count = (data as { id: string }[] | null)?.length ?? 0;
-  await audit(supabase, { reportId, actor: user.id, action: 'photo_confirmed', payload: { count, all: true } });
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'photo_confirmed',
+    payload: { count, all: true },
+  });
+  return { ok: true };
+}
+
+/** Remove a alocação; a decisão impede nova sugestão automática para a foto. */
+export async function unallocate(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
+  return changePhoto(reportId, photoId, false);
+}
+
+/** Remoção lógica: documentos antigos podem continuar referenciando os arquivos. */
+export async function removePhoto(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
+  return changePhoto(reportId, photoId, true);
+}
+
+async function changePhoto(
+  reportId: string,
+  photoId: string,
+  remove: boolean,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+  const report = await loadReport(supabase, reportId);
+  if (report?.status !== 'in_review')
+    return { error: 'Fotos só podem ser alteradas durante a revisão.' };
+  const { data, error } = await supabase
+    .from('report_photos')
+    .update({
+      slot_id: null,
+      crop: null,
+      position: 0,
+      ai_suggested: false,
+      confirmed_by: user.id,
+      ai_status: 'done',
+      ai_request_id: null,
+      ai_error: null,
+      ...(remove ? { removed_at: new Date().toISOString() } : {}),
+    } as never)
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null)
+    .select('id');
+  if (error || !data?.length)
+    return {
+      error: 'Não foi possível alterar a foto. Atualize e tente novamente.',
+    };
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: remove ? 'remove_photo' : 'unallocate_photo',
+    payload: { photoId },
+  });
+  return { ok: true };
+}
+
+/** Reaproveita o original já salvo, inclusive quando o envio à fila falhou. */
+export async function retryPhoto(
+  reportId: string,
+  photoId: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+  const report = await loadReport(supabase, reportId);
+  if (report?.status !== 'in_review')
+    return { error: 'Fotos só podem ser processadas durante a revisão.' };
+  const { data: row } = await supabase
+    .from('report_photos')
+    .select('status,slot_id')
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null)
+    .maybeSingle();
+  const photo = row as { status: string; slot_id: string | null } | null;
+  if (!photo || photo.slot_id)
+    return {
+      error: 'Escolha uma foto não alocada para repetir o processamento.',
+    };
+  const { error } = await supabase
+    .from('report_photos')
+    .update({
+      status: photo.status === 'done' ? 'done' : 'pending',
+      error_message: null,
+      ai_status: 'idle',
+      ai_error: null,
+      ai_request_id: null,
+      ai_run_id: null,
+      ai_job_id: null,
+      ai_attempt: -1,
+    } as never)
+    .eq('id', photoId)
+    .eq('report_id', reportId)
+    .is('removed_at', null);
+  if (error)
+    return { error: 'Não foi possível preparar a foto para nova tentativa.' };
+  try {
+    if (!(await enqueueProcessPhoto({ reportId, photoId })))
+      throw new Error('Fila indisponível.');
+  } catch {
+    await supabase
+      .from('report_photos')
+      .update(
+        photo.status === 'done'
+          ? ({
+              ai_status: 'error',
+              ai_error: 'Falha ao agendar a análise. Tente novamente.',
+            } as never)
+          : ({
+              status: 'error',
+              error_message:
+                'Falha ao agendar o processamento. Tente novamente.',
+            } as never),
+      )
+      .eq('id', photoId);
+    return { error: 'Não foi possível agendar. Tente novamente em instantes.' };
+  }
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'retry_photo',
+    payload: { photoId },
+  });
   return { ok: true };
 }

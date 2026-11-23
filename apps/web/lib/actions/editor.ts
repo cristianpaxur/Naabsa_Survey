@@ -4,13 +4,16 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import type { ServerClient } from '@/lib/supabase/server';
 import { audit } from '@/lib/audit';
-import { transition, type ReportStatus } from '@/lib/state-machine';
+import type { ReportStatus } from '@/lib/state-machine';
+import { readSaveProof, signSaveProof } from '@/lib/document-save-proof';
 import { enqueueBuildWorkingDocx, enqueueGeneratePdf, enqueuePreviewPdf } from '@/lib/queue';
+import { describeQueueFailure } from '@/lib/queue-error';
 import { latestJobOutcome, type AuditEventRow, type JobOutcome } from '@/lib/job-failure';
-import { signToken } from '@/lib/wopi/token';
+import { signToken, WOPI_TOKEN_TTL_SECONDS } from '@/lib/wopi/token';
 import { getEditorUrlSrc } from '@/lib/wopi/discovery';
+import { prepareWorkingToc, type TocReport } from '@/lib/working-toc';
 
-export type ApproveResult = { ok: true } | { error: string };
+export type ApproveResult = { ok: true } | { error: string; approved?: boolean };
 
 export interface PdfStatus {
   status: ReportStatus;
@@ -24,6 +27,10 @@ interface ReportRow {
   id: string;
   status: string;
   pdf_paths: string[] | null;
+  working_docx_path: string | null;
+  working_docx_revision: number;
+  working_docx_generation: string;
+  approved_docx_revision: number | null;
 }
 
 async function loadReport(
@@ -32,77 +39,78 @@ async function loadReport(
 ): Promise<ReportRow | null> {
   const { data } = await supabase
     .from('reports')
-    .select('id,status,pdf_paths')
+    .select('id,status,pdf_paths,working_docx_path,working_docx_revision,working_docx_generation,approved_docx_revision')
     .eq('id', reportId)
     .maybeSingle();
   return (data as ReportRow | null) ?? null;
 }
 
-/**
- * Aprovação (012/T-007, RF-26). O working.docx editado (salvo pelo Collabora via
- * WOPI) É o documento. Transiciona `editing → approved` — a partir daí o WOPI
- * rejeita PutFile, congelando o binário —, grava um snapshot (cópia do
- * working.docx no Storage), enfileira `generate_pdf` e audita. Revalida o status
- * contra concorrência (a transição usa guarda otimista).
- */
-export async function approve(reportId: string): Promise<ApproveResult> {
+/** Começa o save forçado antes de enviar Action_Save ao Collabora. */
+export async function beginDocumentSave(reportId: string): Promise<{ token: string } | { error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
-
   const report = await loadReport(supabase, reportId);
-  if (!report) return { error: 'Relatório não encontrado.' };
-  if (report.status !== 'editing') {
-    return { error: 'O relatório não está em edição.' };
+  if (report?.status !== 'editing' || !report.working_docx_path) return { error: 'Documento não disponível para salvar.' };
+  return { token: signSaveProof({ kind: 'request', reportId, userId: user.id,
+    revision: report.working_docx_revision, path: report.working_docx_path }) };
+}
+
+/** Confirma nova revisão WOPI ou a versão estável explicitamente não modificada. */
+export async function confirmDocumentSave(reportId: string, token: string, outcome: 'saved' | 'unmodified' = 'saved'): Promise<{ receipt: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+  const request = readSaveProof(token, 'request', reportId, user.id);
+  if (!request) {
+    return { error: 'O servidor ainda não confirmou o salvamento. Volte ao editor e tente salvar novamente.' };
   }
 
+  // O Action_Save_Resp chega antes de o PutFile terminar. Aguarda a revisão
+  // persistida em vez de rejeitar imediatamente uma gravação ainda em voo.
+  const attempts = outcome === 'saved' ? 20 : 1;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const report = await loadReport(supabase, reportId);
+    if (report?.status !== 'editing' || !report.working_docx_path) break;
+    const confirmed = outcome === 'unmodified'
+      ? report.working_docx_revision === request.revision && report.working_docx_path === request.path
+      : report.working_docx_revision > request.revision;
+    if (confirmed) {
+      return { receipt: signSaveProof({ kind: 'saved', reportId, userId: user.id,
+        revision: report.working_docx_revision, path: report.working_docx_path }) };
+    }
+    if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return { error: 'O servidor ainda não confirmou o salvamento. Volte ao editor e tente salvar novamente.' };
+}
+
+/** Congela exatamente a revisão confirmada; um save concorrente invalida o recibo. */
+export async function approve(reportId: string, receipt?: string): Promise<ApproveResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+  const proof = readSaveProof(receipt, 'saved', reportId, user.id);
+  if (!proof) return { error: 'Salve o documento no editor antes de aprovar.' };
+  const { error, count } = await supabase.from('reports').update({
+    status: 'approved', approved_docx_path: proof.path, approved_docx_revision: proof.revision,
+  } as never, { count: 'exact' }).eq('id', reportId).eq('status', 'editing')
+    .eq('working_docx_revision', proof.revision).eq('working_docx_path', proof.path);
+  if (error || count !== 1) return { error: 'O documento mudou ou não está em edição. Volte ao editor e salve novamente.' };
+
+  // O próprio objeto imutável é o snapshot. Nenhuma cópia posterior à aprovação
+  // pode falhar ou observar bytes diferentes dos confirmados pelo operador.
+  await audit(supabase, { reportId, actor: user.id, action: 'transition', payload: { from: 'editing', to: 'approved' } });
+  await audit(supabase, { reportId, actor: user.id, action: 'document_snapshot',
+    payload: { snapshot_path: proof.path, revision: proof.revision } });
   try {
-    await transition(supabase, reportId, 'editing', 'approved', user.id);
+    await enqueueGeneratePdf({ reportId, approvedRevision: proof.revision });
+    await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueued', payload: { revision: proof.revision } });
   } catch (err) {
-    return {
-      error: err instanceof Error ? err.message : 'Falha ao aprovar.',
-    };
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueue_failed',
+      payload: { message: failure.message, code: failure.code, revision: proof.revision } });
+    return { error: 'Documento aprovado. Não foi possível iniciar o PDF; tente gerar novamente.', approved: true };
   }
-
-  // Snapshot pós-transição: com o PutFile bloqueado em `approved`, a cópia é
-  // exatamente o binário que o generate_pdf vai converter (RNF-07).
-  const svc = createServiceClient();
-  const version = (report.pdf_paths?.length ?? 0) + 1;
-  const snapshotPath = `${reportId}/snapshots/aprovacao-v${version}.docx`;
-  const { error: copyError } = await svc.storage
-    .from('reports')
-    .copy(`${reportId}/working.docx`, snapshotPath);
-  await audit(supabase, {
-    reportId,
-    actor: user.id,
-    action: 'document_snapshot',
-    payload: copyError
-      ? { reason: 'pré-aprovação', source: 'working.docx', error: copyError.message }
-      : { reason: 'pré-aprovação', source: 'working.docx', snapshot_path: snapshotPath },
-  });
-
-  // Enfileira a geração do PDF. Falha no enfileiramento é auditada mas não
-  // reverte a aprovação — o operador pode re-enfileirar (re-aprovar).
-  try {
-    await enqueueGeneratePdf({ reportId });
-    await audit(supabase, {
-      reportId,
-      actor: user.id,
-      action: 'pdf_enqueued',
-      payload: null,
-    });
-  } catch (err) {
-    await audit(supabase, {
-      reportId,
-      actor: user.id,
-      action: 'pdf_enqueue_failed',
-      payload: { message: err instanceof Error ? err.message : String(err) },
-    });
-    return { error: 'Aprovado, mas falha ao enfileirar o PDF. Tente novamente.' };
-  }
-
   return { ok: true };
 }
 
@@ -124,22 +132,20 @@ export async function getEditorUrl(
 
   const { data } = await supabase
     .from('reports')
-    .select('status, working_docx_path')
+    .select('status, working_docx_path, working_docx_revision, wopi_lock, wopi_lock_expires_at')
     .eq('id', reportId)
     .maybeSingle();
-  const report = data as { status: string; working_docx_path: string | null } | null;
+  const report = data as TocReport | null;
   if (!report) return { error: 'Relatório não encontrado.' };
 
-  // O working.docx já foi montado? (o worker pode ainda estar processando o build)
-  const svc = createServiceClient();
-  const { data: files } = await svc.storage.from('reports').list(reportId, { search: 'working.docx' });
-  if (!(files ?? []).some((f) => f.name === 'working.docx')) {
+  if (!report.working_docx_path) {
     const rows = await loadJobEvents(supabase, reportId, [
       'working_docx_enqueued',
       'working_docx_failed',
+      'working_docx_enqueue_failed',
     ]);
-    const outcome = latestJobOutcome(rows, 'working_docx_enqueued', 'working_docx_failed');
-    if (outcome.failed) {
+    const outcome = latestJobOutcome(rows, 'working_docx_enqueued', ['working_docx_failed', 'working_docx_enqueue_failed']);
+    if (outcome.failed || rows.length === 0) {
       return {
         error: `Falha ao montar o documento${outcome.reason ? `: ${outcome.reason}` : '.'}`,
         canRetry: true,
@@ -148,13 +154,60 @@ export async function getEditorUrl(
     return { pending: true };
   }
 
+  try {
+    await prepareWorkingToc(supabase, reportId, report);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Não foi possível atualizar o índice.' };
+  }
+
   const canWrite = report.status === 'editing';
-  const token = signToken({ reportId, userId: user.id, canWrite });
+  const accessTokenTtl = (Math.floor(Date.now() / 1000) + WOPI_TOKEN_TTL_SECONDS) * 1000;
+  const token = signToken({ reportId, userId: user.id, canWrite }, WOPI_TOKEN_TTL_SECONDS);
   const urlsrc = await getEditorUrlSrc('docx');
   const wopiSrc = `${process.env['WOPI_PUBLIC_URL'] ?? ''}/api/wopi/files/${reportId}`;
   const sep = urlsrc.endsWith('?') || urlsrc.endsWith('&') ? '' : urlsrc.includes('?') ? '&' : '?';
-  const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${encodeURIComponent(token)}&lang=pt-BR`;
+  const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${encodeURIComponent(token)}&access_token_ttl=${accessTokenTtl}&lang=pt-BR`;
   return { url };
+}
+
+/**
+ * Encerra um lock WOPI órfão antes de recriar o iframe do editor.
+ *
+ * O Collabora mantém o lock por até 30 minutos. Se o iframe, navegador ou
+ * container for interrompido antes do UNLOCK, uma nova sessão recebe 409 e é
+ * aberta somente para leitura. Esta ação só é chamada pelo botão explícito
+ * "Reabrir editor", depois que o iframe anterior é desmontado.
+ */
+export async function reopenDocumentEditor(
+  reportId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Sessão expirada.' };
+
+  const report = await loadReport(supabase, reportId);
+  if (report?.status !== 'editing' || !report.working_docx_path) {
+    return { error: 'Documento não disponível para reabrir em edição.' };
+  }
+
+  const { error, count } = await supabase
+    .from('reports')
+    .update({ wopi_lock: null, wopi_lock_expires_at: null } as never, { count: 'exact' })
+    .eq('id', reportId)
+    .eq('status', 'editing');
+  if (error || count !== 1) {
+    return { error: 'Não foi possível liberar a sessão anterior do editor. Tente novamente.' };
+  }
+
+  await audit(supabase, {
+    reportId,
+    actor: user.id,
+    action: 'wopi_lock_released',
+    payload: { reason: 'explicit_editor_reopen' },
+  });
+  return { ok: true };
 }
 
 /**
@@ -179,8 +232,10 @@ export async function generatePreview(
   });
   try {
     await enqueuePreviewPdf({ reportId });
-  } catch {
-    return { error: 'Falha ao enfileirar a pré-visualização.' };
+  } catch (err) {
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'preview_enqueue_failed', payload: { message: failure.message, code: failure.code } });
+    return { error: failure.message };
   }
   return { ok: true };
 }
@@ -194,6 +249,8 @@ export async function getPreviewUrl(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Sessão expirada.' };
+
+  if (!await loadReport(supabase, reportId)) return { error: 'Relatório não encontrado.' };
 
   const svc = createServiceClient();
   const { data: files } = await svc.storage.from('reports').list(reportId, { limit: 100 });
@@ -210,7 +267,7 @@ export async function getPreviewUrl(
 async function loadJobEvents(
   supabase: ServerClient,
   reportId: string,
-  actions: [enqueued: string, failed: string],
+  actions: string[],
 ): Promise<AuditEventRow[]> {
   const { data } = await supabase
     .from('audit_log')
@@ -239,8 +296,8 @@ export async function getPdfStatus(reportId: string): Promise<PdfStatus | { erro
 
   let outcome: JobOutcome = { failed: false };
   if (report.status === 'approved') {
-    const rows = await loadJobEvents(supabase, reportId, ['pdf_enqueued', 'pdf_generation_failed']);
-    outcome = latestJobOutcome(rows, 'pdf_enqueued', 'pdf_generation_failed');
+    const rows = await loadJobEvents(supabase, reportId, ['pdf_enqueued', 'pdf_generation_failed', 'pdf_enqueue_failed']);
+    outcome = rows.length ? latestJobOutcome(rows, 'pdf_enqueued', ['pdf_generation_failed', 'pdf_enqueue_failed']) : { failed: true, reason: 'O PDF ainda não foi enfileirado.' };
   }
 
   return {
@@ -270,9 +327,11 @@ export async function retryGeneratePdf(reportId: string): Promise<ApproveResult>
   }
 
   try {
-    await enqueueGeneratePdf({ reportId });
-  } catch {
-    return { error: 'Falha ao re-enfileirar o PDF. Tente novamente.' };
+    await enqueueGeneratePdf({ reportId, approvedRevision: report.approved_docx_revision ?? report.working_docx_revision });
+  } catch (err) {
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'pdf_enqueue_failed', payload: { message: failure.message, code: failure.code } });
+    return { error: failure.message };
   }
   await audit(supabase, {
     reportId,
@@ -302,9 +361,12 @@ export async function retryBuildWorkingDocx(reportId: string): Promise<ApproveRe
   }
 
   try {
-    await enqueueBuildWorkingDocx({ reportId }, { dedupe: false });
-  } catch {
-    return { error: 'Falha ao re-enfileirar a montagem. Tente novamente.' };
+    if (report.working_docx_path) return { ok: true };
+    await enqueueBuildWorkingDocx({ reportId, generation: report.working_docx_generation }, { dedupe: false });
+  } catch (err) {
+    const failure = describeQueueFailure(err);
+    await audit(supabase, { reportId, actor: user.id, action: 'working_docx_enqueue_failed', payload: { message: failure.message, code: failure.code } });
+    return { error: failure.message };
   }
   await audit(supabase, {
     reportId,

@@ -33,8 +33,20 @@ export function runExtraction(
   const ext = extract(workbook, spec, effectiveVariant);
   const issues = [...variantIssues, ...ext.issues];
   const blocked = issues.some((i) => BLOCKING_FIELDS.has(i.field));
-  if (blocked) return { data: ext.data, tables: ext.tables, issues };
+  if (blocked) {
+    return {
+      data: ext.data,
+      numberFormats: ext.numberFormats,
+      tables: ext.tables,
+      issues,
+    };
+  }
 
   const validationIssues = validate(ext.data, spec, effectiveVariant);
-  return { data: ext.data, tables: ext.tables, issues: [...issues, ...validationIssues] };
+  return {
+    data: ext.data,
+    numberFormats: ext.numberFormats,
+    tables: ext.tables,
+    issues: [...issues, ...validationIssues],
+  };
 }

@@ -10,6 +10,7 @@
  * pg-boss — usado para verificação automatizada sem DATABASE_URL.
  */
 import { validateEnv } from './lib/env';
+import { startWorkerHeartbeat } from './lib/heartbeat';
 import {
   getBoss,
   stopBoss,
@@ -60,10 +61,10 @@ import {
 import { aiReview, AI_REVIEW_QUEUE, type AiReviewPayload } from './jobs/aiReview';
 import {
   classifyPhotos,
+  schedulePhotoClassification,
   CLASSIFY_PHOTOS_QUEUE,
   type ClassifyPhotosPayload,
 } from './jobs/classifyPhotos';
-import { isAiEnabled } from './lib/llm';
 
 /** Mapa nome-da-fila → handler. Apenas process_photo é consumido na impl 007. */
 const JOBS = {
@@ -79,6 +80,8 @@ const JOBS = {
 
 async function registerJobs(): Promise<void> {
   const boss = await getBoss();
+  // A fila de análise deve existir antes que a primeira foto termine.
+  await boss.createQueue(CLASSIFY_PHOTOS_QUEUE, { retryLimit: 1 });
 
   // Garante a fila (pg-boss v12 exige createQueue antes de work/send) com a
   // política de retry. retryLimit aqui vale para todos os jobs enfileirados.
@@ -96,20 +99,10 @@ async function registerJobs(): Promise<void> {
       for (const job of jobs) {
         try {
           await processPhoto(job.data);
-          // IA (010/T-008): pré-classificar fotos do lote — deduplicado por
-          // relatório (singletonKey + janela), só quando AI_ENABLED.
-          if (isAiEnabled()) {
-            try {
-              const cid = await boss.send(
-                CLASSIFY_PHOTOS_QUEUE,
-                { reportId: job.data.reportId },
-                { singletonKey: job.data.reportId, singletonSeconds: 20 },
-              );
-              console.log(`[worker] classify_photos enfileirado (${job.data.reportId}): ${cid ?? 'dedup/throttle'}`);
-            } catch (e) {
-              console.error('[worker] falha ao enfileirar classify_photos:', e);
-            }
-          }
+          await schedulePhotoClassification(job.data, (payload) => boss.send(
+            CLASSIFY_PHOTOS_QUEUE,
+            payload,
+          ));
         } catch (err) {
           // Última tentativa esgotada: marca a foto com erro recuperável e NÃO
           // relança (o lote segue). Caso contrário, propaga para o retry.
@@ -258,16 +251,20 @@ async function registerJobs(): Promise<void> {
 
   // ai_review — revisão de dados por IA (010/T-007); no-op se AI_ENABLED=off.
   await boss.createQueue(AI_REVIEW_QUEUE, { retryLimit: 1 });
+  // A fila pode ter sido criada antes pelo web com defaults diferentes.
+  await boss.updateQueue(AI_REVIEW_QUEUE, { retryLimit: 1, retryDelay: 5, retryBackoff: true });
   await boss.work<AiReviewPayload>(
     AI_REVIEW_QUEUE,
     { localConcurrency: 2, includeMetadata: true },
     async (jobs) => {
       for (const job of jobs) {
         try {
-          await aiReview(job.data);
-        } catch (err) {
-          console.error(`[worker][ai_review] erro no job ${job.id}:`, err);
-          // IA nunca bloqueia o fluxo — não relança.
+          await aiReview(job.data, {}, { jobId: job.id, attempt: job.retryCount });
+        } catch {
+          console.error(`[worker][ai_review] falha de infraestrutura no job ${job.id}; devolvendo à fila.`);
+          // Falhas do provedor já viram estado recuperável em aiReview. Falha de
+          // banco deve usar o retry da fila; running do mesmo runId é retomável.
+          throw new Error('Falha de infraestrutura durante a revisão por IA.');
         }
       }
     },
@@ -282,9 +279,10 @@ async function registerJobs(): Promise<void> {
     async (jobs) => {
       for (const job of jobs) {
         try {
-          await classifyPhotos(job.data);
+          await classifyPhotos(job.data, {}, { jobId: job.id, retryCount: job.retryCount });
         } catch (err) {
           console.error(`[worker][classify_photos] erro no job ${job.id}:`, err);
+          throw err;
         }
       }
     },
@@ -302,10 +300,12 @@ async function main(): Promise<void> {
   }
 
   await registerJobs();
+  const stopHeartbeat = await startWorkerHeartbeat();
   console.log('[worker] worker pronto');
 
   await new Promise<void>((resolve) => {
     const stop = (signal: string): void => {
+      stopHeartbeat();
       console.log(`[worker] recebido ${signal}, encerrando…`);
       Promise.all([
         stopBoss().catch((err: unknown) => console.error('[worker] erro ao parar pg-boss:', err)),

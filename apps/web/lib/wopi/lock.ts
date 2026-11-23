@@ -8,6 +8,9 @@ export interface WopiReport {
   status: string;
   vessel_name: string | null;
   working_docx_path: string | null;
+  working_docx_revision?: number;
+  working_docx_generation?: string;
+  working_docx_saved_at?: string | null;
   wopi_lock: string | null;
   wopi_lock_expires_at: string | null;
 }
@@ -23,7 +26,7 @@ export function canPutFile(report: Pick<WopiReport, 'status'>): boolean {
 }
 
 /** Lock corrente, se ainda não expirou; senão `null`. */
-export function currentLock(report: WopiReport, now = Date.now()): string | null {
+export function currentLock(report: Pick<WopiReport, 'wopi_lock' | 'wopi_lock_expires_at'>, now = Date.now()): string | null {
   if (!report.wopi_lock || !report.wopi_lock_expires_at) return null;
   return new Date(report.wopi_lock_expires_at).getTime() > now ? report.wopi_lock : null;
 }

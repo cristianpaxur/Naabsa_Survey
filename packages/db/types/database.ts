@@ -1,4 +1,4 @@
-// Tipos gerados do schema Supabase (002). NAO editar a mao.
+// Snapshot de tipos sincronizado com migrations 0001–0013 (015).
 // Regerar: supabase gen types typescript --db-url $DATABASE_URL
 
 export type Json =
@@ -37,6 +37,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      worker_heartbeats: {
+        Row: {
+          id: string
+          seen_at: string
+          ai_enabled: boolean
+          ai_provider: string
+          ai_model: string
+          queue_ready: boolean
+        }
+        Insert: {
+          id: string
+          seen_at?: string
+          ai_enabled: boolean
+          ai_provider: string
+          ai_model: string
+          queue_ready: boolean
+        }
+        Update: {
+          id?: string
+          seen_at?: string
+          ai_enabled?: boolean
+          ai_provider?: string
+          ai_model?: string
+          queue_ready?: boolean
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -74,24 +101,82 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_revoked_at: string | null
+          auth_provider: string
           display_name: string
+          email: string | null
+          last_login_at: string | null
           role: string
+          status: string
           user_id: string
         }
         Insert: {
+          access_revoked_at?: string | null
+          auth_provider?: string
           display_name: string
+          email?: string | null
+          last_login_at?: string | null
           role: string
+          status?: string
           user_id: string
         }
         Update: {
+          access_revoked_at?: string | null
+          auth_provider?: string
           display_name?: string
+          email?: string | null
+          last_login_at?: string | null
           role?: string
+          status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_access: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string
+          invited_by: string | null
+          last_login_at: string | null
+          linked_user_id: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email: string
+          invited_by?: string | null
+          last_login_at?: string | null
+          linked_user_id?: string | null
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string
+          invited_by?: string | null
+          last_login_at?: string | null
+          linked_user_id?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
       report_photos: {
         Row: {
+          ai_status: string
+          ai_request_id: string | null
+          ai_run_id: string | null
+          ai_job_id: string | null
+          ai_attempt: number
+          ai_error: string | null
+          removed_at: string | null
           ai_suggested: boolean
           confirmed_by: string | null
           created_at: string
@@ -108,6 +193,13 @@ export type Database = {
           thumb_path: string | null
         }
         Insert: {
+          ai_status?: string
+          ai_request_id?: string | null
+          ai_run_id?: string | null
+          ai_job_id?: string | null
+          ai_attempt?: number
+          ai_error?: string | null
+          removed_at?: string | null
           ai_suggested?: boolean
           confirmed_by?: string | null
           created_at?: string
@@ -124,6 +216,13 @@ export type Database = {
           thumb_path?: string | null
         }
         Update: {
+          ai_status?: string
+          ai_request_id?: string | null
+          ai_run_id?: string | null
+          ai_job_id?: string | null
+          ai_attempt?: number
+          ai_error?: string | null
+          removed_at?: string | null
           ai_suggested?: boolean
           confirmed_by?: string | null
           created_at?: string
@@ -218,8 +317,22 @@ export type Database = {
       }
       reports: {
         Row: {
+          working_docx_path: string | null
+          wopi_lock: string | null
+          wopi_lock_expires_at: string | null
+          working_docx_generation: string
+          working_docx_revision: number
+          photo_assignment_revision: number
+          working_docx_saved_at: string | null
+          approved_docx_path: string | null
+          approved_docx_revision: number | null
+          photo_review_revision: number
+          data_revision: number
+          ai_review: Json | null
           created_at: string
           created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
           document_hash: string | null
           document_json: Json | null
           extracted_data: Json | null
@@ -236,8 +349,22 @@ export type Database = {
           vessel_name: string | null
         }
         Insert: {
+          working_docx_path?: string | null
+          wopi_lock?: string | null
+          wopi_lock_expires_at?: string | null
+          working_docx_generation?: string
+          working_docx_revision?: number
+          photo_assignment_revision?: number
+          working_docx_saved_at?: string | null
+          approved_docx_path?: string | null
+          approved_docx_revision?: number | null
+          photo_review_revision?: number
+          data_revision?: number
+          ai_review?: Json | null
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           document_hash?: string | null
           document_json?: Json | null
           extracted_data?: Json | null
@@ -254,8 +381,22 @@ export type Database = {
           vessel_name?: string | null
         }
         Update: {
+          working_docx_path?: string | null
+          wopi_lock?: string | null
+          wopi_lock_expires_at?: string | null
+          working_docx_generation?: string
+          working_docx_revision?: number
+          photo_assignment_revision?: number
+          working_docx_saved_at?: string | null
+          approved_docx_path?: string | null
+          approved_docx_revision?: number | null
+          photo_review_revision?: number
+          data_revision?: number
+          ai_review?: Json | null
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           document_hash?: string | null
           document_json?: Json | null
           extracted_data?: Json | null
@@ -293,6 +434,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_photo_suggestion: { Args: { p_report_id: string; p_photo_id: string; p_request_id: string; p_revision: number; p_slot_id: string | null; p_flags: string[] }; Returns: boolean }
       current_has_role: { Args: never; Returns: boolean }
       current_is_admin: { Args: never; Returns: boolean }
     }

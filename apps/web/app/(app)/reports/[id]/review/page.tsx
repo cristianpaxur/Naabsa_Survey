@@ -13,13 +13,21 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { transition } from '@/lib/state-machine';
-import { validate, type Issue, type ReportSpec, type FieldValue } from '@naabsa/core';
-import { groupBySectionOrdered } from '@/lib/effective-values';
+import {
+  validate,
+  type Issue,
+  type ReportSpec,
+  type FieldValue,
+  type NumberFormatMap,
+} from '@naabsa/core';
+import { groupBySectionOrdered, resolveEffectiveNumberFormats } from '@/lib/effective-values';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ReviewClient } from '@/components/review/ReviewClient';
 import { ReuploadPanel } from '@/components/review/ReuploadPanel';
 import { ResetToDraftButton } from '@/components/review/ResetToDraftButton';
 import { resolveFieldValue, collectFields } from '@naabsa/core';
+import { mergeReviewIssues, type AiReviewState } from '@/lib/ai-review';
+import { ReportProgress } from '@/components/reports/ReportProgress';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,9 +46,10 @@ export default async function ReviewPage({ params }: PageProps) {
   const { data: raw } = await supabase
     .from('reports')
     .select(
-      'id, status, variant, extracted_data, operator_overrides, report_specs!reports_spec_id_fkey(spec)',
+      'id, status, variant, extracted_data, operator_overrides, extracted_number_formats, operator_number_formats, extraction_issues, ai_review, data_revision, report_specs!reports_spec_id_fkey(spec)',
     )
     .eq('id', id)
+    .is('deleted_at', null)
     .single();
 
   if (!raw) redirect('/dashboard');
@@ -51,10 +60,12 @@ export default async function ReviewPage({ params }: PageProps) {
     variant: string | null;
     extracted_data: Record<string, FieldValue> | null;
     operator_overrides: Record<string, FieldValue> | null;
-    report_specs:
-      | { spec: ReportSpec }
-      | { spec: ReportSpec }[]
-      | null;
+    extracted_number_formats: NumberFormatMap | null;
+    operator_number_formats: NumberFormatMap | null;
+    extraction_issues: Issue[] | null;
+    ai_review: AiReviewState | null;
+    data_revision: number;
+    report_specs: { spec: ReportSpec } | { spec: ReportSpec }[] | null;
   };
 
   // Resolver spec do join
@@ -79,6 +90,7 @@ export default async function ReviewPage({ params }: PageProps) {
   if (status === 'draft') {
     return (
       <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
+        <ReportProgress current="spreadsheet" />
         <div
           style={{
             display: 'flex',
@@ -90,7 +102,14 @@ export default async function ReviewPage({ params }: PageProps) {
           }}
         >
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--tinta)' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 20,
+                fontWeight: 800,
+                color: 'var(--tinta)',
+              }}
+            >
               Aguardando planilha
             </h1>
           </div>
@@ -116,7 +135,7 @@ export default async function ReviewPage({ params }: PageProps) {
   const overrides = row.operator_overrides ?? {};
   const variant = row.variant;
 
-  const sections = groupBySectionOrdered(spec, variant, extracted, overrides);
+  const sections = groupBySectionOrdered(spec, variant, extracted, overrides, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {});
 
   // Resolver effective data para validação inicial
   const fields = collectFields(spec, variant);
@@ -124,7 +143,16 @@ export default async function ReviewPage({ params }: PageProps) {
   for (const [name] of fields) {
     effective[name] = resolveFieldValue(name, overrides, extracted);
   }
-  const initialIssues: Issue[] = validate(effective, spec, variant);
+  const initialIssues = mergeReviewIssues(
+    validate(effective, spec, variant),
+    row.extraction_issues,
+    effective,
+    extracted,
+    row.ai_review,
+    resolveEffectiveNumberFormats(
+      spec, variant, row.extracted_number_formats ?? {}, row.operator_number_formats ?? {}, overrides,
+    ),
+  );
 
   const totalFields = sections.reduce((acc, s) => acc + s.fields.length, 0);
 
@@ -135,6 +163,7 @@ export default async function ReviewPage({ params }: PageProps) {
         maxWidth: 1100,
       }}
     >
+      <ReportProgress current="review" />
       {/* Header */}
       <div
         style={{
@@ -180,6 +209,8 @@ export default async function ReviewPage({ params }: PageProps) {
         reportId={id}
         sections={sections}
         initialIssues={initialIssues}
+        initialAiReview={row.ai_review}
+        initialRevision={row.data_revision}
       />
     </div>
   );

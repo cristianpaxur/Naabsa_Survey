@@ -4,7 +4,12 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./number-format": "./src/number-format.ts",
+    "./review-policy": "./src/review-policy.ts",
+    "./docx-fonts": "./src/docx-fonts.ts",
+    "./docx-toc": "./src/docx-toc.ts",
+    "./docx-page-numbering": "./src/docx-page-numbering.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -14,6 +19,7 @@
   },
   "dependencies": {
     "ajv": "^8.17.1",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "pizzip": "^3.2.0"
   }
 }

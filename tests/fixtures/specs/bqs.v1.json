@@ -1,0 +1,951 @@
+{
+  "report_type": "bqs",
+  "version": 1,
+  "contract": 2,
+  "variants": [],
+  "source": {
+    "fingerprint": {
+      "sheet": "Vessel Ullage",
+      "cell": "A6",
+      "expect": "VESSEL´S SOUNDING/ULLAGE REPORT"
+    },
+    "ignore_sheets": [
+      "VacuoAr",
+      "Letter of Protest (2)"
+    ],
+    "common": {
+      "fields": {
+        "vessel_name": {
+          "sheet": "Vessel Ullage",
+          "cell": "C8",
+          "type": "string",
+          "label": "Navio",
+          "section": "Identificação",
+          "required": true
+        },
+        "fuel_grade": {
+          "sheet": "Vessel Ullage",
+          "cell": "I8",
+          "type": "string",
+          "label": "Combustível",
+          "section": "Identificação",
+          "required": true
+        },
+        "survey_location": {
+          "sheet": "Vessel Ullage",
+          "cell": "I9",
+          "type": "string",
+          "label": "Local",
+          "section": "Identificação",
+          "required": true
+        },
+        "barge_name": {
+          "sheet": "Vessel Ullage",
+          "cell": "C10",
+          "type": "string",
+          "label": "Barcaça",
+          "section": "Identificação"
+        },
+        "survey_start_text": {
+          "sheet": "Vessel Ullage",
+          "cell": "I10",
+          "type": "string",
+          "label": "Início informado na capa",
+          "section": "Identificação"
+        },
+        "survey_end_text": {
+          "sheet": "Vessel Ullage",
+          "cell": "I11",
+          "type": "string",
+          "label": "Fim informado na capa",
+          "section": "Identificação"
+        },
+        "chief_engineer": {
+          "sheet": "Vessel Ullage",
+          "cell": "D74",
+          "type": "string",
+          "label": "Chefe de máquinas",
+          "section": "Identificação"
+        },
+        "surveyor": {
+          "sheet": "Vessel Ullage",
+          "cell": "K74",
+          "type": "string",
+          "label": "Surveyor",
+          "section": "Identificação",
+          "required": true
+        },
+        "vessel_thermometer": {
+          "sheet": "Vessel Ullage",
+          "cell": "C57",
+          "type": "string",
+          "label": "Temperatura: método do navio",
+          "section": "Identificação"
+        },
+        "line_condition": {
+          "sheet": "Vessel Ullage",
+          "cell": "C58",
+          "type": "string",
+          "label": "Condição da linha",
+          "section": "Identificação"
+        },
+        "water_detection": {
+          "sheet": "Vessel Ullage",
+          "cell": "C60",
+          "type": "string",
+          "label": "Detecção de água",
+          "section": "Identificação"
+        },
+        "vessel_open_fore": {
+          "sheet": "Vessel Ullage",
+          "cell": "B18",
+          "type": "number",
+          "label": "Calado proa",
+          "section": "vessel_open",
+          "decimals": 2
+        },
+        "vessel_open_aft": {
+          "sheet": "Vessel Ullage",
+          "cell": "E18",
+          "type": "number",
+          "label": "Calado popa",
+          "section": "vessel_open",
+          "decimals": 2
+        },
+        "vessel_open_list": {
+          "sheet": "Vessel Ullage",
+          "cell": "H18",
+          "type": "number",
+          "label": "Banda",
+          "section": "vessel_open",
+          "decimals": 2
+        },
+        "vessel_open_trim_corrected": {
+          "sheet": "Vessel Ullage",
+          "cell": "K18",
+          "type": "string",
+          "label": "Correção de trim aplicada",
+          "section": "vessel_open"
+        },
+        "vessel_close_fore": {
+          "sheet": "Vessel Ullage",
+          "cell": "B38",
+          "type": "number",
+          "label": "Calado proa",
+          "section": "vessel_close",
+          "decimals": 2
+        },
+        "vessel_close_aft": {
+          "sheet": "Vessel Ullage",
+          "cell": "E38",
+          "type": "number",
+          "label": "Calado popa",
+          "section": "vessel_close",
+          "decimals": 2
+        },
+        "vessel_close_list": {
+          "sheet": "Vessel Ullage",
+          "cell": "H38",
+          "type": "number",
+          "label": "Banda",
+          "section": "vessel_close",
+          "decimals": 2
+        },
+        "vessel_close_trim_corrected": {
+          "sheet": "Vessel Ullage",
+          "cell": "K38",
+          "type": "string",
+          "label": "Correção de trim aplicada",
+          "section": "vessel_close"
+        },
+        "barge_open_fore": {
+          "sheet": "Sounding Barge",
+          "cell": "C17",
+          "type": "number",
+          "label": "Calado proa",
+          "section": "barge_open",
+          "decimals": 2
+        },
+        "barge_open_aft": {
+          "sheet": "Sounding Barge",
+          "cell": "F17",
+          "type": "number",
+          "label": "Calado popa",
+          "section": "barge_open",
+          "decimals": 2
+        },
+        "barge_open_list": {
+          "sheet": "Sounding Barge",
+          "cell": "I17",
+          "type": "number",
+          "label": "Banda",
+          "section": "barge_open",
+          "decimals": 2
+        },
+        "barge_open_trim_corrected": {
+          "sheet": "Sounding Barge",
+          "cell": "L17",
+          "type": "string",
+          "label": "Correção de trim aplicada",
+          "section": "barge_open"
+        },
+        "barge_close_fore": {
+          "sheet": "Sounding Barge",
+          "cell": "C34",
+          "type": "number",
+          "label": "Calado proa",
+          "section": "barge_close",
+          "decimals": 2
+        },
+        "barge_close_aft": {
+          "sheet": "Sounding Barge",
+          "cell": "F34",
+          "type": "number",
+          "label": "Calado popa",
+          "section": "barge_close",
+          "decimals": 2
+        },
+        "barge_close_list": {
+          "sheet": "Sounding Barge",
+          "cell": "I34",
+          "type": "number",
+          "label": "Banda",
+          "section": "barge_close",
+          "decimals": 2
+        },
+        "barge_close_trim_corrected": {
+          "sheet": "Sounding Barge",
+          "cell": "L34",
+          "type": "string",
+          "label": "Correção de trim aplicada",
+          "section": "barge_close"
+        },
+        "vessel_open_air": {
+          "sheet": "Vessel Ullage",
+          "cell": "M33",
+          "type": "number",
+          "label": "Navio antes IN AIR",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "vessel_close_air": {
+          "sheet": "Vessel Ullage",
+          "cell": "M53",
+          "type": "number",
+          "label": "Navio depois IN AIR",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "vessel_open_vac": {
+          "sheet": "Vessel Ullage",
+          "cell": "L33",
+          "type": "number",
+          "label": "Navio antes IN VAC",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "vessel_close_vac": {
+          "sheet": "Vessel Ullage",
+          "cell": "L53",
+          "type": "number",
+          "label": "Navio depois IN VAC",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "vessel_logbook": {
+          "sheet": "Vessel Ullage",
+          "cell": "K35",
+          "type": "number",
+          "label": "Logbook antes",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "vessel_logbook_difference": {
+          "sheet": "Vessel Ullage",
+          "cell": "M35",
+          "type": "number",
+          "label": "Navio menos logbook",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "bdn_quantity": {
+          "sheet": "Vessel Ullage",
+          "cell": "L58",
+          "type": "number",
+          "label": "Quantidade BDN",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "vessel_received": {
+          "sheet": "Vessel Ullage",
+          "cell": "L59",
+          "type": "number",
+          "label": "Recebido pelo navio",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "delivery_difference": {
+          "sheet": "Vessel Ullage",
+          "cell": "L60",
+          "type": "number",
+          "label": "Navio menos BDN",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "delivery_difference_pct": {
+          "sheet": "Vessel Ullage",
+          "cell": "L61",
+          "type": "number",
+          "label": "Diferença percentual (já em %)",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "barge_open_air": {
+          "sheet": "Sounding Barge",
+          "cell": "N30",
+          "type": "number",
+          "label": "Barcaça antes IN AIR",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "barge_close_air": {
+          "sheet": "Sounding Barge",
+          "cell": "N47",
+          "type": "number",
+          "label": "Barcaça depois IN AIR",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "barge_open_vac": {
+          "sheet": "Sounding Barge",
+          "cell": "M30",
+          "type": "number",
+          "label": "Barcaça antes IN VAC",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "barge_close_vac": {
+          "sheet": "Sounding Barge",
+          "cell": "M47",
+          "type": "number",
+          "label": "Barcaça depois IN VAC",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "barge_delivered": {
+          "sheet": "Sounding Barge",
+          "cell": "M49",
+          "type": "number",
+          "label": "Fornecido pela barcaça IN AIR",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 3
+        },
+        "bdn_density_15": {
+          "sheet": "Sounding Barge",
+          "cell": "B51",
+          "type": "number",
+          "label": "Densidade BDN a 15 °C",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 4
+        },
+        "bdn_density_20": {
+          "sheet": "Sounding Barge",
+          "cell": "E51",
+          "type": "number",
+          "label": "Densidade BDN a 20 °C",
+          "section": "Quantidades e densidades",
+          "required": true,
+          "decimals": 4
+        },
+        "barge_open_flowmeter": {
+          "sheet": "Sounding Barge",
+          "cell": "K16",
+          "type": "string",
+          "label": "Leitura inicial do fluxômetro",
+          "section": "Instrumentos"
+        },
+        "barge_close_flowmeter": {
+          "sheet": "Sounding Barge",
+          "cell": "K33",
+          "type": "string",
+          "label": "Leitura final do fluxômetro",
+          "section": "Instrumentos"
+        },
+        "barge_flowmeter_quantity": {
+          "sheet": "Sounding Barge",
+          "cell": "M51",
+          "type": "string",
+          "label": "Quantidade pelo fluxômetro",
+          "section": "Instrumentos"
+        },
+        "barge_thermometer": {
+          "sheet": "Sounding Barge",
+          "cell": "D58",
+          "type": "string",
+          "label": "Termômetro da barcaça",
+          "section": "Instrumentos"
+        },
+        "barge_flowmeter_type": {
+          "sheet": "Sounding Barge",
+          "cell": "D54",
+          "type": "string",
+          "label": "Tipo de fluxômetro",
+          "section": "Instrumentos"
+        },
+        "barge_flowmeter_seal": {
+          "sheet": "Sounding Barge",
+          "cell": "D56",
+          "type": "string",
+          "label": "Lacre do fluxômetro",
+          "section": "Instrumentos"
+        },
+        "barge_flowmeter_calibration": {
+          "sheet": "Sounding Barge",
+          "cell": "D55",
+          "type": "date",
+          "label": "Calibração do fluxômetro",
+          "section": "Instrumentos",
+          "format": "DD/MM/YYYY"
+        },
+        "survey_date": {
+          "sheet": "Time Log",
+          "cell": "D18",
+          "type": "date",
+          "label": "Data da vistoria",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor onboard"
+          }
+        },
+        "arrival_date": {
+          "sheet": "Time Log",
+          "cell": "D18",
+          "type": "date",
+          "label": "Surveyor onboard — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor onboard"
+          }
+        },
+        "arrival_start": {
+          "sheet": "Time Log",
+          "cell": "E18",
+          "type": "time",
+          "label": "Surveyor onboard — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor onboard"
+          }
+        },
+        "arrival_end": {
+          "sheet": "Time Log",
+          "cell": "F18",
+          "type": "time",
+          "label": "Surveyor onboard — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor onboard"
+          }
+        },
+        "meeting_date": {
+          "sheet": "Time Log",
+          "cell": "D19",
+          "type": "date",
+          "label": "Meeting between C/E and surveyor — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Meeting between C/E and surveyor"
+          }
+        },
+        "meeting_start": {
+          "sheet": "Time Log",
+          "cell": "E19",
+          "type": "time",
+          "label": "Meeting between C/E and surveyor — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Meeting between C/E and surveyor"
+          }
+        },
+        "meeting_end": {
+          "sheet": "Time Log",
+          "cell": "F19",
+          "type": "time",
+          "label": "Meeting between C/E and surveyor — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Meeting between C/E and surveyor"
+          }
+        },
+        "vessel_open_date": {
+          "sheet": "Time Log",
+          "cell": "D20",
+          "type": "date",
+          "label": "Initial Soundings/Ullage - Vessel — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Initial Soundings/Ullage - Vessel"
+          }
+        },
+        "vessel_open_start": {
+          "sheet": "Time Log",
+          "cell": "E20",
+          "type": "time",
+          "label": "Initial Soundings/Ullage - Vessel — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Initial Soundings/Ullage - Vessel"
+          }
+        },
+        "vessel_open_end": {
+          "sheet": "Time Log",
+          "cell": "F20",
+          "type": "time",
+          "label": "Initial Soundings/Ullage - Vessel — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Initial Soundings/Ullage - Vessel"
+          }
+        },
+        "barge_arrival_date": {
+          "sheet": "Time Log",
+          "cell": "D22",
+          "type": "date",
+          "label": "Bunker Barge arrived — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Bunker Barge arrived"
+          }
+        },
+        "barge_arrival_start": {
+          "sheet": "Time Log",
+          "cell": "E22",
+          "type": "time",
+          "label": "Bunker Barge arrived — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Bunker Barge arrived"
+          }
+        },
+        "barge_arrival_end": {
+          "sheet": "Time Log",
+          "cell": "F22",
+          "type": "time",
+          "label": "Bunker Barge arrived — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Bunker Barge arrived"
+          }
+        },
+        "barge_open_date": {
+          "sheet": "Time Log",
+          "cell": "D24",
+          "type": "date",
+          "label": "Initial Soundings/Ullage - Barge — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Initial Soundings/Ullage - Barge"
+          }
+        },
+        "barge_open_start": {
+          "sheet": "Time Log",
+          "cell": "E24",
+          "type": "time",
+          "label": "Initial Soundings/Ullage - Barge — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Initial Soundings/Ullage - Barge"
+          }
+        },
+        "barge_open_end": {
+          "sheet": "Time Log",
+          "cell": "F24",
+          "type": "time",
+          "label": "Initial Soundings/Ullage - Barge — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Initial Soundings/Ullage - Barge"
+          }
+        },
+        "bunkering_date": {
+          "sheet": "Time Log",
+          "cell": "D26",
+          "type": "date",
+          "label": "Bunkering operation — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Bunkering operation"
+          }
+        },
+        "bunkering_start": {
+          "sheet": "Time Log",
+          "cell": "E26",
+          "type": "time",
+          "label": "Bunkering operation — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Bunkering operation"
+          }
+        },
+        "bunkering_end": {
+          "sheet": "Time Log",
+          "cell": "F26",
+          "type": "time",
+          "label": "Bunkering operation — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Bunkering operation"
+          }
+        },
+        "barge_close_date": {
+          "sheet": "Time Log",
+          "cell": "D27",
+          "type": "date",
+          "label": "Final Soundings/Ullage - Barge — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Final Soundings/Ullage - Barge"
+          }
+        },
+        "barge_close_start": {
+          "sheet": "Time Log",
+          "cell": "E27",
+          "type": "time",
+          "label": "Final Soundings/Ullage - Barge — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Final Soundings/Ullage - Barge"
+          }
+        },
+        "barge_close_end": {
+          "sheet": "Time Log",
+          "cell": "F27",
+          "type": "time",
+          "label": "Final Soundings/Ullage - Barge — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Final Soundings/Ullage - Barge"
+          }
+        },
+        "vessel_close_date": {
+          "sheet": "Time Log",
+          "cell": "D28",
+          "type": "date",
+          "label": "Final Soundings/Ullage - Vessel — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Final Soundings/Ullage - Vessel"
+          }
+        },
+        "vessel_close_start": {
+          "sheet": "Time Log",
+          "cell": "E28",
+          "type": "time",
+          "label": "Final Soundings/Ullage - Vessel — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Final Soundings/Ullage - Vessel"
+          }
+        },
+        "vessel_close_end": {
+          "sheet": "Time Log",
+          "cell": "F28",
+          "type": "time",
+          "label": "Final Soundings/Ullage - Vessel — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Final Soundings/Ullage - Vessel"
+          }
+        },
+        "departure_date": {
+          "sheet": "Time Log",
+          "cell": "D32",
+          "type": "date",
+          "label": "Surveyor off board — date",
+          "section": "Cronologia",
+          "required": true,
+          "format": "DD/MM/YYYY",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor off board"
+          }
+        },
+        "departure_start": {
+          "sheet": "Time Log",
+          "cell": "E32",
+          "type": "time",
+          "label": "Surveyor off board — start",
+          "section": "Cronologia",
+          "required": true,
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor off board"
+          }
+        },
+        "departure_end": {
+          "sheet": "Time Log",
+          "cell": "F32",
+          "type": "time",
+          "label": "Surveyor off board — end",
+          "section": "Cronologia",
+          "row_anchor": {
+            "range": "A16:A40",
+            "expect": "Surveyor off board"
+          }
+        },
+        "sampling_tanks": {
+          "sheet": "Sample Report",
+          "cell": "D21",
+          "type": "string",
+          "label": "Tanques amostrados",
+          "section": "Amostragem"
+        },
+        "sampling_method": {
+          "sheet": "Sample Report",
+          "cell": "D22",
+          "type": "string",
+          "label": "Método",
+          "section": "Amostragem"
+        },
+        "sample_vessel_point": {
+          "sheet": "Sample Report",
+          "cell": "D23",
+          "type": "string",
+          "label": "Ponto no navio",
+          "section": "Amostragem"
+        },
+        "sample_barge_point": {
+          "sheet": "Sample Report",
+          "cell": "F23",
+          "type": "string",
+          "label": "Ponto na barcaça",
+          "section": "Amostragem"
+        },
+        "sample_vessel_quantity": {
+          "sheet": "Sample Report",
+          "cell": "D24",
+          "type": "string",
+          "label": "Frascos do navio",
+          "section": "Amostragem"
+        },
+        "sample_barge_quantity": {
+          "sheet": "Sample Report",
+          "cell": "F24",
+          "type": "string",
+          "label": "Frascos da barcaça",
+          "section": "Amostragem"
+        },
+        "sample_vessel_chief": {
+          "sheet": "Sample Report",
+          "cell": "D26",
+          "type": "string",
+          "label": "Lacre vessel — chief",
+          "section": "Amostragem"
+        },
+        "sample_vessel_supplier": {
+          "sheet": "Sample Report",
+          "cell": "D27",
+          "type": "string",
+          "label": "Lacre vessel — supplier",
+          "section": "Amostragem"
+        },
+        "sample_vessel_laboratory": {
+          "sheet": "Sample Report",
+          "cell": "D28",
+          "type": "string",
+          "label": "Lacre vessel — laboratory",
+          "section": "Amostragem"
+        },
+        "sample_vessel_marpol": {
+          "sheet": "Sample Report",
+          "cell": "D29",
+          "type": "string",
+          "label": "Lacre vessel — marpol",
+          "section": "Amostragem"
+        },
+        "sample_vessel_surveyor": {
+          "sheet": "Sample Report",
+          "cell": "D30",
+          "type": "string",
+          "label": "Lacre vessel — surveyor",
+          "section": "Amostragem"
+        },
+        "sample_barge_chief": {
+          "sheet": "Sample Report",
+          "cell": "F26",
+          "type": "string",
+          "label": "Lacre barge — chief",
+          "section": "Amostragem"
+        },
+        "sample_barge_supplier": {
+          "sheet": "Sample Report",
+          "cell": "F27",
+          "type": "string",
+          "label": "Lacre barge — supplier",
+          "section": "Amostragem"
+        },
+        "sample_barge_laboratory": {
+          "sheet": "Sample Report",
+          "cell": "F28",
+          "type": "string",
+          "label": "Lacre barge — laboratory",
+          "section": "Amostragem"
+        },
+        "sample_barge_marpol": {
+          "sheet": "Sample Report",
+          "cell": "F29",
+          "type": "string",
+          "label": "Lacre barge — marpol",
+          "section": "Amostragem"
+        },
+        "sample_barge_surveyor": {
+          "sheet": "Sample Report",
+          "cell": "F30",
+          "type": "string",
+          "label": "Lacre barge — surveyor",
+          "section": "Amostragem"
+        }
+      }
+    },
+    "tables": [
+      {
+        "id": "vessel_open",
+        "label": "Tanques do navio antes",
+        "sheet": "Vessel Ullage",
+        "range": "A21:M32"
+      },
+      {
+        "id": "vessel_close",
+        "label": "Tanques do navio depois",
+        "sheet": "Vessel Ullage",
+        "range": "A41:M52"
+      },
+      {
+        "id": "barge_open",
+        "label": "Tanques da barcaça antes",
+        "sheet": "Sounding Barge",
+        "range": "B20:N29"
+      },
+      {
+        "id": "barge_close",
+        "label": "Tanques da barcaça depois",
+        "sheet": "Sounding Barge",
+        "range": "B37:N46"
+      }
+    ]
+  },
+  "photo_slots": [
+    {
+      "id": "cover",
+      "label": "Capa",
+      "aspect": "4:3",
+      "required": false,
+      "max": 1
+    },
+    {
+      "id": "sounding_tables",
+      "label": "Tabelas de sondagem",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "vessel_tanks",
+      "label": "Tanques do navio",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "barge_tanks",
+      "label": "Tanques da barcaça",
+      "aspect": "4:3",
+      "required": false
+    },
+    {
+      "id": "sampling",
+      "label": "Amostragem",
+      "aspect": "4:3",
+      "required": false
+    }
+  ],
+  "_meta": {
+    "sources": [
+      "Planilha BQS e PDF de referência privados (não distribuídos)"
+    ],
+    "notes": [
+      "PDF de outro navio, com anotações e inconsistências: referência de estrutura, não dados nem baseline raster.",
+      "bqs é um identificador novo explícito; não modifica bunker_surveyor nem suas variantes legadas.",
+      "Horários inválidos exigem override explícito; não corrigir silenciosamente o arquivo de origem.",
+      "Campos ausentes ficam em controles de conteúdo editáveis no Word. Não associar células vazias arbitrárias.",
+      "L61 já contém pontos percentuais: não multiplicar novamente por 100.",
+      "A presença da aba Letter of Protest (2) não demonstra emissão/assinatura. Não declarar protesto automaticamente.",
+      "Tabelas mantêm inclusive linhas numéricas zeradas: confirmar se são reservas antes de removê-las."
+    ]
+  }
+}

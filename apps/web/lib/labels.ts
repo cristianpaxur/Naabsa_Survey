@@ -12,6 +12,7 @@ export function variantLabel(slug: string): string {
 
 const TYPE_DESCRIPTIONS: Record<string, string> = {
   draft_survey: 'Cálculo de calado · carga e descarga',
+  bqs: 'Quantidades de combustível · navio, barcaça e BDN',
   bunker_surveyor: 'Medição de combustível a bordo',
   msc: 'Marine survey & condition',
   on_off_hire: 'Entrega e devolução de afretamento',

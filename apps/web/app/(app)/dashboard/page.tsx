@@ -54,6 +54,7 @@ export default async function DashboardPage({
     .select(
       'id, vessel_name, variant, status, created_at, created_by, report_types(slug, name)',
     )
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   const typeId = types.find((t) => t.slug === typeSlug)?.id;
@@ -73,7 +74,8 @@ export default async function DashboardPage({
 
   const { count: total } = await supabase
     .from('reports')
-    .select('id', { count: 'exact', head: true });
+    .select('id', { count: 'exact', head: true })
+    .is('deleted_at', null);
 
   const authorIds = [...new Set(rows.map((r) => r.created_by))];
   const authorMap = new Map<string, string>();
@@ -181,7 +183,11 @@ export default async function DashboardPage({
                 participarem do grid sem aninhar âncora com o link de histórico. */}
             <Link
               href={reportHref(r.id, r.status)}
-              style={{ display: 'contents', textDecoration: 'none', color: 'inherit' }}
+              style={{
+                display: 'contents',
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
             >
               <div
                 style={{
@@ -199,7 +205,9 @@ export default async function DashboardPage({
               <div style={{ fontSize: 13.5, color: '#4a443c' }}>
                 {r.report_types?.name ?? '—'}{' '}
                 <span style={{ color: '#b5ab9d' }}>·</span>{' '}
-                <span style={{ color: 'var(--rocha)' }}>{r.variant ?? '—'}</span>
+                <span style={{ color: 'var(--rocha)' }}>
+                  {r.variant ?? '—'}
+                </span>
               </div>
               <div>
                 <StatusBadge status={r.status} />
@@ -217,16 +225,19 @@ export default async function DashboardPage({
                 {authorMap.get(r.created_by) ?? '—'}
               </div>
             </Link>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              {/* Descartar só antes da revisão (014/RF-004). */}
-              {(r.status === 'draft' || r.status === 'extracted') && (
-                <DiscardReportButton reportId={r.id} vesselName={r.vessel_name} />
-              )}
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}
+            >
+              <DiscardReportButton reportId={r.id} vesselName={r.vessel_name} />
               <Link
                 href={`/reports/${r.id}/history`}
                 title="Ver histórico"
                 aria-label="Ver histórico"
-                style={{ color: '#9a9082', textDecoration: 'none', fontSize: 15 }}
+                style={{
+                  color: '#9a9082',
+                  textDecoration: 'none',
+                  fontSize: 15,
+                }}
               >
                 🕘
               </Link>

@@ -1,14 +1,16 @@
 /**
- * Renderiza uma aba de um .xlsx como PNG (pixel-perfeito) via LibreOffice
- * headless — reproduz o "print da planilha" do modelo Word.
+ * Renderiza uma aba de um .xlsx como PNG via LibreOffice + Poppler — reproduz
+ * o "print da planilha" do modelo Word.
  *
  * Estratégia: oculta as demais abas (mantém as fórmulas válidas), exporta a aba
- * alvo (única visível) para PNG, e recorta as bordas brancas com sharp.
+ * alvo (única visível) para PDF, rasteriza a página e recorta as bordas brancas.
  *
  * Requer LibreOffice instalado (Windows: soffice.com; Linux/container:
- * `libreoffice-calc` no PATH). Caminho configurável via SOFFICE_PATH.
+ * `libreoffice-calc` no PATH) e `pdftoppm` (Poppler). Caminhos configuráveis
+ * via SOFFICE_PATH e PDFTOPPM_PATH.
  */
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,14 +30,14 @@ function colLetter(n: number): string {
 
 /**
  * Recorta a imagem para o BLOCO principal de conteúdo (a tabela do template).
- * Detecta linhas com conteúdo (cor saturada azul/rosa OU pixel escuro de
- * texto/borda) e para no primeiro GAP grande de linhas brancas — assim ignora
- * células soltas (ex.: marcadores amarelos) muito abaixo da tabela impressa.
+ * Detecta linhas com conteúdo (cor saturada azul/rosa) e para no primeiro GAP
+ * grande de linhas brancas (GAP=80) — assim ignora bordas brancas e blocos
+ * secundários abaixo do conteúdo principal.
  */
 async function cropToColoredContent(png: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
-  const GAP = 50; // px de linhas vazias que encerram o bloco
+  const GAP = 80; // px de linhas vazias que encerram o bloco
   const M = 6; // margem
 
   const isContent = (i: number): boolean => {
@@ -111,6 +113,104 @@ function runSoffice(args: string[], cwd: string): Promise<string> {
   );
 }
 
+/** Resolve o rasterizador do Poppler no container e em estações Windows. */
+function findPdftoppm(): string {
+  const configured = process.env.PDFTOPPM_PATH;
+  if (configured) return configured;
+  const candidates = process.platform === 'win32'
+    ? [
+        'C:\\Program Files\\poppler\\Library\\bin\\pdftoppm.exe',
+        'C:\\Program Files\\poppler\\bin\\pdftoppm.exe',
+      ]
+    : ['/usr/bin/pdftoppm', '/usr/local/bin/pdftoppm'];
+  return candidates.find(existsSync) ?? 'pdftoppm';
+}
+
+function runCommand(command: string, args: string[], cwd: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const proc = spawn(command, args, {
+      cwd,
+      env: process.env,
+      windowsHide: process.platform === 'win32',
+    });
+    let out = '';
+    proc.stdout.on('data', (d) => (out += d.toString()));
+    proc.stderr.on('data', (d) => (out += d.toString()));
+    proc.on('error', reject);
+    proc.on('close', (code) =>
+      code === 0
+        ? resolve(out)
+        : reject(new Error(`${command} saiu com ${code}: ${out.slice(0, 400)}`)),
+    );
+  });
+}
+
+/**
+ * Aplica à aba alvo o mesmo estilo de impressão sem linhas usado pela fase
+ * Initial. O LibreOffice considera `pageSetup.showGridLines` ao exportar para
+ * PDF; `views.showGridLines` afeta apenas a visualização da planilha.
+ */
+export function applyLineFreePrintStyle(target: ExcelJS.Worksheet): void {
+  target.views = (target.views?.length ? target.views : [{}]).map(
+    (view) => ({ ...view, showGridLines: false }) as never,
+  );
+  target.pageSetup = {
+    ...target.pageSetup,
+    showGridLines: false,
+  };
+
+  // Remove bordas customizadas para preservar apenas os fills coloridos do
+  // template, sem contornos adicionais entre as células.
+  for (let rowNumber = 1; rowNumber <= target.rowCount; rowNumber++) {
+    const row = target.getRow(rowNumber);
+    for (
+      let columnNumber = 1;
+      columnNumber <= target.columnCount;
+      columnNumber++
+    ) {
+      row.getCell(columnNumber).border = undefined as never;
+    }
+  }
+}
+
+/** Keep the phase header consistent with the dates and local times in Excel. */
+export function applyDraftSurveyHeaderPrintStyle(target: ExcelJS.Worksheet): void {
+  const headerRow = [7, 5].find(
+    (row) => target.getCell(`B${row}`).text.trim().toUpperCase() === 'DATE',
+  );
+  if (headerRow === undefined) return;
+
+  // Legacy sheets merge the date cells. Newer sheets have separate dates.
+  for (const column of ['C', 'D', 'E']) {
+    const cell = target.getCell(`${column}${headerRow}`).master;
+    cell.style = { ...cell.style, numFmt: 'dd"/"mm"/"yyyy' };
+  }
+
+  const epoch = target.workbook.properties.date1904
+    ? Date.UTC(1904, 0, 1)
+    : Date.UTC(1899, 11, 30);
+  // Subtract in milliseconds before dividing. ExcelJS subtracts in days,
+  // which can put an exact time just below Calc's minute boundary.
+  const toSerial = (date: Date) => (date.getTime() - epoch) / 86_400_000;
+  for (const column of ['G', 'H']) {
+    const cell = target.getCell(`${column}${headerRow}`).master;
+    cell.style = { ...cell.style, numFmt: 'hh:mm' };
+    const value = cell.value;
+    const result = cell.result;
+    if (value instanceof Date && Number.isFinite(value.getTime())) {
+      cell.value = toSerial(value);
+    } else if (
+      value &&
+      typeof value === 'object' &&
+      ('formula' in value || 'sharedFormula' in value) &&
+      result instanceof Date &&
+      Number.isFinite(result.getTime())
+    ) {
+      cell.value = { ...value, result: toSerial(result) };
+    }
+  }
+}
+
 /**
  * Converte a aba `sheetName` do workbook em PNG recortado. Lança se a aba não
  * existir ou se o LibreOffice falhar.
@@ -124,30 +224,39 @@ export async function renderSheetPng(
   const target = wb.getWorksheet(sheetName);
   if (!target) throw new Error(`Aba '${sheetName}' não encontrada na planilha.`);
 
+  // Reordena: põe a aba alvo em primeiro lugar via `orderNo`. O LibreOffice
+  // `--convert-to png` renderiza a PRIMEIRA aba do workbook (ignora
+  // `activeTab` e respeita mal `state="hidden"`). `splice/unshift` na
+  // `wb.worksheets` não persiste no XML — só `orderNo` funciona.
+  for (const ws of wb.worksheets) {
+    (ws as unknown as { orderNo?: number }).orderNo = ws.name === sheetName ? 1 : 99;
+  }
+
   // Só a aba alvo visível (as demais ocultas continuam resolvendo fórmulas).
   for (const ws of wb.worksheets) {
     ws.state = ws.name === sheetName ? 'visible' : 'hidden';
   }
-  // Sem gridlines: o "mar" de células vazias abaixo do conteúdo sai branco.
-  target.views = (target.views?.length ? target.views : [{}]).map(
-    (v) => ({ ...v, showGridLines: false }) as never,
-  );
+  applyLineFreePrintStyle(target);
+  applyDraftSurveyHeaderPrintStyle(target);
 
   // A aba de cálculo tem 4 blocos lado a lado (Draft Survey, Displacement,
-  // Ballast Water, Fresh Water/Bunker). O LibreOffice pagina a largura em várias
-  // páginas e o export PNG só rende a 1ª — cortando os blocos da direita. Forçar
-  // paisagem + "ajustar à largura" (fitToWidth=1) coloca TODAS as colunas em uma
-  // página, então o PNG sai com os 4 blocos. A área é a extensão real de dados
-  // (sobrescreve a print-area B:O do template, que esconde Ballast/Fresh).
+  // Ballast Water, Fresh Water/Bunker). Renderiza em paisagem com
+  // fitToWidth=1 e fitToHeight=1 para caber todos os blocos na mesma página.
+  //
+  // Limites: o printArea vai de B2 até a última coluna/linha USADAS pela aba
+  // (incluindo linhas só com formatação). O `cropToColoredContent` depois
+  // recorta para o bloco de tabelas empilhadas (Draft Marks + Displacement +
+  // Ballast Water) parando no primeiro gap visual.
   const dim = target.dimensions as { right?: number; bottom?: number } | undefined;
-  const lastCol = colLetter(dim?.right ?? 28);
+  const lastCol = colLetter(Math.max(dim?.right ?? 28, target.columnCount));
+  const lastRow = Math.max(dim?.bottom ?? 60, target.rowCount);
   target.pageSetup = {
     ...target.pageSetup,
-    printArea: `B2:${lastCol}${dim?.bottom ?? 60}`,
+    printArea: `B2:${lastCol}${lastRow}`,
     orientation: 'landscape',
     fitToPage: true,
     fitToWidth: 1,
-    fitToHeight: 0,
+    fitToHeight: 1,
     scale: undefined,
     margins: { left: 0.1, right: 0.1, top: 0.1, bottom: 0.1, header: 0, footer: 0 },
   } as never;
@@ -160,25 +269,39 @@ export async function renderSheetPng(
     const out = await runSoffice([
       '--headless', '--calc', '--nologo', '--norestore',
       `-env:UserInstallation=${profile}`,
-      '--convert-to', 'png', '--outdir', dir, inPath,
+      '--convert-to', 'pdf:calc_pdf_Export', '--outdir', dir, inPath,
     ], dir);
 
-    // O LibreOffice nomeia o PNG como in.png (ou in1.png se paginar) — varre por
-    // qualquer .png. Se nada saiu, erra com a saída do soffice + os arquivos do dir.
-    const files = await readdir(dir);
-    const pngName = files.find((f) => f.toLowerCase().endsWith('.png'));
-    if (!pngName) {
+    let files = await readdir(dir);
+    const pdfName = files.find((f) => f.toLowerCase().endsWith('.pdf'));
+    if (!pdfName) {
       throw new Error(
-        `LibreOffice não gerou PNG (arquivos: ${files.join(', ') || 'nenhum'}). Saída: ${out.slice(0, 300)}`,
+        `LibreOffice não gerou PDF da planilha (arquivos: ${files.join(', ') || 'nenhum'}). Saída: ${out.slice(0, 300)}`,
       );
+    }
+
+    const pngBase = join(dir, 'sheet');
+    await runCommand(findPdftoppm(), [
+      '-f', '1', '-l', '1', '-singlefile', '-png', '-r', '180',
+      join(dir, pdfName), pngBase,
+    ], dir);
+    files = await readdir(dir);
+    const pngName = files.find((f) => f.toLowerCase() === 'sheet.png');
+    if (!pngName) {
+      throw new Error(`Poppler não rasterizou o PDF da planilha (arquivos: ${files.join(', ') || 'nenhum'}).`);
     }
     const raw = await readFile(join(dir, pngName));
 
     // Recorta para o conteúdo COLORIDO (template azul/rosa) + margem, e remove
-    // as bordas brancas. O LibreOffice exporta a página inteira; o conteúdo
-    // impresso é a região colorida — abaixo dela é branco.
+    // as bordas brancas. O Poppler rasteriza a página inteira; o conteúdo
+    // impresso é a região colorida — abaixo dela é branco. O `cropToColoredContent`
+    // usa GAP=80 entre linhas para detectar o fim do bloco — ele para no
+    // primeiro gap visual grande entre tabelas ou no fim do conteúdo.
+    //
+    // NOTA: NÃO usar sharp.trim() — ele remove os gaps brancos entre tabelas
+    // (cortando conteúdo do meio). O extract do crop já remove as bordas externas.
     const cropped = await cropToColoredContent(raw);
-    return await sharp(cropped).trim({ threshold: 12 }).png({ compressionLevel: 9 }).toBuffer();
+    return await sharp(cropped).png({ compressionLevel: 9 }).toBuffer();
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }

@@ -1,10 +1,37 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './photos.css';
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useRouter } from 'next/navigation';
-import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import type { PhotoSlot } from '@naabsa/core';
-import { allocate, saveCrop, advance, confirmAllSuggestions, type Crop } from '@/lib/actions/photos';
+import {
+  allocate,
+  saveCrop,
+  advance,
+  confirmAllSuggestions,
+  unallocate,
+  removePhoto,
+  retryPhoto,
+  reorder,
+  type ActionResult,
+  type Crop,
+} from '@/lib/actions/photos';
+import { uploadPhotos } from '@/lib/photo-upload';
 import { pendingRequiredSlots } from '@/lib/photo-gate';
 import { Gallery } from './Gallery';
 import { SlotList } from './SlotList';
@@ -18,6 +45,7 @@ export interface PhotosClientProps {
   metaLabel: string;
   slots: PhotoSlot[];
   initialPhotos: UIPhoto[];
+  progress?: ReactNode;
 }
 
 /**
@@ -31,98 +59,178 @@ export function PhotosClient({
   metaLabel,
   slots,
   initialPhotos,
+  progress,
 }: PhotosClientProps) {
   const router = useRouter();
   const [photos, setPhotos] = useState<UIPhoto[]>(initialPhotos);
   const [uploading, setUploading] = useState(false);
+  const [uploadWait, setUploadWait] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cropPhotoId, setCropPhotoId] = useState<string | null>(null);
   // Foto selecionada na galeria para o fallback por clique em "Alocar".
   const [picked, setPicked] = useState<string | null>(null);
   const [advancing, setAdvancing] = useState(false);
   const [confirmingAi, setConfirmingAi] = useState(false);
-  // Janela "IA analisando" — ligada no upload, desligada quando a IA responde
-  // (por foto) ou após ~45s (timeout). Mostra o overlay nas fotos da galeria.
-  const [aiActive, setAiActive] = useState(false);
+  const [retryFiles, setRetryFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const aiSuggestedCount = photos.filter((p) => p.aiSuggested).length;
+  const aiFinishedWithoutSuggestion =
+    photos.length > 0 &&
+    aiSuggestedCount === 0 &&
+    photos.every(
+      (photo) =>
+        photo.aiStatus === 'idle' ||
+        photo.aiStatus === 'done' ||
+        photo.aiStatus === 'error',
+    );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  const refresh = useCallback(async () => {
-    const res = await fetch(`/api/reports/${reportId}/photos/list`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) return;
-    const json = (await res.json()) as { photos: UIPhoto[] };
-    setPhotos(json.photos);
-  }, [reportId]);
+  const refreshInFlight = useRef<Promise<boolean> | null>(null);
+  const lastRefresh = useRef(Date.now());
+  const refresh = useCallback(
+    async (afterMutation = false): Promise<boolean> => {
+      if (refreshInFlight.current) {
+        const previous = await refreshInFlight.current;
+        if (!afterMutation) return previous;
+      }
+      const request = (async () => {
+        try {
+          const res = await fetch(`/api/reports/${reportId}/photos/list`, {
+            cache: 'no-store',
+            signal: AbortSignal.timeout(15_000),
+          });
+          const json = (await res.json()) as {
+            photos?: UIPhoto[];
+            error?: string;
+          };
+          if (!res.ok || !Array.isArray(json.photos))
+            throw new Error(
+              json.error || 'Não foi possível atualizar as fotos.',
+            );
+          setPhotos(json.photos);
+          setRefreshError(null);
+          lastRefresh.current = Date.now();
+          return true;
+        } catch {
+          setRefreshError(
+            'Falha ao atualizar as fotos. As imagens atuais foram mantidas.',
+          );
+          return false;
+        }
+      })();
+      refreshInFlight.current = request;
+      try {
+        return await request;
+      } finally {
+        if (refreshInFlight.current === request) refreshInFlight.current = null;
+      }
+    },
+    [reportId],
+  );
 
-  // Polling em tempo real: enquanto houver foto PROCESSANDO ou dentro da janela
-  // pós-upload — a sugestão da IA acontece DEPOIS do processamento, então não basta
-  // parar quando tudo fica "pronto" (senão a pré-alocação só apareceria ao recarregar).
   const photosRef = useRef(photos);
   photosRef.current = photos;
-  const pollUntilRef = useRef(0);
-  const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const t = setInterval(() => {
-      const pending = photosRef.current.some((p) => p.status === 'pending');
-      if (pending || Date.now() < pollUntilRef.current) void refresh();
+      const pending = photosRef.current.some(
+        (p) =>
+          p.status === 'pending' ||
+          p.aiStatus === 'pending' ||
+          p.aiStatus === 'running',
+      );
+      if (pending || Date.now() - lastRefresh.current > 4 * 60_000)
+        void refresh();
     }, 2500);
+    const focus = () => {
+      void refresh();
+    };
+    window.addEventListener('focus', focus);
     return () => {
       clearInterval(t);
-      if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+      window.removeEventListener('focus', focus);
     };
   }, [refresh]);
 
-  async function onConfirmAllAi() {
-    setConfirmingAi(true);
+  async function runAction(action: () => Promise<ActionResult>) {
+    if (busy || advancing) return false;
+    setBusy(true);
     setError(null);
-    const res = await confirmAllSuggestions(reportId);
-    setConfirmingAi(false);
-    if ('error' in res) {
-      setError(res.error);
-      return;
+    try {
+      const result = await action();
+      if ('error' in result) {
+        setError(result.error);
+        return false;
+      }
+      await refresh(true);
+      return true;
+    } catch {
+      setError('Falha de conexão. Tente novamente.');
+      return false;
+    } finally {
+      setBusy(false);
     }
-    await refresh();
   }
 
-  async function onUpload(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function onConfirmAllAi() {
+    setConfirmingAi(true);
+    try {
+      await runAction(() => confirmAllSuggestions(reportId));
+    } finally {
+      setConfirmingAi(false);
+    }
+  }
+
+  async function onUpload(files: File[] | FileList | null) {
+    if (!files?.length) return;
     setUploading(true);
     setError(null);
-    const fd = new FormData();
-    for (const f of Array.from(files)) fd.append('files', f);
-    const res = await fetch(`/api/reports/${reportId}/photos`, {
-      method: 'POST',
-      body: fd,
-    });
-    const json = (await res.json()) as {
-      photoIds?: string[];
-      rejected?: { name: string; reason: string }[];
-      error?: string;
-    };
-    if (!res.ok && res.status !== 202) {
-      setError(json.error ?? 'Falha no upload.');
-    } else if (json.rejected && json.rejected.length > 0) {
-      setError(
-        `Ignorados: ${json.rejected.map((r) => `${r.name} (${r.reason})`).join('; ')}`,
+    try {
+      const result = await uploadPhotos(
+        reportId,
+        Array.from(files),
+        fetch,
+        60_000,
+        { onWait: setUploadWait },
       );
+      setRetryFiles(result.retryFiles);
+      if (result.messages.length)
+        setError(
+          `${result.accepted} foto(s) recebida(s). ${result.messages.join('; ')}`,
+        );
+      await refresh(true);
+    } catch {
+      setError('Falha de conexão. Tente novamente.');
+      setRetryFiles(Array.from(files));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = '';
-    // Mantém o polling por ~60s para capturar o processamento + a sugestão da IA
-    // em tempo real (sem o usuário precisar recarregar).
-    pollUntilRef.current = Date.now() + 60_000;
-    // Liga o "IA analisando" e agenda o desligamento (a IA termina antes disso).
-    setAiActive(true);
-    if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
-    aiTimeoutRef.current = setTimeout(() => setAiActive(false), 45_000);
-    await refresh();
+  }
+
+  async function openCrop(photoId: string) {
+    if (await refresh(true)) setCropPhotoId(photoId);
+  }
+
+  async function changeOrder(photo: UIPhoto, direction: number) {
+    if (!photo.slotId) return;
+    const ordered = [...(photosBySlot[photo.slotId] ?? [])];
+    const index = ordered.findIndex((p) => p.id === photo.id);
+    const next = index + direction;
+    if (next < 0 || next >= ordered.length) return;
+    [ordered[index], ordered[next]] = [ordered[next]!, ordered[index]!];
+    await runAction(() =>
+      reorder(
+        reportId,
+        photo.slotId!,
+        ordered.map((p) => p.id),
+      ),
+    );
   }
 
   // Mapa foto alocada por slot (ordenada por position).
@@ -138,6 +246,8 @@ export function PhotosClient({
     return map;
   }, [photos]);
 
+  const unallocatedPhotos = photos.filter((photo) => !photo.slotId);
+
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const s of slots) c[s.id] = photosBySlot[s.id]?.length ?? 0;
@@ -149,28 +259,27 @@ export function PhotosClient({
 
   async function doAllocate(photoId: string, slotId: string) {
     const slot = slots.find((s) => s.id === slotId);
-    const position = photosBySlot[slotId]?.length ?? 0;
-    if (slot?.max !== undefined && position >= slot.max) {
+    const assigned = (photosBySlot[slotId] ?? []).filter(
+      (p) => p.id !== photoId,
+    );
+    const position = Math.max(-1, ...assigned.map((p) => p.position)) + 1;
+    if (slot?.max !== undefined && assigned.length >= slot.max) {
       setError(`Slot "${slot.label}" cheio (máx. ${slot.max}).`);
       return;
     }
-    const result = await allocate(reportId, photoId, slotId, position);
-    if ('error' in result) {
-      setError(result.error);
-      return;
-    }
-    setError(null);
-    setPicked(null);
-    await refresh();
+    if (await runAction(() => allocate(reportId, photoId, slotId, position)))
+      setPicked(null);
   }
 
   function onDragEnd(e: DragEndEvent) {
+    if (busy || advancing) return;
     const photoId = e.active.data.current?.photoId as string | undefined;
     const slotId = e.over?.data.current?.slotId as string | undefined;
     if (photoId && slotId) void doAllocate(photoId, slotId);
   }
 
   function onClickAllocate(slotId: string) {
+    if (busy || advancing) return;
     if (picked) {
       void doAllocate(picked, slotId);
     } else {
@@ -179,25 +288,37 @@ export function PhotosClient({
   }
 
   async function onSaveCrop(crop: Crop) {
-    if (!cropPhotoId) return;
-    const result = await saveCrop(reportId, cropPhotoId, crop);
-    if ('error' in result) {
-      setError(result.error);
-      return;
-    }
-    void refresh();
+    if (!cropPhotoId) return false;
+    return runAction(() => saveCrop(reportId, cropPhotoId, crop));
   }
 
   async function onAdvance() {
     setAdvancing(true);
+    setBusy(true);
     setError(null);
-    const result = await advance(reportId);
-    setAdvancing(false);
-    if ('error' in result) {
-      setError(result.error);
-      return;
+    try {
+      for (let attempt = 0; attempt < 240; attempt++) {
+        const result = await advance(reportId, attempt === 0);
+        if ('error' in result) {
+          setError(result.error);
+          return;
+        }
+        if ('pending' in result) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        router.push(`/reports/${reportId}/edit`);
+        return;
+      }
+      setError(
+        'A atualização das fotos ainda está em andamento. Aguarde e tente avançar novamente.',
+      );
+    } catch {
+      setError('Falha de conexão ao atualizar as fotos. Tente novamente.');
+    } finally {
+      setAdvancing(false);
+      setBusy(false);
     }
-    router.push(`/reports/${reportId}/edit`);
   }
 
   const cropPhoto = photos.find((p) => p.id === cropPhotoId) ?? null;
@@ -207,6 +328,7 @@ export function PhotosClient({
 
   return (
     <div style={{ padding: '26px 32px 40px' }}>
+      <div style={{ marginBottom: 28 }}>{progress}</div>
       <div style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h1
@@ -225,13 +347,32 @@ export function PhotosClient({
         </div>
         <div style={{ fontSize: 13, color: 'var(--rocha)', marginTop: 5 }}>
           Arraste uma foto da galeria para o slot (ou selecione e clique em
-          “Alocar”). Avanço bloqueado enquanto slots obrigatórios não estiverem
-          completos.
+          “Alocar”). Fotos são opcionais. Sugestões da IA só entram no documento
+          depois de confirmadas.
         </div>
       </div>
 
-      <AiBanner count={aiSuggestedCount} busy={confirmingAi} onConfirmAll={() => void onConfirmAllAi()} />
+      <AiBanner
+        count={aiSuggestedCount}
+        busy={confirmingAi}
+        onConfirmAll={() => void onConfirmAllAi()}
+      />
+      {aiFinishedWithoutSuggestion && (
+        <div
+          role="status"
+          style={{ marginBottom: 16, fontSize: 12.5, color: 'var(--rocha)' }}
+        >
+          A IA não sugeriu alocações para estas fotos. Selecione uma foto na
+          galeria e use “Alocar” no grupo desejado.
+        </div>
+      )}
 
+      {refreshError && (
+        <div role="alert" style={{ marginBottom: 12 }}>
+          {refreshError}{' '}
+          <button onClick={() => void refresh()}>Atualizar fotos</button>
+        </div>
+      )}
       {error && (
         <div
           role="alert"
@@ -259,14 +400,7 @@ export function PhotosClient({
       />
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1.15fr',
-            gap: 20,
-            alignItems: 'start',
-          }}
-        >
+        <div className="photos-workspace">
           {/* Galeria à esquerda */}
           <div
             style={{
@@ -274,11 +408,12 @@ export function PhotosClient({
               borderRadius: 14,
               background: '#fff',
               padding: 18,
+              minWidth: 0,
             }}
           >
             <button
               onClick={() => fileRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || advancing}
               style={{
                 width: '100%',
                 marginBottom: 16,
@@ -292,9 +427,23 @@ export function PhotosClient({
                 cursor: uploading ? 'wait' : 'pointer',
               }}
             >
-              {uploading ? 'Enviando…' : '+ Enviar fotos (jpg/png/heic)'}
+              {uploadWait !== null
+                ? `Aguardando limite de envio (${uploadWait}s)…`
+                : uploading
+                  ? 'Enviando…'
+                  : '+ Enviar fotos (jpg/png/heic, até 15 MB)'}
             </button>
 
+            {retryFiles.length > 0 && (
+              <div className="photo-card-actions" style={{ marginBottom: 12 }}>
+                <button
+                  disabled={uploading}
+                  onClick={() => void onUpload(retryFiles)}
+                >
+                  Reenviar {retryFiles.length} foto(s) pendente(s)
+                </button>
+              </div>
+            )}
             {picked && (
               <div
                 style={{
@@ -321,27 +470,59 @@ export function PhotosClient({
             )}
 
             <GalleryPicker
-              photos={photos}
+              photos={unallocatedPhotos}
               picked={picked}
               onPick={setPicked}
-              analyzing={aiActive}
+              renderActions={(photo) => (
+                <>
+                  {(photo.status !== 'done' ||
+                    photo.aiStatus === 'error' ||
+                    photo.aiStatus === 'pending' ||
+                    photo.aiStatus === 'running') &&
+                    !photo.slotId && (
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          void runAction(() => retryPhoto(reportId, photo.id))
+                        }
+                      >
+                        Tentar novamente
+                      </button>
+                    )}
+                  <button
+                    data-action="remove"
+                    disabled={busy}
+                    onClick={() =>
+                      void runAction(() => removePhoto(reportId, photo.id))
+                    }
+                  >
+                    Remover
+                  </button>
+                </>
+              )}
             />
-            {/* Realce visual da foto selecionada via borda na própria galeria
-                não é necessário aqui — a barra acima indica a seleção. */}
           </div>
 
           {/* Slots à direita */}
-          <div>
+          <div style={{ minWidth: 0 }}>
             <SlotList
               slots={slots}
               photosBySlot={photosBySlot}
-              onCrop={setCropPhotoId}
+              onCrop={(id) => void openCrop(id)}
               onClickAllocate={onClickAllocate}
+              onUnallocate={(id) =>
+                void runAction(() => unallocate(reportId, id))
+              }
+              onRemove={(id) => void runAction(() => removePhoto(reportId, id))}
+              onReorder={(photo, direction) =>
+                void changeOrder(photo, direction)
+              }
+              busy={busy || advancing}
             />
 
             <button
               onClick={() => void onAdvance()}
-              disabled={!canAdvance || advancing}
+              disabled={!canAdvance || advancing || uploading || busy}
               style={{
                 marginTop: 16,
                 width: '100%',
@@ -355,7 +536,9 @@ export function PhotosClient({
                 cursor: canAdvance && !advancing ? 'pointer' : 'not-allowed',
               }}
             >
-              {advancing ? 'Avançando…' : 'Avançar para edição →'}
+              {advancing
+                ? 'Preparando fotos para edição…'
+                : 'Avançar para edição →'}
             </button>
           </div>
         </div>
@@ -380,15 +563,30 @@ function GalleryPicker({
   photos,
   picked,
   onPick,
-  analyzing,
+  renderActions,
 }: {
   photos: UIPhoto[];
   picked: string | null;
   onPick: (id: string) => void;
-  analyzing?: boolean;
+  renderActions: (photo: UIPhoto) => ReactNode;
 }) {
   return (
     <div
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'BUTTON') return;
+        const id = target
+          .closest('[data-photo-id]')
+          ?.getAttribute('data-photo-id');
+        if (
+          id &&
+          photos.some((photo) => photo.id === id && photo.status === 'done')
+        ) {
+          event.preventDefault();
+          onPick(id);
+        }
+      }}
       onClick={(e) => {
         const el = (e.target as HTMLElement).closest('[data-photo-id]');
         const id = el?.getAttribute('data-photo-id');
@@ -396,9 +594,7 @@ function GalleryPicker({
         if (id && p && p.status === 'done') onPick(id);
       }}
     >
-      <div style={{ outline: picked ? '0' : '0' }}>
-        <Gallery photos={photos} analyzing={analyzing} />
-      </div>
+      <Gallery photos={photos} picked={picked} renderActions={renderActions} />
     </div>
   );
 }

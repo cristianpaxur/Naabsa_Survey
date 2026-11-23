@@ -71,6 +71,28 @@ describe('callLLM — multi-provedor (010/T-006, CA-006)', () => {
     expect(text).toBeNull();
     expect(audits[0]!.payload['ok']).toBe(false);
   });
+
+  it('GPT-5.5 envia max_completion_tokens e esforço compatível, sem max_tokens', async () => {
+    process.env.AI_PROVIDER = 'openai'; process.env.OPENAI_API_KEY = 'synthetic'; process.env.AI_MODEL = 'gpt-5.5';
+    let body: Record<string, unknown> = {};
+    await callLLM({ purpose: 'test', reportId: null, content: [], maxTokens: 2048 }, {
+      fetchFn: (async (_url, init) => { body = JSON.parse(String(init?.body)); return { ok: true, json: async () => ({ choices: [{ message: { content: '[]' } }] }) } as Response; }),
+      audit: async () => {},
+    });
+    expect(body).toMatchObject({ model: 'gpt-5.5', max_completion_tokens: 2048, reasoning_effort: 'none' });
+    expect(body).not.toHaveProperty('max_tokens');
+  });
+
+  it('resposta vazia é falha, e erros de rede não vazam conteúdo na auditoria', async () => {
+    process.env.ANTHROPIC_API_KEY = 'synthetic';
+    const payloads: Record<string, unknown>[] = [];
+    const audit = async (_id: string | null, payload: Record<string, unknown>) => { payloads.push(payload); };
+    expect(await callLLM({ purpose: 'x', reportId: null, content: [] }, { fetchFn: fakeFetch(true, { content: [] }), audit })).toBeNull();
+    expect(payloads[0]).toMatchObject({ ok: false, error: 'empty_response' });
+    await callLLM({ purpose: 'x', reportId: null, content: [] }, { fetchFn: async () => { throw new Error('secret-url-and-key'); }, audit });
+    expect(payloads[1]).toMatchObject({ ok: false, error: 'request_failed' });
+    expect(JSON.stringify(payloads)).not.toContain('secret-url-and-key');
+  });
 });
 
 describe('getAiProvider / getAiModel', () => {

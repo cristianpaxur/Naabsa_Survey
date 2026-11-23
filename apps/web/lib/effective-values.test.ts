@@ -39,6 +39,24 @@ const SPEC: ReportSpec = {
 };
 
 describe('groupBySectionOrdered', () => {
+  it.each([
+    [{ calado: 81 }, { calado: 2 }, { calado: 1 }, 1],
+    [{ calado: null }, { calado: 3 }, { calado: 1 }, 3],
+    [{}, { calado: 0 }, { calado: 1 }, 0],
+    [{ calado: 81 }, {}, {}, 2],
+  ])('resolve precisão com operador ativo, Excel e spec', (overrides, extractedFormats, operatorFormats, expected) => {
+    const sections = groupBySectionOrdered(SPEC, null, { calado: 80 }, overrides, extractedFormats, operatorFormats);
+    expect(sections[1]!.fields[0]!.displayDecimals).toBe(expected);
+    expect(sections[0]!.fields[1]!.displayDecimals).toBeUndefined();
+  });
+
+  it('usa representação padrão para número sem nenhuma precisão', () => {
+    const spec: ReportSpec = { ...SPEC, source: { ...SPEC.source, common: { fields: {
+      volume: { type: 'number', cell: 'E1', label: 'Volume', section: 'Medições' },
+    } } } };
+    expect(groupBySectionOrdered(spec, null, { volume: 81 }, {})[0]!.fields[0]!.displayDecimals).toBeUndefined();
+  });
+
   it('agrupa campos por seção na ordem do spec', () => {
     const sections = groupBySectionOrdered(SPEC, null, {}, null);
     expect(sections).toHaveLength(2);

@@ -96,6 +96,49 @@ const baseData: BuilderInput['data'] = {
 };
 
 describe('buildDraftSurvey — CA-001', () => {
+  it('formata Delivered pelo mapa e preserva dados numéricos', () => {
+    const data = { delivered: 1981 };
+    const result = buildDraftSurvey({ spec, variant: 'loading', data,
+      numberFormats: { delivered: 1 }, tables: {}, photos: [],
+    });
+    const table = result.content.find((node) => node.attrs?.['tableId'] === 'ships_particulars');
+    expect((table?.attrs?.['rows'] as string[][]).find((row) => row[0] === 'Delivered'))
+      .toEqual(['Delivered', '1981.0']);
+    expect(data.delivered).toBe(1981);
+  });
+  it.each([[0, '81 mt'], [1, '81.0 mt'], [2, '81.00 mt'], [3, '81.000 mt']] as const)(
+    'preserva %i casas efetivas na tonelagem do JSON legado', (decimals, expected) => {
+      for (const variant of ['loading', 'discharge']) {
+        const result = buildDraftSurvey({
+          spec, variant, data: { summer_dwt: 81 }, numberFormats: { summer_dwt: decimals }, tables: {}, photos: [],
+        });
+        const table = result.content.find((node) => node.attrs?.['tableId'] === 'ships_particulars');
+        expect((table?.attrs?.['rows'] as string[][]).find((row) => row[0] === 'Summer DWT'))
+          .toEqual(['Summer DWT', expected]);
+      }
+    },
+  );
+
+  it('aplica precisão de leitura e figures sem alterar as tabelas semânticas', () => {
+    const result = buildDraftSurvey({ spec, variant: 'loading',
+      data: { init_fwd_mean: 4.5, init_fwd_corr: 4.5, fin_fig_diff_mt: -1.5, fin_fig_diff_pct: 0.12 },
+      numberFormats: { init_fwd_mean: 1, init_fwd_corr: 2, fin_fig_diff_mt: 1, fin_fig_diff_pct: 2 },
+      tables: { fin_figures_acting_as: [['Role'], ["Terminal's Surveyor", '', '', '', '', '', '', '', 5000]] }, photos: [],
+    });
+    const table = result.content.find((node) => node.attrs?.['tableId'] === 'init_readings');
+    expect((table?.attrs?.['rows'] as string[][])[0]?.slice(0, 3)).toEqual(['Fwd', '4.5', '4.50']);
+    const values = result.content.filter((node) => node.type === 'leaderLine').map((node) => node.attrs?.['value']);
+    expect(values).toContain('- 1.5 MT or + 0.12 %');
+    expect(values).toContain('5,000.000 MT');
+  });
+
+  it('omite números não finitos do documento legado', () => {
+    const result = buildDraftSurvey({ spec, variant: 'loading',
+      data: { summer_dwt: Infinity, init_fwd_mean: Number.NaN, fin_fig_diff_mt: -Infinity }, tables: {}, photos: [],
+    });
+    expect(JSON.stringify(result)).not.toMatch(/NaN|Infinity/);
+  });
+
   it('retorna um doc TipTap válido para variante discharge', () => {
     const input: BuilderInput = {
       spec,

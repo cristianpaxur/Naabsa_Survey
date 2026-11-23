@@ -25,11 +25,11 @@ export interface JobOutcome {
 export function latestJobOutcome(
   rows: AuditEventRow[],
   enqueuedAction: string,
-  failedAction: string,
+  failedAction: string | string[],
 ): JobOutcome {
   for (const row of rows) {
     if (row.action === enqueuedAction) return { failed: false };
-    if (row.action === failedAction) {
+    if ((Array.isArray(failedAction) ? failedAction : [failedAction]).includes(row.action)) {
       return { failed: true, reason: row.payload?.message };
     }
   }

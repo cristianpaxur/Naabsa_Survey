@@ -43,6 +43,8 @@ const ACTION_META: Record<string, { label: string; color: string }> = {
   pdf_generated: { label: 'PDF gerado', color: VERDE },
   pdf_rejected: { label: 'PDF rejeitado', color: VERMELHO },
   retention_purged: { label: 'Dados purgados (retenção)', color: VERMELHO },
+  report_trashed: { label: 'Movido para a lixeira', color: VERMELHO },
+  report_restored: { label: 'Restaurado da lixeira', color: VERDE },
   ai_call: { label: 'Chamada de IA', color: ROCHA },
   ai_review: { label: 'Revisão por IA', color: ROCHA },
   allocate: { label: 'Foto alocada', color: VERDE },
@@ -51,7 +53,10 @@ const ACTION_META: Record<string, { label: string; color: string }> = {
 const actionMeta = (a: string) => ACTION_META[a] ?? { label: a, color: ROCHA };
 
 /** Detalhe legível (mono) a partir do payload, por tipo de ação. */
-function formatDetail(action: string, p: Record<string, unknown> | null): string {
+function formatDetail(
+  action: string,
+  p: Record<string, unknown> | null,
+): string {
   if (!p) return '';
   const s = (k: string) => (p[k] == null ? '' : String(p[k]));
   switch (action) {
@@ -64,7 +69,10 @@ function formatDetail(action: string, p: Record<string, unknown> | null): string
     case 'extraction':
       return `${s('fields')} campos · ${s('errors')} erros · ${s('warnings')} avisos`;
     case 'pdf_generated':
-      return s('storage_path') || (s('document_hash') ? `hash ${s('document_hash').slice(0, 12)}…` : '');
+      return (
+        s('storage_path') ||
+        (s('document_hash') ? `hash ${s('document_hash').slice(0, 12)}…` : '')
+      );
     case 'pdf_rejected':
       return s('reason');
     case 'retention_purged':
@@ -72,17 +80,30 @@ function formatDetail(action: string, p: Record<string, unknown> | null): string
     case 'document_assembled':
       return [s('slug'), s('variant')].filter(Boolean).join(' · ');
     case 'ai_call':
-      return [s('purpose'), s('duration_ms') ? `${s('duration_ms')} ms` : ''].filter(Boolean).join(' · ');
+      return [s('purpose'), s('duration_ms') ? `${s('duration_ms')} ms` : '']
+        .filter(Boolean)
+        .join(' · ');
     default: {
       const keys = Object.keys(p);
-      return keys.length ? keys.map((k) => `${k}: ${s(k)}`).join(' · ').slice(0, 160) : '';
+      return keys.length
+        ? keys
+            .map((k) => `${k}: ${s(k)}`)
+            .join(' · ')
+            .slice(0, 160)
+        : '';
     }
   }
 }
 
 function fmtTime(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export default async function HistoryPage({ params }: PageProps) {
@@ -97,8 +118,13 @@ export default async function HistoryPage({ params }: PageProps) {
     .from('reports')
     .select('id, status, vessel_name')
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
-  const report = reportRaw as { id: string; status: string; vessel_name: string | null } | null;
+  const report = reportRaw as {
+    id: string;
+    status: string;
+    vessel_name: string | null;
+  } | null;
   if (!report) notFound();
 
   const { data: rowsRaw } = await supabase
@@ -109,7 +135,9 @@ export default async function HistoryPage({ params }: PageProps) {
   const rows = (rowsRaw as AuditRow[] | null) ?? [];
 
   // Resolve nomes dos atores (service role — profiles tem RLS própria/admin).
-  const actorIds = [...new Set(rows.map((r) => r.actor).filter((a): a is string => !!a))];
+  const actorIds = [
+    ...new Set(rows.map((r) => r.actor).filter((a): a is string => !!a)),
+  ];
   const names: Record<string, string> = {};
   if (actorIds.length) {
     const svc = createServiceClient();
@@ -117,11 +145,14 @@ export default async function HistoryPage({ params }: PageProps) {
       .from('profiles')
       .select('user_id, display_name')
       .in('user_id', actorIds);
-    for (const p of (profs as { user_id: string; display_name: string }[] | null) ?? []) {
+    for (const p of (profs as
+      | { user_id: string; display_name: string }[]
+      | null) ?? []) {
       names[p.user_id] = p.display_name;
     }
   }
-  const actorName = (a: string | null) => (a ? (names[a] ?? 'Usuário') : 'Sistema');
+  const actorName = (a: string | null) =>
+    a ? (names[a] ?? 'Usuário') : 'Sistema';
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 920 }}>
@@ -136,25 +167,54 @@ export default async function HistoryPage({ params }: PageProps) {
         }}
       >
         <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--tinta)' }}>Histórico</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--rocha)', fontFamily: 'var(--font-mono)' }}>
-            {report.vessel_name ?? 'Relatório'} · {rows.length} evento{rows.length !== 1 ? 's' : ''}
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 20,
+              fontWeight: 800,
+              color: 'var(--tinta)',
+            }}
+          >
+            Histórico
+          </h1>
+          <p
+            style={{
+              margin: '4px 0 0',
+              fontSize: 12,
+              color: 'var(--rocha)',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            {report.vessel_name ?? 'Relatório'} · {rows.length} evento
+            {rows.length !== 1 ? 's' : ''}
           </p>
         </div>
         <StatusBadge status={report.status as ReportStatus} />
       </div>
 
       {rows.length === 0 ? (
-        <p style={{ color: 'var(--rocha)', fontSize: 14 }}>Sem eventos registrados.</p>
+        <p style={{ color: 'var(--rocha)', fontSize: 14 }}>
+          Sem eventos registrados.
+        </p>
       ) : (
         <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {rows.map((r, i) => {
             const meta = actionMeta(r.action);
             const detail = formatDetail(r.action, r.payload);
             return (
-              <li key={r.id} style={{ display: 'flex', gap: 14, position: 'relative' }}>
+              <li
+                key={r.id}
+                style={{ display: 'flex', gap: 14, position: 'relative' }}
+              >
                 {/* Coluna do ponto + linha vertical */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 14 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: 14,
+                  }}
+                >
                   <span
                     style={{
                       width: 12,
@@ -165,15 +225,41 @@ export default async function HistoryPage({ params }: PageProps) {
                       flexShrink: 0,
                     }}
                   />
-                  {i < rows.length - 1 && <span style={{ flex: 1, width: 2, background: 'var(--borda)' }} />}
+                  {i < rows.length - 1 && (
+                    <span
+                      style={{ flex: 1, width: 2, background: 'var(--borda)' }}
+                    />
+                  )}
                 </div>
                 {/* Conteúdo */}
                 <div style={{ paddingBottom: 22, flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, color: 'var(--rocha)', fontFamily: 'var(--font-mono)' }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--rocha)',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
                     {fmtTime(r.created_at)}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--tinta)' }}>{meta.label}</span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginTop: 2,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: 'var(--tinta)',
+                      }}
+                    >
+                      {meta.label}
+                    </span>
                     <span
                       style={{
                         fontSize: 11,

@@ -24,6 +24,13 @@
 | [012](./012%20-%20Editor%20Nativo%20Collabora%20e%20Fluxo%20de%20Aprovação/spec.md) | Editor Nativo Collabora e Fluxo de Aprovação | subst. T-17/T-18 | 🟠 Em andamento | 9/10 (T-010: código pronto; rodar E2E c/ stack local) |
 | [013](./013%20-%20Gestão%20de%20Identidade%20e%20Acesso/spec.md) | Gestão de Identidade e Acesso (SSO Entra ID) | pós-PRD | 🟡 Planejada | 0/12 |
 | [014](./014%20-%20Recuperação%20de%20Erros%20e%20Resiliência%20Operacional/spec.md) | Recuperação de Erros e Resiliência Operacional | pós-PRD | 🟠 Código completo | 10/10 (aceite CA-001..004 pendente na stack local) |
+| [015](./015-correcao-integrada/spec.md) | Correções integradas de IA, fotos, texto, acesso e editor | auditoria C01–C15 | 🟠 Código e validação local concluídos | HEIC na imagem e aceite com serviços pendentes |
+| [016](./016-msc-functional/spec.md) | MSC funcional de ponta a ponta | correção do modelo MSC aprovado | 🟠 Código e validação local concluídos | 8/8 (ativação em nuvem pendente) |
+| [017](./017-msc-feedback-video/spec.md) | Correções MSC a partir do vídeo de 02/10/2026 e do Word de exemplo | feedback do usuário | 🟡 ECR e Word publicados e validados | 13/14 (9/9 páginas idênticas no ensaio Word; geração real de seis páginas conferida no Collabora; ativação DAMLA pendente) |
+| [018](./018-msc-client-feedback/spec.md) | Correções dos vídeos MSC de 14/10/2026: quantidades, fotos e Word | feedback do cliente | 🟢 Time log com bordas validado no PDF e 0028 corrigida | 21/21; aplicar 0028 corrigida e publicar o worker para novas montagens |
+| [019](./019-bqs/spec.md) | BQS: planilha e modelo Word | onboarding autorizado | 🟢 BQS v2 ativo; padrão MSC publicado e homologado | 14/14; ciclo nativo, WOPI real e PDF validados |
+| [020](./020-dynamic-toc/spec.md) | Índice com páginas atualizáveis | correção do feedback do cliente | 🟠 Código validado localmente | 4/5; homologação online pendente |
+| [021](./021-editor-page-numbering/spec.md) | Salvamento do Collabora e numeração após Contents | feedback do cliente | 🟠 Código e PDF validados localmente | 5/6; publicação e homologação online pendentes |
 
 ---
 
@@ -57,6 +64,7 @@ pendentes no atual).
 | 012 | 011, 004, 008 |
 | 013 | 002, 005 |
 | 014 | 010, 012 |
+| 015 | Auditoria do código atual; correção de 005–014 |
 
 Paralelização possível: após 001, **002 e 003** podem andar em paralelo; após 005,
 **006 e 007** podem andar em paralelo.
@@ -70,7 +78,7 @@ Paralelização possível: após 001, **002 e 003** podem andar em paralelo; ap�
 | Tipo de relatório prioritário | Cliente | 003 (spec real do 1º tipo — PRD T-07) | ✅ Recebido 2026-06-23 — **`draft_survey`** |
 | Modelo Word + exemplo preenchido (1º tipo) | Cliente | 004 (conteúdo real — PRD T-08) | ✅ Recebido 2026-06-23 (`MV-PERSEUS-I.model.docx`) |
 | Planilha pré-moldada real (1º tipo) | Cliente | 003/T-011..T-016 (PRD T-07) | ✅ Recebido 2026-06-23 (`draft_survey.real.v1.xlsx`) |
-| Modelos Word + planilhas dos **demais** tipos | Cliente | 009 (PRD T-19..T-22) | 🔴 Pendente |
+| Modelos Word + planilhas dos **demais** tipos | Cliente | 009 (PRD T-19..T-22) | 🟠 BQS recebido em 23/10/2026: XLSX + PDF substituindo Word; ver 019. Outros tipos pendentes |
 | Chave PIX/recebimento e acesso ao VPS | Interno | 001 (deploy no VPS — dev local livre; PRD T-03) e 010 (PRD T-28) | 🔴 Pendente |
 | **App Registration no tenant Microsoft Entra ID** | Cliente (TI) | 013 (SSO — T-001; dev contra tenant de teste) | 🔴 Pendente |
 

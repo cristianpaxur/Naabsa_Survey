@@ -1,15 +1,12 @@
 # tests/golden
 
-Golden tests de PDF por tipo × variante (PRD §11, RNF-02).
+Testes golden dos builders DOCX atuais por tipo e variante.
 
-Cada caso vive em `tests/golden/{slug}.{variant}/` com:
+O `golden-pipeline.test.ts` extrai as planilhas reais de fixture, gera o DOCX e
+valida o conteúdo contra snapshots. Para Draft Survey, também compara com o Word
+aprovado as partes que definem o layout (seção/página, estilos, numeração,
+cabeçalhos e rodapé) e impede a volta de marca-texto, cores de revisão,
+instruções internas ou tags não preenchidas.
 
-- `input.xlsx` — planilha de entrada
-- `photos/` — fotos do relatório
-- `expected.pdf` — PDF de referência
-
-Pipeline: extrai → monta documento → gera PDF → rasteriza ambos → diff de
-pixels (falha se > 0,5%). Roda no CI a cada mudança em `packages/core`,
-templates ou CSS de impressão.
-
-> Vazio na fundação (impl 001) — primeiro caso na implementação 004.
+A renderização rasterizada do PDF permanece um aceite visual separado porque
+depende do motor instalado (Microsoft Word ou LibreOffice).

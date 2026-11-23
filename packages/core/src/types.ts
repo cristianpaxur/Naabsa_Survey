@@ -8,7 +8,13 @@
 
 // ── Campos ──
 
-export type FieldType = 'string' | 'number' | 'date' | 'enum' | 'boolean' | 'time';
+export type FieldType =
+  | 'string'
+  | 'number'
+  | 'date'
+  | 'enum'
+  | 'boolean'
+  | 'time';
 
 /** Atributos comuns a todos os tipos de campo. */
 export interface BaseFieldDef {
@@ -19,12 +25,23 @@ export interface BaseFieldDef {
   sheet?: string;
   /** Célula de origem (ex.: "B7"). */
   cell: string;
+  /** Localiza a linha pelo rótulo; usa a coluna de `cell` nessa linha. */
+  row_anchor?: {
+    /** Uma coluna, até 100 linhas (ex.: "H29:H40"). */
+    range: string;
+    /** Texto exato do rótulo, desconsiderando espaços nas extremidades. */
+    expect: string;
+    /** Outras grafias exatas conhecidas do mesmo rótulo. */
+    aliases?: string[];
+  };
   /** Rótulo exibido na revisão. */
   label: string;
   /** Seção de agrupamento na revisão. */
   section: string;
   /** Sufixo de exibição no PDF (ex.: "m", "mt", "MT", "°", "cm"). */
   unit?: string;
+  /** `false` para campos derivados que não devem ser avaliados pela IA. */
+  ai_review?: boolean;
   required?: boolean;
   /** Validações numéricas/derivadas por campo. */
   min?: number;
@@ -190,8 +207,12 @@ export interface Issue {
 /** Valor efetivo de um campo após coerção (serializável em JSONB). */
 export type FieldValue = string | number | boolean | null;
 
+/** Quantidade de casas decimais exibidas por campo numérico. */
+export type NumberFormatMap = Record<string, number>;
+
 export interface ExtractionResult {
   data: Record<string, FieldValue>;
+  numberFormats: NumberFormatMap;
   /** Matrizes das tabelas range-based (v2). Chave = `TableDef.id`. */
   tables: Record<string, FieldValue[][]>;
   issues: Issue[];

@@ -1,0 +1,23 @@
+# Tarefas
+
+- [x] Analisar narração e imagens dos dois vídeos; conferir o caso real em leitura.
+- [x] Corrigir contato, Capa/Vessel/Hull e grade do Time log.
+- [x] Corrigir galeria, controles de ordenação e largura dos grupos.
+- [x] Preparar e testar migrations aditivas para slots, campos e revisão das fotos.
+- [x] Sincronizar fotos no Word preservando textos e protegendo concorrência.
+- [x] Validar interface local com 29 fotos, montagem, banco, tipos e build.
+- [x] Conferir migrations 0023–0025 e publicação inicial no servidor; criar novo MSC baseado no CAROLINA.
+- [x] Corrigir as regressões encontradas no ensaio real: fontes Sludge deslocadas e numeração/estilos reescritos pelo Collabora.
+- [x] Publicar as correções do ensaio e ativar a 0026 para novas extrações.
+- [x] Retomar o relatório de teste e concluir aprovação e geração do PDF pela interface.
+- [x] Corrigir a quebra dos contatos do comando na capa após atualizar fotos e validar novamente o PDF nativo.
+- [x] Auditar todos os campos do CAROLINA e identificar ausências reais e falhas de mapeamento.
+- [x] Mapear descarte e retenção do comandante, completar a comparação do flowmeter e preparar a migration 0027 preservando customizações.
+- [x] Validar novamente o PDF, as suítes afetadas e registrar o commit dos mapeamentos.
+- [x] Alinhar título, rótulos e valores de Surveyors figures na seção 3.7 e conferir o PDF nativo do CAROLINA.
+- [x] Aplicar a revisão de 16/10: capitalização normal da capa e nome institucional fixo de Wagner de Abreu.
+- [x] Corrigir a leitura do Light ship textual em inglês e proteger valores revisados pelo operador.
+- [x] Consolidar Hull em Vessel no builder e preparar migração auditável das alocações abertas.
+- [x] Validar os testes afetados e uma nova geração nativa completa do CAROLINA com as 20 fotos.
+- [x] Reproduzir a falha da 0028 com os triggers reais e corrigir a consolidação sem alterar o estado dos relatórios ou deixar a proteção de fotos modificada.
+- [x] Restaurar as bordas originais do Time log conforme a revisão de 19/10 e conferir a tabela no PDF nativo.

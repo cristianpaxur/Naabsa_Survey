@@ -1,4 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { assembleDocument } from '../../lib/document-assembly';
+
+vi.mock('server-only', () => ({}));
+vi.mock('../../lib/supabase/service', () => ({
+  createServiceClient: () => ({ storage: { from: () => ({ list: async () => ({ data: [] }) }) } }),
+}));
 import { getSchema } from '@tiptap/core';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -47,6 +53,33 @@ function roundTrip(doc: unknown): unknown {
 }
 
 describe('Editor round-trip preserva atributos dos nodes custom', () => {
+  it('preserva precisão efetiva da montagem real após round-trip', async () => {
+    const spec = {
+      report_type: 'draft_survey', version: 1,
+      source: { sheet: 'Capa', common: { fields: {
+        summer_dwt: { cell: 'A1', type: 'number', decimals: 3 },
+        net_tonnage: { cell: 'A2', type: 'number', decimals: 3 },
+        loa: { cell: 'A3', type: 'number', decimals: 3 },
+      } }, by_variant: {} }, validations: [], photo_slots: [],
+    } as unknown as ReportSpec;
+    const query = {
+      select: () => query, eq: () => query, is: () => query, not: () => query,
+      order: async () => ({ data: [] }), maybeSingle: async () => ({ data: null }),
+    };
+    const doc = await assembleDocument({ from: () => query } as never, 'r1', {
+      slug: 'draft_survey', spec, variant: 'loading',
+      extracted: { summer_dwt: 80, net_tonnage: 12000, loa: 228.9 },
+      overrides: { summer_dwt: 81 },
+      extractedNumberFormats: { summer_dwt: 0, net_tonnage: 0 },
+      operatorNumberFormats: { summer_dwt: 1, net_tonnage: 2 },
+    });
+    const out = roundTrip(doc) as { content: { attrs?: Record<string, unknown> }[] };
+    const table = out.content.find((node) => node.attrs?.tableId === 'ships_particulars');
+    expect(table?.attrs?.rows).toEqual(expect.arrayContaining([
+      ['Summer DWT', '81.0 mt'], ['Net tonnage', '12,000 mt'], ['LOA', '228.900 m'],
+    ]));
+  });
+
   it('dataTable preserva tableId/headers/rows', () => {
     const doc = {
       type: 'doc',

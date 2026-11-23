@@ -19,21 +19,30 @@ export async function GET(
   if (!a.ok) return a.res;
   const { claims, svc, report } = a;
 
-  const { data: files } = await svc.storage
+  if (!report.working_docx_path) return new NextResponse(null, { status: 404 });
+  const slash = report.working_docx_path.lastIndexOf('/');
+  const directory = report.working_docx_path.slice(0, slash);
+  const filename = report.working_docx_path.slice(slash + 1);
+  const { data: files, error } = await svc.storage
     .from(BUCKET)
-    .list(id, { limit: 100, search: 'working.docx' });
-  const f = (files ?? []).find((x) => x.name === 'working.docx');
+    .list(directory, { limit: 100, search: filename });
+  const f = (files ?? []).find((x) => x.name === filename);
+  if (error || !f) return new NextResponse(null, { status: 404 });
   const size = Number((f?.metadata as { size?: number } | undefined)?.size ?? 0);
-  const lastModified = f?.updated_at ?? new Date(0).toISOString();
+  // Precisa ser exatamente o mesmo valor devolvido pelo PutFile. O timestamp
+  // do objeto no Storage é atribuído depois do upload e pode diferir alguns
+  // segundos de `working_docx_saved_at`; misturar os dois faz o Collabora
+  // concluir incorretamente que outro processo alterou o documento.
+  const lastModified = report.working_docx_saved_at ?? f?.updated_at ?? new Date(0).toISOString();
 
   return NextResponse.json({
     BaseFileName: `${(report.vessel_name ?? 'relatorio').replace(/[^\w.-]+/g, '_')}.docx`,
     Size: size,
-    Version: lastModified,
+    Version: String(report.working_docx_revision ?? 0),
     OwnerId: 'naabsa',
     UserId: claims.userId,
     UserFriendlyName: 'Operador NAABSA',
-    UserCanWrite: claims.canWrite,
+    UserCanWrite: claims.canWrite && report.status === 'editing',
     UserCanNotWriteRelative: true,
     LastModifiedTime: lastModified,
     PostMessageOrigin: process.env['WOPI_PUBLIC_URL'] ?? '',

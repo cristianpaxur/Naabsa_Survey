@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { signToken, verifyToken } from './token';
+import { signToken, verifyToken, WOPI_TOKEN_TTL_SECONDS } from './token';
 
 const SECRET = 'test-secret-0123456789abcdef';
 
 describe('wopi/token', () => {
+  it('mantém a sessão padrão por 10 horas', () => {
+    const before = Math.floor(Date.now() / 1000);
+    const token = signToken({ reportId: 'r1', userId: 'u1', canWrite: true }, undefined, SECRET);
+    expect(verifyToken(token, SECRET)?.exp).toBeGreaterThanOrEqual(before + WOPI_TOKEN_TTL_SECONDS);
+  });
   it('faz round-trip dos claims', () => {
     const t = signToken({ reportId: 'r1', userId: 'u1', canWrite: true }, 3600, SECRET);
     expect(verifyToken(t, SECRET)).toMatchObject({

@@ -17,7 +17,9 @@ import type {
   Issue,
   ExtractionResult,
   FieldValue,
+  NumberFormatMap,
 } from '../types';
+import { inferExcelDisplayDecimals } from '../number-format';
 import { coerceField, type RawCellValue } from './coerce';
 
 export function extract(
@@ -27,18 +29,19 @@ export function extract(
 ): ExtractionResult {
   const issues: Issue[] = [];
   const data: Record<string, FieldValue> = {};
+  const numberFormats: NumberFormatMap = {};
 
   // Aba do fingerprint: própria (v2) ou a aba única (v1).
   const fp = spec.source.fingerprint;
   const fpSheetName = sheetOf(fp.sheet, spec);
   if (!fpSheetName) {
     issues.push(sheetIssue('Spec sem aba para o fingerprint (defina sheet).'));
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
   const fpSheet = workbook.getWorksheet(fpSheetName);
   if (!fpSheet) {
     issues.push(sheetIssue(`Aba '${fpSheetName}' não encontrada na planilha.`));
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
 
   // Fingerprint (RF-09): confere o tipo da planilha.
@@ -52,13 +55,14 @@ export function extract(
       origin: 'extraction',
       message: `Planilha incompatível: esperado '${fp.expect}' na célula ${fp.cell}, encontrado '${fpStr || '(vazio)'}'.`,
     });
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
 
   const fields = collectFields(spec, variant);
 
-  // Todas as abas necessárias devem existir (RF-08 multi-aba). Uma aba ausente
-  // é bloqueante: emite um __sheet__ por aba faltante e aborta a extração.
+  // Todas as abas necessárias devem existir (RF-08 multi-aba). Uma aba só pode
+  // faltar quando todos os seus campos são opcionais e todas as tabelas nela
+  // definidas também são opcionais — caso da fase Intermediate do Draft Survey.
   const needed = new Set<string>();
   for (const [name, field] of fields) {
     const s = sheetOf(field.sheet, spec);
@@ -68,26 +72,56 @@ export function extract(
       needed.add(s);
     }
   }
-  if (issues.length > 0) return { data, tables: {}, issues };
+  if (issues.length > 0) return { data, numberFormats, tables: {}, issues };
   const missing = [...needed].filter((s) => !workbook.getWorksheet(s));
-  if (missing.length > 0) {
-    for (const s of missing) {
+  const optionalMissing = new Set(
+    missing.filter((sheet) => isOptionalSheet(sheet, fields, spec)),
+  );
+  const blockingMissing = missing.filter(
+    (sheet) => !optionalMissing.has(sheet),
+  );
+  if (blockingMissing.length > 0) {
+    for (const s of blockingMissing) {
       issues.push(sheetIssue(`Aba '${s}' não encontrada na planilha.`));
     }
-    return { data, tables: {}, issues };
+    return { data, numberFormats, tables: {}, issues };
   }
 
   const date1904 = Boolean(workbook.properties?.date1904);
 
   for (const [name, field] of fields) {
-    const ws = workbook.getWorksheet(sheetOf(field.sheet, spec) as string);
-    const raw = normalizeCell(ws!.getCell(field.cell).value);
+    const sheet = sheetOf(field.sheet, spec) as string;
+    const ws = workbook.getWorksheet(sheet);
+    if (!ws) {
+      // Campos de uma aba opcional ausente seguem o mesmo contrato de uma
+      // célula vazia: ficam nulos e não impedem a montagem do documento.
+      data[name] = null;
+      continue;
+    }
+    const resolved = resolveSourceCell(ws, field);
+    if (resolved.error) {
+      data[name] = null;
+      issues.push({
+        field: name,
+        cell: null,
+        level: 'error',
+        origin: 'extraction',
+        message: resolved.error,
+      });
+      continue;
+    }
+    const cell = ws.getCell(resolved.address);
+    const raw = normalizeWorksheetCell(cell);
     const res = coerceField(raw, field, { date1904 });
     data[name] = res.value;
+    if (field.type === 'number' && typeof res.value === 'number') {
+      const decimals = inferExcelDisplayDecimals(cell.numFmt, res.value);
+      if (decimals !== undefined) numberFormats[name] = decimals;
+    }
     if (res.error !== undefined) {
       issues.push({
         field: name,
-        cell: field.cell,
+        cell: resolved.address,
         level: 'error',
         origin: 'extraction',
         message: res.error,
@@ -97,16 +131,69 @@ export function extract(
 
   // Tabelas range-based (v2) — erros não bloqueiam os campos já extraídos.
   const { tables, issues: tableIssues } = extractTables(workbook, spec);
-  return { data, tables, issues: [...issues, ...tableIssues] };
+  return {
+    data,
+    numberFormats,
+    tables,
+    issues: [...issues, ...tableIssues],
+  };
+}
+
+function resolveSourceCell(
+  ws: ExcelJS.Worksheet,
+  field: FieldDef,
+): { address: string; error?: string } {
+  if (!field.row_anchor) return { address: field.cell };
+  const anchor = field.row_anchor;
+  const bounds = /^([A-Z]+)([1-9]\d*):\1([1-9]\d*)$/.exec(anchor.range);
+  const valueColumn = /^([A-Z]+)\d+$/.exec(field.cell)?.[1];
+  if (
+    !bounds ||
+    !valueColumn ||
+    Number(bounds[3]) < Number(bounds[2]) ||
+    Number(bounds[3]) - Number(bounds[2]) >= 100 ||
+    Number(bounds[3]) > 1048576 ||
+    !anchor.expect.trim() ||
+    anchor.aliases?.some((label) => !label.trim())
+  ) {
+    return {
+      address: field.cell,
+      error: `Campo '${field.label}': busca de rótulo inválida.`,
+    };
+  }
+  const rows: number[] = [];
+  const labels = new Set(
+    [anchor.expect, ...(anchor.aliases ?? [])].map((label) => label.trim()),
+  );
+  for (let row = Number(bounds[2]); row <= Number(bounds[3]); row++) {
+    const label = normalizeCell(ws.getCell(`${bounds[1]}${row}`).value);
+    if (typeof label === 'string' && labels.has(label.trim())) rows.push(row);
+  }
+  if (rows.length !== 1) {
+    return {
+      address: field.cell,
+      error: `Campo '${field.label}': rótulo '${anchor.expect}' ${rows.length === 0 ? 'ausente' : 'duplicado'} em ${ws.name}!${anchor.range}. Confira a planilha antes de preencher a revisão.`,
+    };
+  }
+  return { address: `${valueColumn}${rows[0]}` };
 }
 
 /** Aba efetiva de um item: a própria (v2) ou a aba única do spec (v1). */
-function sheetOf(own: string | undefined, spec: ReportSpec): string | undefined {
+function sheetOf(
+  own: string | undefined,
+  spec: ReportSpec,
+): string | undefined {
   return own ?? spec.source.sheet;
 }
 
 function sheetIssue(message: string): Issue {
-  return { field: '__sheet__', cell: null, level: 'error', origin: 'extraction', message };
+  return {
+    field: '__sheet__',
+    cell: null,
+    level: 'error',
+    origin: 'extraction',
+    message,
+  };
 }
 
 /**
@@ -161,6 +248,28 @@ export function collectFields(
   return entries;
 }
 
+/**
+ * Uma aba ausente é tolerável quando não possui campo obrigatório e todas as
+ * tabelas que a referenciam estão marcadas como opcionais no spec.
+ */
+function isOptionalSheet(
+  sheet: string,
+  fields: [string, FieldDef][],
+  spec: ReportSpec,
+): boolean {
+  const fieldsOnSheet = fields.filter(
+    ([, field]) => sheetOf(field.sheet, spec) === sheet,
+  );
+  const tablesOnSheet = (spec.source.tables ?? []).filter(
+    (table) => table.sheet === sheet,
+  );
+  return (
+    fieldsOnSheet.length > 0 &&
+    fieldsOnSheet.every(([, field]) => field.required !== true) &&
+    tablesOnSheet.every((table) => table.optional === true)
+  );
+}
+
 // ── Extração de tabelas range-based (v2, CA-010) ───────────────────────────
 
 /**
@@ -210,7 +319,7 @@ function extractTables(
     for (let r = startRow; r <= endRow; r++) {
       const row: FieldValue[] = [];
       for (let c = startCol; c <= endCol; c++) {
-        const raw = normalizeCell(ws.getCell(r, c).value);
+        const raw = normalizeWorksheetCell(ws.getCell(r, c));
         row.push(rawToFieldValue(raw));
       }
       matrix.push(row);
@@ -272,6 +381,19 @@ function parseRange(range: string): {
     endCol: end.col,
     endRow: end.row,
   };
+}
+
+/** ExcelJS omite resultados falsy em cell.value, mas preserva o cache em cell.result. */
+export function normalizeWorksheetCell(cell: ExcelJS.Cell): RawCellValue {
+  const value = cell.value;
+  if (
+    value &&
+    typeof value === 'object' &&
+    ('formula' in value || 'sharedFormula' in value)
+  ) {
+    return normalizeCell((cell.result ?? null) as ExcelJS.CellValue);
+  }
+  return normalizeCell(value);
 }
 
 /** Resolve o valor de uma célula do ExcelJS a um primitivo. */

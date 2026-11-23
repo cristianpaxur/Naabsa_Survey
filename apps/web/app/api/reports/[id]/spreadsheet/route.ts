@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
 import { transition } from '@/lib/state-machine';
-import { enqueueRenderSheets, enqueueAiReview } from '@/lib/queue';
+import { enqueueRenderSheets } from '@/lib/queue';
+import { requestAiReview } from '@/lib/request-ai-review';
 import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB (RF-04)
@@ -36,7 +37,10 @@ export async function POST(
   const rl = rateLimit(`spreadsheet:${user.id}`, 10, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
-      { error: 'Muitas requisições. Aguarde alguns instantes e tente novamente.' },
+      {
+        error:
+          'Muitas requisições. Aguarde alguns instantes e tente novamente.',
+      },
       { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
     );
   }
@@ -63,6 +67,7 @@ export async function POST(
     .from('reports')
     .select('id,status,variant,spec_id')
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
   const report = reportRow as {
     id: string;
@@ -103,7 +108,11 @@ export async function POST(
   // Variante AUTORITATIVA da planilha (spec resolve de Capa!L4). Persistida abaixo
   // para a coluna `variant` não ficar stale (UI/worker usam a mesma fonte).
   const resolvedVariant = resolveVariant(wb, spec).variant ?? report.variant;
-  const { data, issues } = runExtraction(wb, spec, resolvedVariant);
+  const { data, issues, numberFormats } = runExtraction(
+    wb,
+    spec,
+    resolvedVariant,
+  );
 
   // Erro de aba/fingerprint (RF-09): não persiste, mantém draft para novo upload.
   const blocking = issues.find(
@@ -135,6 +144,7 @@ export async function POST(
     .from('reports')
     .update({
       extracted_data: data,
+      extracted_number_formats: numberFormats,
       extraction_issues: issues,
       vessel_name: vessel,
       spreadsheet_path: path,
@@ -157,7 +167,12 @@ export async function POST(
     reportId: id,
     actor: null,
     action: 'extraction',
-    payload: { fields: Object.keys(data).length, errors, warnings },
+    payload: {
+      fields: Object.keys(data).length,
+      formattedFields: Object.keys(numberFormats).length,
+      errors,
+      warnings,
+    },
   });
   await transition(supabase, id, 'draft', 'extracted', user.id);
 
@@ -172,9 +187,9 @@ export async function POST(
 
   // Revisão por IA pós-extração (010/T-007) — no-op no worker se AI_ENABLED=off.
   try {
-    await enqueueAiReview({ reportId: id });
-  } catch (err) {
-    console.error('[spreadsheet] falha ao enfileirar ai_review:', err);
+    await requestAiReview(id);
+  } catch {
+    console.error('[spreadsheet] falha ao solicitar a revisão por IA.');
   }
 
   return NextResponse.json({ ok: true, reportId: id, errors, warnings });
