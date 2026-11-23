@@ -30,6 +30,7 @@
 | [018](./018-msc-client-feedback/spec.md) | Correções dos vídeos MSC de 14/10/2026: quantidades, fotos e Word | feedback do cliente | 🟢 Time log com bordas validado no PDF e 0028 corrigida | 21/21; aplicar 0028 corrigida e publicar o worker para novas montagens |
 | [019](./019-bqs/spec.md) | BQS: planilha e modelo Word | onboarding autorizado | 🟢 BQS v2 ativo; padrão MSC publicado e homologado | 14/14; ciclo nativo, WOPI real e PDF validados |
 | [020](./020-dynamic-toc/spec.md) | Índice com páginas atualizáveis | correção do feedback do cliente | 🟠 Código validado localmente | 4/5; homologação online pendente |
+| [021](./021-editor-page-numbering/spec.md) | Salvamento do Collabora e numeração após Contents | feedback do cliente | 🟠 Código e PDF validados localmente | 5/6; publicação e homologação online pendentes |
 
 ---
 

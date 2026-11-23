@@ -9,6 +9,26 @@ const PNG = Buffer.from(
   'base64',
 );
 
+it('reinicia a numeração em 1 após Contents e deixa a parte inicial sem rodapé numerado', async () => {
+  const docx = await buildReportDocxFromTemplate({
+    data: {}, variant: 'loading', logo: null, sheetImages: {}, phasePhotos: {}, acting: {},
+  });
+  const zip = new PizZip(docx);
+  const xml = zip.file('word/document.xml')!.asText();
+  const sections = xml.match(/<w:sectPr\b[^>]*>.*?<\/w:sectPr>/gs) ?? [];
+  expect(sections).toHaveLength(2);
+  expect(xml.indexOf(sections[0]!)).toBeLessThan(xml.indexOf('w:name="s1"'));
+  expect(sections[1]).toContain('<w:pgNumType w:start="1"/>');
+  expect(sections[1]).not.toContain('<w:titlePg');
+  const frontFooterId = /<w:footerReference\b[^>]*r:id="([^"]+)"/.exec(sections[0]!)?.[1];
+  const rels = zip.file('word/_rels/document.xml.rels')!.asText();
+  const rel = (rels.match(/<Relationship\b[^>]*\/>/g) ?? []).find((r) => r.includes(`Id="${frontFooterId}"`));
+  const target = /Target="([^"]+)"/.exec(rel ?? '')?.[1];
+  expect(target).toBeTruthy();
+  expect(zip.file(target!.startsWith('/') ? target!.slice(1) : `word/${target}`)!.asText()).not.toMatch(/<w:instrText[^>]*>\s*PAGE/);
+  expect(sections[1]).toContain('r:id="rId16"');
+});
+
 function documentText(docx: Buffer): string {
   const xml = new PizZip(docx).file('word/document.xml')!.asText();
   return [...xml.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/gs)]

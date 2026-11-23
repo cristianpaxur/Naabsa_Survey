@@ -10,6 +10,7 @@ import { ReportProgress } from '@/components/reports/ReportProgress';
 import { PreviewPanel } from './PreviewPanel';
 import { PreviewShell } from './PreviewShell';
 import { isCollaboraSaveSessionInvalid, requestCollaboraSave } from './collabora-save';
+import { waitForCollaboraReady } from './collabora-ready';
 
 /**
  * Tela 06 — Editor nativo Collabora (012/T-003). O canvas é o LibreOffice no
@@ -43,7 +44,8 @@ export function CollaboraEditor({
   const [saveReceipt, setSaveReceipt] = useState<string>();
   const savingRef = useRef(false);
   const saveAbort = useRef<AbortController | null>(null);
-  useEffect(() => () => saveAbort.current?.abort(), []);
+  const readyAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => { saveAbort.current?.abort(); readyAbort.current?.abort(); }, []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [needsReopen, setNeedsReopen] = useState(false);
   const [reopening, setReopening] = useState(false);
@@ -55,6 +57,7 @@ export function CollaboraEditor({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const load = useCallback(() => {
+    readyAbort.current?.abort();
     if (pollRef.current) clearTimeout(pollRef.current);
     setState('loading');
     setIframeReady(false);
@@ -93,20 +96,37 @@ export function CollaboraEditor({
     load();
     return () => {
       if (pollRef.current) clearTimeout(pollRef.current);
+      readyAbort.current?.abort();
     };
   }, [view, load]);
 
   // Habilita a comunicação postMessage com o Collabora (necessário p/ confirmar o save).
   const onIframeLoad = useCallback(() => {
     const win = iframeRef.current?.contentWindow;
-    if (url && win) win.postMessage(JSON.stringify({ MessageId: 'Host_PostmessageReady' }), new URL(url).origin);
-    setIframeReady(true);
-  }, [url]);
+    if (!url || !win) return;
+    readyAbort.current?.abort();
+    const controller = new AbortController();
+    readyAbort.current = controller;
+    setIframeReady(false);
+    setSaveError(null);
+    void waitForCollaboraReady(window, win, new URL(url).origin, controller.signal).then((permission) => {
+      if (controller.signal.aborted) return;
+      if (permission === 'readonly' && initialStatus === 'editing') {
+        setSaveError('O editor abriu em modo somente leitura. Reabra o editor para recuperar a edição.');
+        setNeedsReopen(true);
+        return;
+      }
+      setIframeReady(true);
+    }).catch((err: unknown) => {
+      if (controller.signal.aborted) return;
+      setSaveError(err instanceof Error ? err.message : 'Não foi possível comunicar com o editor.');
+    });
+  }, [url, initialStatus]);
 
   const saveAndThen = useCallback(async (next: () => void) => {
     if (savingRef.current || needsReopen) return;
     const win = iframeRef.current?.contentWindow;
-    if (!url || !win) { setSaveError('O editor ainda não está disponível.'); return; }
+    if (!url || !win || !iframeReady) { setSaveError('O editor ainda não está disponível.'); return; }
     if (initialStatus !== 'editing') { next(); return; }
     savingRef.current = true;
     setSaving(true);
@@ -130,7 +150,7 @@ export function CollaboraEditor({
       savingRef.current = false;
       if (!controller.signal.aborted) setSaving(false);
     }
-  }, [url, reportId, initialStatus, needsReopen]);
+  }, [url, reportId, initialStatus, needsReopen, iframeReady]);
 
   const goBackToPhotos = useCallback(() => {
     setReturningToPhotos(true);
@@ -217,6 +237,11 @@ export function CollaboraEditor({
           style={{ background: '#fbeceb', color: '#9b2a2c', padding: '8px 24px', fontSize: 13 }}
         >
           {saveError}
+          {!iframeReady && !needsReopen && (
+            <button className="ed-btn" style={{ marginLeft: 12 }} onClick={onIframeLoad}>
+              Tentar conexão
+            </button>
+          )}
           {needsReopen && (
             <>
               {' '}Antes de reabrir, copie qualquer texto que queira preservar. Alterações sem confirmação podem não ter sido gravadas.

@@ -15,6 +15,7 @@ vi.mock('@naabsa/core/docx-toc', () => ({
   enableDynamicToc: (body: Buffer) => body.toString() === 'LEGACY EDITED DOCX'
     ? Buffer.from('EDITED DOCX WITH PAGE FIELDS') : body,
 }));
+vi.mock('@naabsa/core/docx-page-numbering', () => ({ restartDraftSurveyPageNumbers: (body: Buffer) => body }));
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }));
 vi.mock('@/lib/wopi/token', () => ({ signToken: () => 'token', WOPI_TOKEN_TTL_SECONDS: 10 * 60 * 60 }));
 vi.mock('@/lib/wopi/discovery', () => ({ getEditorUrlSrc: async () => 'https://office.test/edit?' }));

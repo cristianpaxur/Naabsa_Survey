@@ -1,6 +1,7 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { enableDynamicToc } from '@naabsa/core/docx-toc';
+import { restartDraftSurveyPageNumbers } from '@naabsa/core/docx-page-numbering';
 import type { ServerClient } from './supabase/server';
 import { createServiceClient } from './supabase/service';
 import { currentLock, type WopiReport } from './wopi/lock';
@@ -33,7 +34,7 @@ export async function prepareWorkingToc(
       'Não foi possível preparar o índice do documento. Tente abrir novamente.',
     );
   const original = Buffer.from(await source.data.arrayBuffer());
-  const updated = enableDynamicToc(original);
+  const updated = enableDynamicToc(restartDraftSurveyPageNumbers(original));
   if (updated === original) return;
   if (report.working_docx_revision === undefined)
     throw new Error('Revisão do documento indisponível.');

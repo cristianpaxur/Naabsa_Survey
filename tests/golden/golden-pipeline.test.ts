@@ -115,9 +115,15 @@ describe('Golden DOCX — planilhas reais e builders atuais', () => {
         ),
       ).toHaveLength(6);
       expect(documentXml).toContain('<w:pgSz');
-      expect(documentXml.match(/<w:sectPr[\s\S]*?<\/w:sectPr>/)?.[0]).toBe(
-        sourceDocumentXml.match(/<w:sectPr[\s\S]*?<\/w:sectPr>/)?.[0],
-      );
+      const sections = documentXml.match(/<w:sectPr[\s\S]*?<\/w:sectPr>/g) ?? [];
+      expect(sections).toHaveLength(2);
+      for (const section of sections) {
+        for (const property of ['pgSz', 'pgMar', 'cols', 'docGrid']) {
+          const pattern = new RegExp(`<w:${property}\\b[^>]*/>`);
+          expect(section.match(pattern)?.[0]).toBe(sourceDocumentXml.match(pattern)?.[0]);
+        }
+      }
+      expect(sections[1]).toContain('<w:pgNumType w:start="1"/>');
       expect(documentXml.match(/<w:tbl>/g) ?? []).toHaveLength(6);
       expect(documentXml).not.toMatch(
         /<w:highlight\b|EE0000|00B050|E36C0A|F79646|00B0F0|FFC000/,
