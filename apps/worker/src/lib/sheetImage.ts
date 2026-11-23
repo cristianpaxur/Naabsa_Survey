@@ -173,6 +173,44 @@ export function applyLineFreePrintStyle(target: ExcelJS.Worksheet): void {
   }
 }
 
+/** Keep the phase header consistent with the dates and local times in Excel. */
+export function applyDraftSurveyHeaderPrintStyle(target: ExcelJS.Worksheet): void {
+  const headerRow = [7, 5].find(
+    (row) => target.getCell(`B${row}`).text.trim().toUpperCase() === 'DATE',
+  );
+  if (headerRow === undefined) return;
+
+  // Legacy sheets merge the date cells. Newer sheets have separate dates.
+  for (const column of ['C', 'D', 'E']) {
+    const cell = target.getCell(`${column}${headerRow}`).master;
+    cell.style = { ...cell.style, numFmt: 'dd"/"mm"/"yyyy' };
+  }
+
+  const epoch = target.workbook.properties.date1904
+    ? Date.UTC(1904, 0, 1)
+    : Date.UTC(1899, 11, 30);
+  // Subtract in milliseconds before dividing. ExcelJS subtracts in days,
+  // which can put an exact time just below Calc's minute boundary.
+  const toSerial = (date: Date) => (date.getTime() - epoch) / 86_400_000;
+  for (const column of ['G', 'H']) {
+    const cell = target.getCell(`${column}${headerRow}`).master;
+    cell.style = { ...cell.style, numFmt: 'hh:mm' };
+    const value = cell.value;
+    const result = cell.result;
+    if (value instanceof Date && Number.isFinite(value.getTime())) {
+      cell.value = toSerial(value);
+    } else if (
+      value &&
+      typeof value === 'object' &&
+      ('formula' in value || 'sharedFormula' in value) &&
+      result instanceof Date &&
+      Number.isFinite(result.getTime())
+    ) {
+      cell.value = { ...value, result: toSerial(result) };
+    }
+  }
+}
+
 /**
  * Converte a aba `sheetName` do workbook em PNG recortado. Lança se a aba não
  * existir ou se o LibreOffice falhar.
@@ -199,6 +237,7 @@ export async function renderSheetPng(
     ws.state = ws.name === sheetName ? 'visible' : 'hidden';
   }
   applyLineFreePrintStyle(target);
+  applyDraftSurveyHeaderPrintStyle(target);
 
   // A aba de cálculo tem 4 blocos lado a lado (Draft Survey, Displacement,
   // Ballast Water, Fresh Water/Bunker). Renderiza em paisagem com

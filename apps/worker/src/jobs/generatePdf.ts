@@ -22,6 +22,9 @@ import {
   resolveVariant,
   normalizeCell,
   coerceField,
+  DRAFT_SURVEY_SHEET_PHASES,
+  draftSurveySheetImagePath,
+  type DraftSurveySheetPhase as SheetPhase,
   type ReportSpec,
   type FieldValue,
   type NumberFormatMap,
@@ -57,7 +60,6 @@ export const GENERATE_PDF_RETRY_LIMIT = 2;
 export const GENERATE_PDF_TIMEOUT_S = 300;
 
 const BUCKET = 'reports';
-type SheetPhase = 'initial' | 'intermediate' | 'final';
 
 export function missingRequiredSheetPhases(
   images: Record<SheetPhase, Buffer | null>,
@@ -543,8 +545,8 @@ export async function buildWorkingDocx(
   // Prints das abas (render_sheets) + fotos por slot (com crop).
   // Fallback: se algum PNG ainda não foi gerado pelo job render_sheets, renderiza
   // inline para garantir que a imagem apareça no docx.
-  const sheetImagePath = (phase: 'initial' | 'intermediate' | 'final') =>
-    `${reportId}/sheets/${phase}.png`;
+  const sheetImagePath = (phase: SheetPhase) =>
+    draftSurveySheetImagePath(reportId, phase);
   const sheetImages: {
     initial: Buffer | null;
     intermediate: Buffer | null;
@@ -578,7 +580,7 @@ export async function buildWorkingDocx(
   }
   const hasIntermediate =
     data['intermediate_date'] != null && data['intermediate_date'] !== '';
-  for (const phase of ['initial', 'intermediate', 'final'] as const) {
+  for (const phase of DRAFT_SURVEY_SHEET_PHASES) {
     if (sheetImages[phase]) continue; // já existe
     if (phase === 'intermediate' && !hasIntermediate) continue; // fase ausente
     const sheet = phaseMap[phase];

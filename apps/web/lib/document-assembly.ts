@@ -6,6 +6,8 @@ import {
   resolveFieldValue,
   resolveDisplayDecimals,
   runExtraction,
+  DRAFT_SURVEY_SHEET_PHASES,
+  draftSurveySheetImagePath,
   type ReportSpec,
   type FieldValue,
   type TipTapDoc,
@@ -88,7 +90,7 @@ export interface AssembleInput {
 
 /**
  * Caminhos das imagens das abas da planilha (print pixel-perfeito) por fase,
- * geradas pelo worker (`render_sheets`) em `reports/{id}/sheets/{phase}.png`.
+ * geradas pelo worker (`render_sheets`) em `reports/{id}/sheets/`.
  * Retorna null por fase ausente — o builder cai nas grades nativas.
  */
 async function loadSheetImages(
@@ -98,9 +100,9 @@ async function loadSheetImages(
   try {
     const svc = createServiceClient();
     const { data } = await svc.storage.from('reports').list(`${reportId}/sheets`);
-    for (const f of data ?? []) {
-      const phase = f.name.replace(/\.png$/i, '');
-      if (phase in out) out[phase] = `${reportId}/sheets/${f.name}`;
+    for (const phase of DRAFT_SURVEY_SHEET_PHASES) {
+      const path = draftSurveySheetImagePath(reportId, phase);
+      if (data?.some((file) => path.endsWith(`/${file.name}`))) out[phase] = path;
     }
   } catch {
     /* sem imagens — usa grades nativas */

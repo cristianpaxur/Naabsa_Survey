@@ -11,6 +11,7 @@ import PizZip from 'pizzip';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as mscBuilder from '../lib/buildDocxMsc';
+import * as sheetImage from '../lib/sheetImage';
 import {
   buildWorkingDocx,
   loadReport,
@@ -206,7 +207,7 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
     expect(built.data['initial_end']).toBe('10:20');
   });
 
-  it('atualiza um horário extraído antigo com o valor atual da planilha quando não há override', async () => {
+  it('atualiza o horário extraído antigo e renderiza novos prints a partir da planilha original', async () => {
     const spreadsheet = readFileSync(
       new URL(
         '../../../../tests/fixtures/planilhas/draft_survey/draft_survey.real.v1.xlsx',
@@ -226,6 +227,20 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lW8UqAAAAABJRU5ErkJggg==',
       'base64',
     );
+    const render = vi
+      .spyOn(sheetImage, 'renderSheetPng')
+      .mockResolvedValue(png);
+    const oldImages = ['r1/sheets/initial.png', 'r1/sheets/final.png'];
+    const download = vi.fn(async (path: string) => {
+      if (path === 'original.xlsx') {
+        return { data: { arrayBuffer: async () => spreadsheet }, error: null };
+      }
+      if (oldImages.includes(path)) {
+        return { data: { arrayBuffer: async () => png }, error: null };
+      }
+      return { data: null, error: { message: 'not found' } };
+    });
+    const upload = vi.fn(async () => ({ error: null }));
     const stored = {
       status: 'editing',
       working_docx_path: null,
@@ -275,15 +290,7 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
         return query;
       },
       storage: {
-        from: () => ({
-          download: async (path: string) => ({
-            data: {
-              arrayBuffer: async () =>
-                path === 'original.xlsx' ? spreadsheet : png,
-            },
-            error: null,
-          }),
-        }),
+        from: () => ({ download, upload }),
       },
     };
 
@@ -292,6 +299,25 @@ describe('precisão efetiva na montagem usada por working DOCX e PDF', () => {
 
     expect(built.data['initial_start']).toBe('07:55');
     expect(built.data['initial_end']).toBe('10:00');
+    expect(render.mock.calls.map(([, sheet]) => sheet)).toEqual([
+      'Inicial',
+      'final',
+    ]);
+    const requestedPaths = download.mock.calls.map(([path]) => path);
+    for (const path of oldImages) expect(requestedPaths).not.toContain(path);
+    expect(upload.mock.calls).toEqual([
+      [
+        'r1/sheets/initial-v2.png',
+        png,
+        { contentType: 'image/png', upsert: true },
+      ],
+      [
+        'r1/sheets/final-v2.png',
+        png,
+        { contentType: 'image/png', upsert: true },
+      ],
+    ]);
+    render.mockRestore();
   });
 
   it.each(['draft_survey', 'msc'])(

@@ -1,5 +1,6 @@
 'use server';
 
+import { DRAFT_SURVEY_SHEET_PHASES, draftSurveySheetImagePath } from '@naabsa/core';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { audit } from '@/lib/audit';
@@ -277,6 +278,9 @@ export async function resetToDraft(reportId: string): Promise<ActionResult> {
     .remove([
       `${reportId}/working.docx`,
       `${reportId}/preview.pdf`,
+      ...DRAFT_SURVEY_SHEET_PHASES.map((phase) =>
+        draftSurveySheetImagePath(reportId, phase),
+      ),
       `${reportId}/sheets/initial.png`,
       `${reportId}/sheets/intermediate.png`,
       `${reportId}/sheets/final.png`,
